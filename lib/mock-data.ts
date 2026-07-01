@@ -212,7 +212,15 @@ export const VISA_STATUSES = [
   'Travel Ready',
 ] as const
 
-const STAFF_MEMBERS = ['Sarah Johnson', 'Michael Chen', 'Emily Rodriguez', 'James Wilson']
+const OPERATIONS_STAFF_MEMBERS = ['Olivia Carter', 'Daniel Brooks', 'Priya Shah', 'Noah Bennett']
+const COUNSELOR_MEMBERS = ['Sarah Johnson', 'Michael Chen', 'Emily Rodriguez', 'James Wilson']
+const ACTIONABLE_TASK_STATUSES: Task['status'][] = ['Pending', 'In Progress', 'Waiting']
+const ACTIONABLE_DOCUMENT_STATUSES: DocumentRecord['status'][] = [
+  'Missing',
+  'Uploaded',
+  'Under Review',
+  'Resubmission Required',
+]
 
 const UNIVERSITIES = [
   'Oxford University',
@@ -249,10 +257,10 @@ export const mockStudents: Student[] = [
     university: 'Oxford University',
     intake: 'Fall 2024',
     admissionStage: 'Accepted',
-    assignedStaff: 'Sarah Johnson',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[0],
     priority: 'High',
     registrationDate: new Date('2024-01-15'),
-    assignedCounselor: 'Sarah Johnson',
+    assignedCounselor: COUNSELOR_MEMBERS[0],
     personalInfo: {
       dateOfBirth: '2001-05-20',
       nationality: 'Indian',
@@ -275,10 +283,10 @@ export const mockStudents: Student[] = [
     university: 'Cambridge University',
     intake: 'Spring 2025',
     admissionStage: 'Interview',
-    assignedStaff: 'Michael Chen',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[1],
     priority: 'High',
     registrationDate: new Date('2024-02-10'),
-    assignedCounselor: 'Michael Chen',
+    assignedCounselor: COUNSELOR_MEMBERS[1],
     personalInfo: {
       dateOfBirth: '2002-08-10',
       nationality: 'American',
@@ -301,10 +309,10 @@ export const mockStudents: Student[] = [
     university: 'Harvard University',
     intake: 'Fall 2024',
     admissionStage: 'Under Review',
-    assignedStaff: 'Emily Rodriguez',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[2],
     priority: 'Medium',
     registrationDate: new Date('2024-01-20'),
-    assignedCounselor: 'Emily Rodriguez',
+    assignedCounselor: COUNSELOR_MEMBERS[2],
     personalInfo: {
       dateOfBirth: '2001-12-05',
       nationality: 'Japanese',
@@ -327,10 +335,10 @@ export const mockStudents: Student[] = [
     university: 'MIT',
     intake: 'Fall 2024',
     admissionStage: 'Applied',
-    assignedStaff: 'James Wilson',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[3],
     priority: 'Medium',
     registrationDate: new Date('2024-03-05'),
-    assignedCounselor: 'James Wilson',
+    assignedCounselor: COUNSELOR_MEMBERS[3],
     personalInfo: {
       dateOfBirth: '2002-03-15',
       nationality: 'Irish',
@@ -353,10 +361,10 @@ export const mockStudents: Student[] = [
     university: 'Stanford University',
     intake: 'Spring 2025',
     admissionStage: 'Accepted',
-    assignedStaff: 'Sarah Johnson',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[0],
     priority: 'Low',
     registrationDate: new Date('2024-02-28'),
-    assignedCounselor: 'Sarah Johnson',
+    assignedCounselor: COUNSELOR_MEMBERS[0],
     personalInfo: {
       dateOfBirth: '2001-07-22',
       nationality: 'German',
@@ -379,10 +387,10 @@ export const mockStudents: Student[] = [
     university: 'Yale University',
     intake: 'Fall 2024',
     admissionStage: 'Enrolled',
-    assignedStaff: 'Michael Chen',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[1],
     priority: 'Low',
     registrationDate: new Date('2024-01-08'),
-    assignedCounselor: 'Michael Chen',
+    assignedCounselor: COUNSELOR_MEMBERS[1],
   },
   {
     id: '7',
@@ -394,10 +402,10 @@ export const mockStudents: Student[] = [
     university: 'Princeton University',
     intake: 'Spring 2025',
     admissionStage: 'Rejected',
-    assignedStaff: 'Emily Rodriguez',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[2],
     priority: 'Low',
     registrationDate: new Date('2024-03-12'),
-    assignedCounselor: 'Emily Rodriguez',
+    assignedCounselor: COUNSELOR_MEMBERS[2],
   },
   {
     id: '8',
@@ -409,10 +417,10 @@ export const mockStudents: Student[] = [
     university: 'University of Chicago',
     intake: 'Fall 2024',
     admissionStage: 'Interview',
-    assignedStaff: 'James Wilson',
+    assignedStaff: OPERATIONS_STAFF_MEMBERS[3],
     priority: 'High',
     registrationDate: new Date('2024-02-15'),
-    assignedCounselor: 'James Wilson',
+    assignedCounselor: COUNSELOR_MEMBERS[3],
   },
 ]
 
@@ -822,7 +830,7 @@ export function getTasksDueToday(): Task[] {
   return mockTasks.filter((t) => {
     const dueDate = new Date(t.dueDate)
     dueDate.setHours(0, 0, 0, 0)
-    return dueDate.getTime() === today.getTime() && t.status !== 'Completed'
+    return dueDate.getTime() === today.getTime() && ACTIONABLE_TASK_STATUSES.includes(t.status)
   })
 }
 
@@ -832,12 +840,16 @@ export function getOverdueTasks(): Task[] {
   return mockTasks.filter((t) => {
     const dueDate = new Date(t.dueDate)
     dueDate.setHours(0, 0, 0, 0)
-    return dueDate.getTime() < today.getTime() && t.status !== 'Completed'
+    return dueDate.getTime() < today.getTime() && ACTIONABLE_TASK_STATUSES.includes(t.status)
   })
 }
 
 export function getPendingDocuments(): number {
-  return mockDocuments.filter((document) => document.status !== 'Verified').length
+  return mockDocuments.filter((document) => ACTIONABLE_DOCUMENT_STATUSES.includes(document.status)).length
+}
+
+export function getPendingTasks(): Task[] {
+  return mockTasks.filter((task) => ACTIONABLE_TASK_STATUSES.includes(task.status))
 }
 
 export function getPendingApplications(): number {

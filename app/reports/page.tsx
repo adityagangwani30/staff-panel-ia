@@ -1,7 +1,7 @@
 'use client'
 
 import { AppLayout } from '@/components/app-shell/layout'
-import { getReportsData, mockApplications, mockPayments, mockTasks } from '@/lib/mock-data'
+import { getPendingTasks, getReportsData, mockApplications, mockPayments } from '@/lib/mock-data'
 import { CheckCircle2, Clock, Download, DollarSign, TrendingUp, Users } from 'lucide-react'
 import { useState } from 'react'
 
@@ -50,7 +50,7 @@ export default function ReportsPage() {
     value: count as number,
   }))
 
-  const pendingTasks = mockTasks.filter((t) => t.status !== 'Completed').slice(0, 8)
+  const pendingTasks = getPendingTasks().slice(0, 8)
   const pendingPayments = mockPayments.filter((p) => p.status === 'Pending').length
 
   return (
