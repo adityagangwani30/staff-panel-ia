@@ -102,7 +102,31 @@
   - Current state: roles are shown in mock staff data, but permissions are not enforced in the UI.
   - PRD reference: section 7.
 
-### Data Mismatch Resolved
+### Bugfix Audit (2026-07-01)
+
+### Bug 1 — Assigned Staff vs Assigned Counselor duplication
+
+**Step 1 Verification:** NOT reproducible in the original form described. The mock data (`lib/mock-data.ts:215-216`) already had two distinct pools:
+- `OPERATIONS_STAFF_MEMBERS`: Olivia Carter, Daniel Brooks, Priya Shah, Noah Bennett
+- `COUNSELOR_MEMBERS`: Sarah Johnson, Michael Chen, Emily Rodriguez, James Wilson
+
+Every student independently reads `assignedStaff` from the operations pool and `assignedCounselor` from the counselor pool. The render layer (Students table, Student Profile) correctly reads separate fields.
+
+**Root cause found in render layer:** The bulk reassign action (`app/students/page.tsx:74`) was overwriting BOTH `assignedStaff` and `assignedCounselor` to the same operations staff name. Fixed by removing the `assignedCounselor: actionData` assignment — bulk reassign now only updates the staff assignment, leaving the counselor unchanged.
+
+**Trace confirmation (5 students):** Arjun Patel (Olivia Carter / Sarah Johnson) ✓, Emma Wilson (Daniel Brooks / Michael Chen) ✓, Yuki Tanaka (Priya Shah / Emily Rodriguez) ✓, Liam O'Connor (Noah Bennett / James Wilson) ✓, Sofia Mueller (Olivia Carter / Sarah Johnson) ✓.
+
+### Bug 2 — Reports "Pending Work Overview" includes Cancelled tasks
+
+**Step 1 Verification:** NOT reproducible. `getPendingTasks()` (`lib/mock-data.ts:851-853`) uses `ACTIONABLE_TASK_STATUSES = ['Pending', 'In Progress', 'Waiting']` (line 217), which explicitly excludes both `Completed` and `Cancelled`. All other "pending" widgets on Dashboard and Reports pages (`getTasksDueToday`, `getOverdueTasks`, `getPendingDocuments`, `getPendingApplications`) were also verified to use correct filter logic that excludes terminal/negative statuses.
+
+**No code changes needed.** The filter logic was already correct. Manual trace: `getPendingTasks()` returns [task-1 (Pending), task-2 (In Progress), task-3 (Waiting)]; task-4 (Cancelled) and task-5 (Completed) are correctly excluded.
+
+### Build Verification
+- TypeScript check (`npx tsc --noEmit`): passes.
+- Production build (`npm run build`): ✓ Compiled successfully.
+
+## Data Mismatch Resolved
 
 - Task statuses now include `Pending`, `In Progress`, `Waiting`, `Completed`, `Cancelled`.
 - Task priorities now include `Low`, `Medium`, `High`, `Critical`.

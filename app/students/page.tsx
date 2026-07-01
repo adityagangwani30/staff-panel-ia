@@ -71,7 +71,7 @@ export default function StudentsPage() {
       setStudents((current) =>
         current.map((student) =>
           selectedIds.has(student.id)
-            ? { ...student, assignedStaff: actionData, assignedCounselor: actionData }
+            ? { ...student, assignedStaff: actionData }
             : student,
         ),
       )
