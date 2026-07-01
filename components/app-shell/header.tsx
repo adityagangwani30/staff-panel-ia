@@ -3,7 +3,6 @@
 import { Search, Bell, LogOut, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { mockNotifications } from '@/lib/mock-data'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export function Header() {
