@@ -47,6 +47,84 @@ const fmt = {
   dateFull(d) { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
 };
 
+// Metric Definitions for Tooltips
+const METRIC_DEFS = {
+  // KPIs
+  'total-assigned': 'Total number of leads assigned within the selected scope.',
+  'contacted': 'Leads that have been contacted (have a recorded first contact date).',
+  'calls': 'Total number of telephone calls completed with leads.',
+  'whatsapp': 'Total number of WhatsApp messages exchanged with leads.',
+  'followups-completed': 'Total number of scheduled follow-ups successfully marked as completed.',
+  'pending-followups': 'Number of follow-ups that are yet to be completed.',
+  'avg-response': 'Average time taken by a counsellor to make the first contact with a lead.',
+  'conversion-rate': 'Percentage of assigned leads that have been successfully converted.',
+  'team-members': 'Number of active counselors in the team.',
+  'avg-workload': 'Average number of leads assigned per counselor.',
+  'followup-compliance': 'Percentage of follow-ups completed on time.',
+  'team-avg-response': 'Average time taken by team members to contact leads.',
+  'overdue-followups': 'Number of follow-ups that have passed their scheduled date without completion.',
+  'total-source-volume': 'Total volume of leads generated across all active sources.',
+  'top-conversion-channel': 'Acquisition channel with the highest lead-to-admit conversion rate.',
+  'blended-quality': 'Aggregated quality score of leads across all active sources.',
+  'leading-volume-generator': 'Acquisition channel that generated the highest number of leads.',
+  'total-leads-managed': 'Total number of leads managed at the organizational level.',
+  'admissions-achieved': 'Total number of leads successfully converted (admitted).',
+  'blended-conversion-rate': 'Overall lead-to-admit conversion efficiency across the company.',
+  'sla-response-compliance': 'Percentage of leads contacted within the 24-hour SLA window.',
+  'avg-lead-aging': 'Average number of days a lead has remained active since it was assigned.',
+  'applications-submitted': 'Total number of student applications submitted to universities.',
+  'visas-filed': 'Total number of visa applications filed.',
+
+  // Charts
+  'chart-daily-activity': 'Daily volume of assigned vs converted leads over the last 14 days.',
+  'chart-funnel-dist': 'Distribution of leads across current funnel statuses.',
+  'chart-weekly-flow': 'Weekly comparison of assigned vs converted leads over the last 8 weeks.',
+  'chart-funnel-progression': 'Cumulative conversion funnel progression from new leads to admissions.',
+  'chart-monthly-lead-flow': 'Monthly trend of assigned vs converted leads over the last 6 months.',
+  'chart-top-counsellors': 'Counsellors with the highest conversion numbers in scope.',
+  'chart-counsellor-metrics': 'Individual performance metrics of counselors in scope.',
+  'chart-workload-status': 'Workload status breakdown per counselor.',
+  'chart-followup-compliance-breakdown': 'Breakdown of completed, pending, and overdue follow-ups.',
+  'chart-response-latency-trends': 'Weekly trend of team average response latency.',
+  'chart-overdue-followups-heatmap': 'Heatmap of overdue follow-ups by branch and day of the week.',
+  'chart-overdue-followups-action': 'List of urgent follow-ups overdue for immediate action.',
+  'chart-branch-admission-output': 'Comparison of assigned vs converted leads by branch office.',
+  'chart-lead-share-by-branch': 'Percentage share of total leads across branch offices.',
+  'chart-monthly-lead-growth': 'Monthly lead volume growth trends for the top 3 branches.',
+  'chart-branch-operational-ranking': 'Operational performance and efficiency metrics of branch offices.',
+  'chart-source-admission-volumetrics': 'Total lead volume generated per acquisition source.',
+  'chart-source-efficiency-metrics': 'Assigned vs converted leads comparison by acquisition source.',
+  'chart-conversion-efficiency-trends': 'Monthly conversion rate trend by acquisition source.',
+  'chart-lead-quality-score-by-channel': 'Lead Quality Score based on conversion, SLA, and qualification progression.',
+  'chart-lead-acquisition-performance': 'Acquisition channel performance metrics sorted by volume.',
+  'chart-admissions-conversion-funnel': 'Stage-by-stage distribution of converted leads.',
+  'chart-branch-admissions-performance': 'Admissions output comparison by branch.',
+  'chart-blended-conversion-trends': '6-month historic lead-to-admit conversion rate trend.',
+  'chart-active-pipeline-stages': 'Pipeline stage breakdown of all currently active cases.',
+  'chart-admissions-pipeline-aging': 'Days elapsed since case assignment for open leads.',
+  'chart-sla-compliance-response-latency': 'SLA compliance rate compared with average response latency.',
+  'chart-mom-lead-volume-growth': 'Month-over-month lead volume growth percentage.',
+  'chart-daily-counselor-activity-logs': 'Counsellor actions logged daily (calls, WhatsApp, emails).',
+  'chart-counsellor-leaderboard': 'Leaderboard of top performing counselors.',
+  'chart-operational-insights-anomalies': 'Automated insights and anomaly alerts.',
+  'chart-whatsapp-vs-calls-log-trend': 'Weekly calls logged vs WhatsApp messages exchanged.',
+  'chart-preferred-country-distribution': 'Leads distribution by preferred destination country.',
+  'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
+  'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.'
+};
+
+function tooltipHtml(key) {
+  const definition = METRIC_DEFS[key];
+  if (!definition) return '';
+  return `
+    <span class="tooltip-wrap">
+      <span class="info-btn" data-tooltip-key="${key}">
+        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      </span>
+      <span class="tooltip-bubble">${escapeHtml(definition)}</span>
+    </span>`;
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -429,6 +507,7 @@ function kpiCardHtml(id, label, target, opts = {}) {
   const trend = opts.trend;
   const sub = opts.sub || '';
   const attrs = `data-target="${target}"${opts.isPct ? ' data-ispct="1"' : ''}${opts.decimals != null ? ` data-decimals="${opts.decimals}"` : ''}`;
+  const tooltip = opts.tooltipKey ? tooltipHtml(opts.tooltipKey) : '';
   
   return `
     <div class="kpi-card">
@@ -436,7 +515,7 @@ function kpiCardHtml(id, label, target, opts = {}) {
         <div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>
         ${opts.badge ? `<span class="card-tag">${opts.badge}</span>` : ''}
       </div>
-      <div class="kpi-label">${label}${opts.tooltip ? ` <span class="tooltip-wrap"><span class="info-dot">i</span><span class="ttip">${opts.tooltip}</span></span>` : ''}</div>
+      <div class="kpi-label">${label}${tooltip}</div>
       <div class="kpi-value" id="${id}" ${attrs}>0</div>
       <div class="kpi-trend-row">
         ${trend ? `<span class="kpi-trend ${trend.dir}">${trend.dir === 'up' ? '▲' : trend.dir === 'down' ? '▼' : '—'} ${trend.text}</span>` : ''}
@@ -445,12 +524,13 @@ function kpiCardHtml(id, label, target, opts = {}) {
     </div>`;
 }
 
-function cardHtml(title, sub, bodyHtml, wide = false) {
+function cardHtml(title, sub, bodyHtml, wide = false, tooltipKey = null) {
+  const tooltip = tooltipKey ? tooltipHtml(tooltipKey) : '';
   return `
     <div class="card" ${wide ? 'style="margin-bottom:12px"' : ''}>
       <div class="card-head">
         <div>
-          <div class="card-title">${title}</div>
+          <div class="card-title">${title}${tooltip}</div>
           <div class="card-sub">${sub}</div>
         </div>
       </div>
@@ -458,10 +538,11 @@ function cardHtml(title, sub, bodyHtml, wide = false) {
     </div>`;
 }
 
-function summaryCardHtml(label, value, bg, sub) {
+function summaryCardHtml(label, value, bg, sub, tooltipKey = null) {
+  const tooltip = tooltipKey ? tooltipHtml(tooltipKey) : '';
   return `
     <div class="summary-card" style="background:${bg}">
-      <h3>${label}</h3>
+      <h3>${label}${tooltip}</h3>
       <div class="sv">${value}</div>
       <div class="ss">${sub}</div>
     </div>`;
@@ -562,30 +643,30 @@ function renderCounsellorTab() {
   const trend = { dir: 'up', text: '+3.5% vs prev month' };
 
   const kpis = 
-    kpiCardHtml('k-c-assigned', 'Total Leads Assigned', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), trend: trend }) +
-    kpiCardHtml('k-c-contacted', 'Leads Contacted', Calc.contacted(leads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(leads)) + ' contact rate' }) +
-    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconCall(), sub: `Avg calls/conv: ${Calc.avgCallsPerConversion(leads).toFixed(1)}` }) +
-    kpiCardHtml('k-c-whatsapp', 'WhatsApp Chats Logged', leads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage() }) +
-    kpiCardHtml('k-c-fu', 'Follow-ups Completed', Calc.followupsCompleted(leads), { color: 'teal', icon: iconCheck(), sub: `Avg FUs/conv: ${Calc.avgFollowupsPerConversion(leads).toFixed(1)}` }) +
-    kpiCardHtml('k-c-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'danger', icon: iconAlert(), sub: `${Calc.overdueFollowups(leads).length} overdue` }) +
-    kpiCardHtml('k-c-resp', 'Avg Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA compliance' }) +
-    kpiCardHtml('k-c-aging', 'Lead Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: `Avg aging: ${Calc.avgLeadAging(leads).toFixed(0)} days` });
+    kpiCardHtml('k-c-assigned', 'Total Leads Assigned', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), trend: trend, tooltipKey: 'total-assigned' }) +
+    kpiCardHtml('k-c-contacted', 'Leads Contacted', Calc.contacted(leads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(leads)) + ' contact rate', tooltipKey: 'contacted' }) +
+    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconCall(), sub: `Avg calls/conv: ${Calc.avgCallsPerConversion(leads).toFixed(1)}`, tooltipKey: 'calls' }) +
+    kpiCardHtml('k-c-whatsapp', 'WhatsApp Chats Logged', leads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
+    kpiCardHtml('k-c-fu', 'Follow-ups Completed', Calc.followupsCompleted(leads), { color: 'teal', icon: iconCheck(), sub: `Avg FUs/conv: ${Calc.avgFollowupsPerConversion(leads).toFixed(1)}`, tooltipKey: 'followups-completed' }) +
+    kpiCardHtml('k-c-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'danger', icon: iconAlert(), sub: `${Calc.overdueFollowups(leads).length} overdue`, tooltipKey: 'pending-followups' }) +
+    kpiCardHtml('k-c-resp', 'Avg Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA compliance', tooltipKey: 'avg-response' }) +
+    kpiCardHtml('k-c-aging', 'Lead Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: `Avg aging: ${Calc.avgLeadAging(leads).toFixed(0)} days`, tooltipKey: 'conversion-rate' });
 
   panel.innerHTML = `
     <div class="kpi-grid">${kpis}</div>
     <div class="grid-2">
-      ${cardHtml('Daily Activity Volume', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-c-daily"></canvas></div>')}
-      ${cardHtml('Admission Funnel Distribution', 'Current mix across candidate funnel stages', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>')}
+      ${cardHtml('Daily Activity Volume', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-c-daily"></canvas></div>', false, 'chart-daily-activity')}
+      ${cardHtml('Admission Funnel Distribution', 'Current mix across candidate funnel stages', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>', false, 'chart-funnel-dist')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Weekly Flow Comparison', 'Assigned vs converted admissions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-c-weekly"></canvas></div>')}
-      ${cardHtml('Conversion Funnel Progression', 'Cumulative admissions stage completion', '<div id="funnel-c" style="padding-top:6px"></div>')}
+      ${cardHtml('Weekly Flow Comparison', 'Assigned vs converted admissions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-c-weekly"></canvas></div>', false, 'chart-weekly-flow')}
+      ${cardHtml('Conversion Funnel Progression', 'Cumulative admissions stage completion', '<div id="funnel-c" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Monthly Lead Flow', '6-month assigned vs converted trends', '<div class="chart-wrap h260"><canvas id="chart-c-monthly"></canvas></div>')}
-      ${cardHtml('Top Admitting Counsellors', 'Ranked by admitted conversions closed', '<div class="chart-wrap h260"><canvas id="chart-c-top"></canvas></div>')}
+      ${cardHtml('Monthly Lead Flow', '6-month assigned vs converted trends', '<div class="chart-wrap h260"><canvas id="chart-c-monthly"></canvas></div>', false, 'chart-monthly-lead-flow')}
+      ${cardHtml('Top Admitting Counsellors', 'Ranked by admitted conversions closed', '<div class="chart-wrap h260"><canvas id="chart-c-top"></canvas></div>', false, 'chart-top-counsellors')}
     </div>
-    ${cardHtml('Counsellor Performance Metrics', 'Workload and operational latency per counselor in scope', '<div id="table-c-perf"></div>', true)}`;
+    ${cardHtml('Counsellor Performance Metrics', 'Workload and operational latency per counselor in scope', '<div id="table-c-perf"></div>', true, 'chart-counsellor-metrics')}`;
 
   runCounters(panel);
 
@@ -689,21 +770,21 @@ function renderTeamLeadTab() {
 
   panel.innerHTML = `
     <div class="kpi-grid">
-      ${kpiCardHtml('k-t-team', 'Team Members Handled', perf.length, { color: 'primary', icon: iconUsers() })}
-      ${kpiCardHtml('k-t-workload', 'Avg Workload / Counsellor', perf.length ? Calc.totalAssigned(leads) / perf.length : 0, { color: 'info', icon: iconLayers(), decimals: 1 })}
-      ${kpiCardHtml('k-t-fu', 'Follow-up Compliance', Calc.followupCompletionRate(leads), { color: 'success', icon: iconCheck(), isPct: true, decimals: 1 })}
-      ${kpiCardHtml('k-t-resp', 'Team Avg Response', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: 'hours average' })}
-      ${kpiCardHtml('k-t-overdue', 'Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA Compliance' })}
+      ${kpiCardHtml('k-t-team', 'Team Members Handled', perf.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'team-members' })}
+      ${kpiCardHtml('k-t-workload', 'Avg Workload / Counsellor', perf.length ? Calc.totalAssigned(leads) / perf.length : 0, { color: 'info', icon: iconLayers(), decimals: 1, tooltipKey: 'avg-workload' })}
+      ${kpiCardHtml('k-t-fu', 'Follow-up Compliance', Calc.followupCompletionRate(leads), { color: 'success', icon: iconCheck(), isPct: true, decimals: 1, tooltipKey: 'followup-compliance' })}
+      ${kpiCardHtml('k-t-resp', 'Team Avg Response', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: 'hours average', tooltipKey: 'team-avg-response' })}
+      ${kpiCardHtml('k-t-overdue', 'Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA Compliance', tooltipKey: 'overdue-followups' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Workload Status Distribution', 'Assigned leads status split per counselor', '<div class="chart-wrap h300"><canvas id="chart-t-stack"></canvas></div>')}
-      ${cardHtml('Follow-up Compliance breakdown', 'Completed vs pending vs overdue follow-ups', '<div class="chart-wrap h300"><canvas id="chart-t-pie"></canvas></div>')}
+      ${cardHtml('Workload Status Distribution', 'Assigned leads status split per counselor', '<div class="chart-wrap h300"><canvas id="chart-t-stack"></canvas></div>', false, 'chart-workload-status')}
+      ${cardHtml('Follow-up Compliance breakdown', 'Completed vs pending vs overdue follow-ups', '<div class="chart-wrap h300"><canvas id="chart-t-pie"></canvas></div>', false, 'chart-followup-compliance-breakdown')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Response Latency Trends', 'Team average response latency — weekly', '<div class="chart-wrap h260"><canvas id="chart-t-line"></canvas></div>')}
-      ${cardHtml('Overdue Follow-ups Heatmap', 'Critical follow-ups overdue by branch office and day of week due', '<div id="heat-t" style="padding-top:8px"></div>')}
+      ${cardHtml('Response Latency Trends', 'Team average response latency — weekly', '<div class="chart-wrap h260"><canvas id="chart-t-line"></canvas></div>', false, 'chart-response-latency-trends')}
+      ${cardHtml('Overdue Follow-ups Heatmap', 'Critical follow-ups overdue by branch office and day of week due', '<div id="heat-t" style="padding-top:8px"></div>', false, 'chart-overdue-followups-heatmap')}
     </div>
-    ${cardHtml('Overdue Follow-ups Action List', 'Immediate counselor attention needed', '<div id="table-t-overdue"></div>', true)}`;
+    ${cardHtml('Overdue Follow-ups Action List', 'Immediate counselor attention needed', '<div id="table-t-overdue"></div>', true, 'chart-overdue-followups-action')}`;
 
   runCounters(panel);
 
@@ -812,11 +893,11 @@ function renderBranchTab() {
   panel.innerHTML = `
     <div class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">${branchCards}</div>
     <div class="grid-2">
-      ${cardHtml('Branch Admission Output', 'Assigned vs Admitted converted cases by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>')}
-      ${cardHtml('Lead share by Branch', 'Percentage share of company leads by branch', '<div class="chart-wrap h280"><canvas id="chart-b-dist"></canvas></div>')}
+      ${cardHtml('Branch Admission Output', 'Assigned vs Admitted converted cases by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>', false, 'chart-branch-admission-output')}
+      ${cardHtml('Lead share by Branch', 'Percentage share of company leads by branch', '<div class="chart-wrap h280"><canvas id="chart-b-dist"></canvas></div>', false, 'chart-lead-share-by-branch')}
     </div>
-    ${cardHtml('Monthly Lead Growth Trends', 'Assigned cases volume growth for top 3 branches', '<div class="chart-wrap h280"><canvas id="chart-b-growth"></canvas></div>')}
-    ${cardHtml('Branch Operational Performance Ranking', 'Branch offices sorted by conversion efficiency', '<div id="table-b-rank"></div>', true)}`;
+    ${cardHtml('Monthly Lead Growth Trends', 'Assigned cases volume growth for top 3 branches', '<div class="chart-wrap h280"><canvas id="chart-b-growth"></canvas></div>', false, 'chart-monthly-lead-growth')}
+    ${cardHtml('Branch Operational Performance Ranking', 'Branch offices sorted by conversion efficiency', '<div id="table-b-rank"></div>', true, 'chart-branch-operational-ranking')}`;
 
   drawChart('chart-b-compare', {
     type: 'bar',
@@ -880,20 +961,20 @@ function renderSourceTab() {
 
   panel.innerHTML = `
     <div class="kpi-grid">
-      ${kpiCardHtml('k-s-total', 'Total Source Volume', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), sub: `across ${window.IntelAbroadData.sources.length} active channels` })}
-      ${kpiCardHtml('k-s-convrate', 'Top Conversion Channel', best.conversionRate, { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: best.source })}
-      ${kpiCardHtml('k-s-quality', 'Blended Quality Factor', Calc.leadQualityScore(leads), { color: 'info', icon: iconCheck(), sub: 'Global quality score' })}
-      ${kpiCardHtml('k-s-campaign', 'Leading Volume Generator', biggest.assigned, { color: 'purple', icon: iconLayers(), sub: biggest.source })}
+      ${kpiCardHtml('k-s-total', 'Total Source Volume', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), sub: `across ${window.IntelAbroadData.sources.length} active channels`, tooltipKey: 'total-source-volume' })}
+      ${kpiCardHtml('k-s-convrate', 'Top Conversion Channel', best.conversionRate, { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: best.source, tooltipKey: 'top-conversion-channel' })}
+      ${kpiCardHtml('k-s-quality', 'Blended Quality Factor', Calc.leadQualityScore(leads), { color: 'info', icon: iconCheck(), sub: 'Global quality score', tooltipKey: 'blended-quality' })}
+      ${kpiCardHtml('k-s-campaign', 'Leading Volume Generator', biggest.assigned, { color: 'purple', icon: iconLayers(), sub: biggest.source, tooltipKey: 'leading-volume-generator' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Source Admission Volumetrics', 'Total leads generated per channel', '<div class="chart-wrap h280"><canvas id="chart-s-funnel"></canvas></div>')}
-      ${cardHtml('Source Efficiency Metrics', 'Assigned vs admitted metrics by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-compare"></canvas></div>')}
+      ${cardHtml('Source Admission Volumetrics', 'Total leads generated per channel', '<div class="chart-wrap h280"><canvas id="chart-s-funnel"></canvas></div>', false, 'chart-source-admission-volumetrics')}
+      ${cardHtml('Source Efficiency Metrics', 'Assigned vs admitted metrics by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-compare"></canvas></div>', false, 'chart-source-efficiency-metrics')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Conversion Efficiency Trends', 'Monthly conversion rate by source', '<div class="chart-wrap h260"><canvas id="chart-s-trend"></canvas></div>')}
-      ${cardHtml('Lead Quality Score by Channel', 'Lead Quality Score based on conversion, SLA, and qualification progression', '<div class="chart-wrap h260"><canvas id="chart-s-quality"></canvas></div>')}
+      ${cardHtml('Conversion Efficiency Trends', 'Monthly conversion rate by source', '<div class="chart-wrap h260"><canvas id="chart-s-trend"></canvas></div>', false, 'chart-conversion-efficiency-trends')}
+      ${cardHtml('Lead Quality Score by Channel', 'Lead Quality Score based on conversion, SLA, and qualification progression', '<div class="chart-wrap h260"><canvas id="chart-s-quality"></canvas></div>', false, 'chart-lead-quality-score-by-channel')}
     </div>
-    ${cardHtml('Lead Acquisition Performance', 'Channel performance metrics sorted by volume', '<div id="table-s-perf"></div>', true)}`;
+    ${cardHtml('Lead Acquisition Performance', 'Channel performance metrics sorted by volume', '<div id="table-s-perf"></div>', true, 'chart-lead-acquisition-performance')}`;
 
   runCounters(panel);
 
@@ -976,30 +1057,30 @@ function renderManagementTab() {
 
   panel.innerHTML = `
     <div class="summary-strip">
-      ${summaryCardHtml('Total Leads Managed', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active cases: ${activeCount}`)}
-      ${summaryCardHtml('Admissions Achieved', fmt.int(Calc.converted(leads)), 'linear-gradient(135deg,#22c55e,#4ade80)', 'Leads successfully converted')}
-      ${summaryCardHtml('Blended Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Lead-to-admit efficiency')}
-      ${summaryCardHtml('SLA Response Compliance', fmt.pct(Calc.slaComplianceRate(leads)), 'linear-gradient(135deg,#eab308,#facc15)', 'Contact within 24 hours rate')}
+      ${summaryCardHtml('Total Leads Managed', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active cases: ${activeCount}`, 'total-leads-managed')}
+      ${summaryCardHtml('Admissions Achieved', fmt.int(Calc.converted(leads)), 'linear-gradient(135deg,#22c55e,#4ade80)', 'Leads successfully converted', 'admissions-achieved')}
+      ${summaryCardHtml('Blended Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Lead-to-admit efficiency', 'blended-conversion-rate')}
+      ${summaryCardHtml('SLA Response Compliance', fmt.pct(Calc.slaComplianceRate(leads)), 'linear-gradient(135deg,#eab308,#facc15)', 'Contact within 24 hours rate', 'sla-response-compliance')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Admissions conversion funnel', 'Stage distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>')}
-      ${cardHtml('Branch admissions performance', 'Assigned vs Admitted converted cases by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>')}
+      ${cardHtml('Admissions conversion funnel', 'Stage distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>', false, 'chart-admissions-conversion-funnel')}
+      ${cardHtml('Branch admissions performance', 'Assigned vs Admitted converted cases by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>', false, 'chart-branch-admissions-performance')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Blended Conversion Trends', '6-month historic conversion rate performance', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>')}
-      ${cardHtml('Active Pipeline Stages', 'Active cases breakdown in pipeline stages', '<div class="chart-wrap h240"><canvas id="chart-m-pipeline"></canvas></div>')}
+      ${cardHtml('Blended Conversion Trends', '6-month historic conversion rate performance', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>', false, 'chart-blended-conversion-trends')}
+      ${cardHtml('Active Pipeline Stages', 'Active cases breakdown in pipeline stages', '<div class="chart-wrap h240"><canvas id="chart-m-pipeline"></canvas></div>', false, 'chart-active-pipeline-stages')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Admissions Pipeline Aging', 'Days elapsed since case assignment (open deals only)', '<div class="chart-wrap h240"><canvas id="chart-m-aging"></canvas></div>')}
-      ${cardHtml('SLA Compliance & Response Latency', 'SLA Response compliance rate vs Average response latency', '<div class="chart-wrap h240"><canvas id="chart-m-revenue"></canvas></div>')}
+      ${cardHtml('Admissions Pipeline Aging', 'Days elapsed since case assignment (open deals only)', '<div class="chart-wrap h240"><canvas id="chart-m-aging"></canvas></div>', false, 'chart-admissions-pipeline-aging')}
+      ${cardHtml('SLA Compliance & Response Latency', 'SLA Response compliance rate vs Average response latency', '<div class="chart-wrap h240"><canvas id="chart-m-revenue"></canvas></div>', false, 'chart-sla-compliance-response-latency')}
     </div>
     <div class="grid-2">
-      ${cardHtml('MoM Lead Volume Growth', 'Percentage change in assigned leads volume', '<div class="chart-wrap h230"><canvas id="chart-m-growth"></canvas></div>')}
-      ${cardHtml('Daily Counselor activity logs', 'Total calls, WhatsApp, emails logged by counselors — last 14 days', '<div class="chart-wrap h230"><canvas id="chart-m-daily"></canvas></div>')}
+      ${cardHtml('MoM Lead Volume Growth', 'Percentage change in assigned leads volume', '<div class="chart-wrap h230"><canvas id="chart-m-growth"></canvas></div>', false, 'chart-mom-lead-volume-growth')}
+      ${cardHtml('Daily Counselor activity logs', 'Total calls, WhatsApp, emails logged by counselors — last 14 days', '<div class="chart-wrap h230"><canvas id="chart-m-daily"></canvas></div>', false, 'chart-daily-counselor-activity-logs')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Counsellor Leaderboard', 'Top counsellors sorted by admitted cases', '<div id="table-m-leader"></div>')}
-      ${cardHtml('Operational Insights & Anomalies', 'Automated alerts based on filtered metrics', '<div class="insight-list" id="insights-m"></div>')}
+      ${cardHtml('Counsellor Leaderboard', 'Top counsellors sorted by admitted cases', '<div id="table-m-leader"></div>', false, 'chart-counsellor-leaderboard')}
+      ${cardHtml('Operational Insights & Anomalies', 'Automated alerts based on filtered metrics', '<div class="insight-list" id="insights-m"></div>', false, 'chart-operational-insights-anomalies')}
     </div>`;
 
   runCounters(panel);
@@ -1155,7 +1236,6 @@ function renderManagementTab() {
 // ============================================================
 
 function showCounsellorProfile(counsellorId) {
-  State.counsellorViewId = counsellorId;
   const staff = window.IntelAbroadData.staff.find(s => s.id === counsellorId);
   if (!staff) return;
 
@@ -1171,18 +1251,18 @@ function showCounsellorProfile(counsellorId) {
 
   // 12 KPI card string
   const kpiSectionHtml = 
-    kpiCardHtml('k-ind-assigned', 'Total Leads Assigned', cLeads.length, { color: 'primary', icon: iconUsers() }) +
-    kpiCardHtml('k-ind-contacted', 'Leads Contacted', Calc.contacted(cLeads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(cLeads)) + ' contacted' }) +
-    kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconCall() }) +
-    kpiCardHtml('k-ind-whatsapp', 'WhatsApp Chats', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage() }) +
-    kpiCardHtml('k-ind-fu', 'FUs Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), sub: fmt.pct(Calc.followupCompletionRate(cLeads)) + ' rate' }) +
-    kpiCardHtml('k-ind-pending', 'Pending FUs', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue` }) +
-    kpiCardHtml('k-ind-overdue', 'Overdue Follow-ups', overdueList.length, { color: 'danger', icon: iconAlert() }) +
-    kpiCardHtml('k-ind-latency', 'Avg Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA' }) +
-    kpiCardHtml('k-ind-aging', 'Avg Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), decimals: 0 }) +
-    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1 }) +
-    kpiCardHtml('k-ind-apps', 'Applications Sent', Calc.applicationsSubmitted(cLeads), { color: 'purple', icon: iconLayers() }) +
-    kpiCardHtml('k-ind-visa', 'Visas Filed', Calc.visaFiled(cLeads), { color: 'teal', icon: iconCheck() });
+    kpiCardHtml('k-ind-assigned', 'Total Leads Assigned', cLeads.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
+    kpiCardHtml('k-ind-contacted', 'Leads Contacted', Calc.contacted(cLeads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(cLeads)) + ' contacted', tooltipKey: 'contacted' }) +
+    kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconCall(), tooltipKey: 'calls' }) +
+    kpiCardHtml('k-ind-whatsapp', 'WhatsApp Chats', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
+    kpiCardHtml('k-ind-fu', 'FUs Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), sub: fmt.pct(Calc.followupCompletionRate(cLeads)) + ' rate', tooltipKey: 'followups-completed' }) +
+    kpiCardHtml('k-ind-pending', 'Pending FUs', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue`, tooltipKey: 'pending-followups' }) +
+    kpiCardHtml('k-ind-overdue', 'Overdue Follow-ups', overdueList.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' }) +
+    kpiCardHtml('k-ind-latency', 'Avg Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA', tooltipKey: 'avg-response' }) +
+    kpiCardHtml('k-ind-aging', 'Avg Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), decimals: 0, tooltipKey: 'avg-lead-aging' }) +
+    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, tooltipKey: 'conversion-rate' }) +
+    kpiCardHtml('k-ind-apps', 'Applications Sent', Calc.applicationsSubmitted(cLeads), { color: 'purple', icon: iconLayers(), tooltipKey: 'applications-submitted' }) +
+    kpiCardHtml('k-ind-visa', 'Visas Filed', Calc.visaFiled(cLeads), { color: 'teal', icon: iconCheck(), tooltipKey: 'visas-filed' });
 
   // Chronological activity timeline logs
   const allLogs = [];
@@ -1269,26 +1349,26 @@ function showCounsellorProfile(counsellorId) {
 
     <!-- Charts row 1 -->
     <div class="grid-2">
-      ${cardHtml('Daily Admissions Activity', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>')}
-      ${cardHtml('Lead status ratio', 'Doughnut chart of all assigned leads in status steps', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>')}
+      ${cardHtml('Daily Admissions Activity', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>', false, 'chart-daily-activity')}
+      ${cardHtml('Lead status ratio', 'Doughnut chart of all assigned leads in status steps', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>', false, 'chart-funnel-dist')}
     </div>
 
     <!-- Charts row 2 -->
     <div class="grid-2">
-      ${cardHtml('Weekly Lead Progress', 'Assigned vs admitted conversions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-ind-weekly"></canvas></div>')}
-      ${cardHtml('Academic Funnel Conversion', 'Funnel analysis of this counselor\'s leads', '<div id="funnel-ind" style="padding-top:6px"></div>')}
+      ${cardHtml('Weekly Lead Progress', 'Assigned vs admitted conversions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-ind-weekly"></canvas></div>', false, 'chart-weekly-flow')}
+      ${cardHtml('Academic Funnel Conversion', 'Funnel analysis of this counselor\'s leads', '<div id="funnel-ind" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
     </div>
 
     <!-- Charts row 3 -->
     <div class="grid-2">
-      ${cardHtml('WhatsApp vs Calls log trend', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-ind-contacts"></canvas></div>')}
-      ${cardHtml('Preferred Country Distribution', 'Total assigned leads breakdown by target country', '<div class="chart-wrap h260"><canvas id="chart-ind-country"></canvas></div>')}
+      ${cardHtml('WhatsApp vs Calls log trend', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-ind-contacts"></canvas></div>', false, 'chart-whatsapp-vs-calls-log-trend')}
+      ${cardHtml('Preferred Country Distribution', 'Total assigned leads breakdown by target country', '<div class="chart-wrap h260"><canvas id="chart-ind-country"></canvas></div>', false, 'chart-preferred-country-distribution')}
     </div>
 
     <!-- Activity timeline and leads list -->
     <div class="grid-2">
-      ${cardHtml('Chronological Activity Log', 'Recent calls, WhatsApp messages, and status updates logged', `<div class="timeline-container">${timelineHtml}</div>`)}
-      ${cardHtml('Assigned Lead Records', 'Filter, search and select student details assigned to this counselor', '<div id="table-ind-leads"></div>')}
+      ${cardHtml('Chronological Activity Log', 'Recent calls, WhatsApp messages, and status updates logged', `<div class="timeline-container">${timelineHtml}</div>`, false, 'chart-chronological-activity-log')}
+      ${cardHtml('Assigned Lead Records', 'Filter, search and select student details assigned to this counselor', '<div id="table-ind-leads"></div>', false, 'chart-assigned-lead-records')}
     </div>`;
 
   runCounters(cDashboard);
@@ -1799,6 +1879,21 @@ function wireEvents() {
       textNode.textContent = State.theme === 'dark' ? 'Light mode' : 'Dark mode';
     }
     runPipeline(false);
+  });
+
+  // Tap/Click toggles for mobile tooltips
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.info-btn');
+    if (btn) {
+      e.stopPropagation();
+      const isActive = btn.classList.contains('active');
+      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+      if (!isActive) {
+        btn.classList.add('active');
+      }
+    } else {
+      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+    }
   });
 }
 
