@@ -77,16 +77,6 @@ const Calc = {
     return (compliant / contactedLeads.length) * 100;
   },
 
-  // Applications count
-  applicationsSubmitted(leads) {
-    return leads.filter(l => l.appStatus === 'Submitted' || l.appStatus === 'Accepted').length;
-  },
-
-  // Visas count
-  visaFiled(leads) {
-    return leads.filter(l => l.visaStatus === 'Filed' || l.visaStatus === 'Approved').length;
-  },
-
   // Weighted Activity-Based Productivity Score (0 to 100)
   counsellorProductivity(cLeads) {
     if (!cLeads.length) return 0;
@@ -107,15 +97,11 @@ const Calc = {
     const slaRate = this.slaComplianceRate(cLeads);
     const slaPts = (slaRate / 100) * 10;
     
-    // 5. Applications submitted (+5 pts each, max 10)
-    const apps = this.applicationsSubmitted(cLeads);
-    const appsPts = Math.min(10, apps * 5);
-    
-    // 6. Conversion Rate (max 20 points, scaled up to 50% conversion)
+    // 5. Conversion Rate (max 20 points, scaled up to 50% conversion)
     const convRate = this.conversionRate(cLeads);
     const convPts = Math.min(20, convRate * 0.4);
     
-    return Math.round(callsPts + fusPts + waPts + slaPts + appsPts + convPts);
+    return Math.round(callsPts + fusPts + waPts + slaPts + convPts);
   },
 
   // Overall Productivity Score (average of individual counselor scores)
@@ -139,10 +125,10 @@ const Calc = {
 
     // 2. Qualified Lead % weight (30%)
     const rank = {
-      'New': 0, 'Contacted': 1, 'Follow-up': 1, 'Qualified': 2,
-      'Application Sent': 3, 'Visa Filed': 4, 'Converted': 5, 'Lost': -1
+      'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Qualified': 3,
+      'Converted': 4, 'Lost': -1
     };
-    const qualifiedCount = leads.filter(l => l.status !== 'Lost' && rank[l.status] >= 2).length;
+    const qualifiedCount = leads.filter(l => l.status !== 'Lost' && rank[l.status] >= 3).length;
     const qualRate = (qualifiedCount / leads.length) * 100;
     const qualPts = (qualRate / 100) * 30;
 
@@ -196,11 +182,9 @@ const Calc = {
     const rank = {
       'New': 0,
       'Contacted': 1,
-      'Follow-up': 1,
-      'Qualified': 2,
-      'Application Sent': 3,
-      'Visa Filed': 4,
-      'Converted': 5,
+      'Follow-up': 2,
+      'Qualified': 3,
+      'Converted': 4,
       'Lost': -1
     };
     return order.map((stage, i) => {
@@ -294,8 +278,6 @@ const Calc = {
         slaCompliance: this.slaComplianceRate(bl),
         avgResponse: this.avgResponseTime(bl),
         avgAging: this.avgLeadAging(bl),
-        appsSubmitted: this.applicationsSubmitted(bl),
-        visaFiled: this.visaFiled(bl),
         pendingFU: this.pendingFollowups(bl),
         overdueFU: this.overdueFollowups(bl).length
       };

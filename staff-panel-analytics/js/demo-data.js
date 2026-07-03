@@ -6,15 +6,13 @@ const CFG = {
   today: new Date('2026-07-03T09:00:00'),
   branches: ['Delhi Office', 'Delhi 2026', 'Nagpur 2026', 'Raipur Office'],
   sources: ['Facebook Ads', 'Google Ads', 'Instagram', 'Referral', 'Walk-in', 'Website', 'Education Fair', 'Agent Partner'],
-  statuses: ['New', 'Contacted', 'Follow-up', 'Qualified', 'Application Sent', 'Visa Filed', 'Converted', 'Lost'],
-  funnelStages: ['New', 'Contacted', 'Qualified', 'Application Sent', 'Visa Filed', 'Converted'],
+  statuses: ['New', 'Contacted', 'Follow-up', 'Qualified', 'Converted', 'Lost'],
+  funnelStages: ['New', 'Contacted', 'Follow-up', 'Qualified', 'Converted'],
   statusClass: {
     'New': 'st-new',
     'Contacted': 'st-contacted',
     'Follow-up': 'st-followup',
     'Qualified': 'st-qualified',
-    'Application Sent': 'st-application',
-    'Visa Filed': 'st-visa',
     'Converted': 'st-converted',
     'Lost': 'st-lost'
   },
@@ -61,16 +59,7 @@ const CFG = {
   firstNames: ['Aarav','Priya','Rohan','Ananya','Vikram','Sneha','Kabir','Ishita','Arjun','Meera','Dev','Riya','Aditya','Kavya','Rahul','Neha','Sahil','Pooja','Karan','Divya','Nikhil','Sanya','Yash','Tanya','Aryan','Simran','Varun','Nisha','Manav','Alisha','Rohit','Preeti','Siddharth','Radhika','Harsh','Anjali','Vivek','Shreya','Amit','Kriti'],
   lastNames: ['Sharma','Verma','Iyer','Nair','Reddy','Gupta','Malhotra','Kapoor','Chatterjee','Menon','Joshi','Bhat','Rao','Singh','Patel','Mehta','Chawla','Bose','Pillai','Kulkarni'],
 
-  intakes: ['Fall 2026', 'Spring 2026', 'Fall 2025', 'Spring 2025'],
-  countries: ['USA', 'UK', 'Canada', 'Australia', 'Germany', 'Ireland'],
-  countryUniversities: {
-    'USA': ['Northeastern University', 'Boston University', 'University of Southern California', 'Arizona State University'],
-    'UK': ['University of Leeds', 'University of Manchester', 'Cardiff University', 'King\'s College London'],
-    'Canada': ['University of Toronto', 'UBC', 'McGill University', 'York University'],
-    'Australia': ['Monash University', 'University of Sydney', 'Melbourne University', 'UNSW'],
-    'Germany': ['Technical University of Munich', 'RWTH Aachen University', 'LMU Munich', 'Humboldt University'],
-    'Ireland': ['Trinity College Dublin', 'UCD', 'DCU', 'University of Galway']
-  }
+  // Lead management CRM — no admission/visa fields
 };
 
 let _seed = 98765;
@@ -195,14 +184,12 @@ function generateLeadsData(staff, count) {
       } else if (rStatus > 0.86) {
         status = 'Lost';
       } else {
-        const openStatusChoices = ['Contacted', 'Follow-up', 'Qualified', 'Application Sent', 'Visa Filed'];
+        const openStatusChoices = ['Contacted', 'Follow-up', 'Qualified'];
         let w = seededRandom();
         if (w < 0.15) status = 'New';
         else if (w < 0.35) status = 'Contacted';
         else if (w < 0.65) status = 'Follow-up';
-        else if (w < 0.82) status = 'Qualified';
-        else if (w < 0.94) status = 'Application Sent';
-        else status = 'Visa Filed';
+        else status = 'Qualified';
       }
 
       const daysAgo = randInt(2, 120);
@@ -273,33 +260,6 @@ function generateLeadsData(staff, count) {
 
       const lastActivityDate = activityLog.length ? activityLog[activityLog.length - 1].date : assignedDate;
 
-      const intake = pick(CFG.intakes);
-      const prefCountry = pick(CFG.countries);
-      const prefUniversity = pick(CFG.countryUniversities[prefCountry]);
-
-      let appStatus = 'Not Started';
-      let visaStatus = 'Not Started';
-
-      if (status === 'New') {
-        appStatus = 'Not Started';
-        visaStatus = 'Not Started';
-      } else if (status === 'Contacted' || status === 'Follow-up') {
-        appStatus = seededRandom() < 0.4 ? 'In Progress' : 'Not Started';
-      } else if (status === 'Qualified') {
-        appStatus = 'In Progress';
-      } else if (status === 'Application Sent') {
-        appStatus = 'Submitted';
-      } else if (status === 'Visa Filed') {
-        appStatus = 'Accepted';
-        visaStatus = 'Filed';
-      } else if (status === 'Converted') {
-        appStatus = 'Accepted';
-        visaStatus = 'Approved';
-      } else if (status === 'Lost') {
-        appStatus = seededRandom() < 0.5 ? 'Rejected' : 'Not Started';
-        visaStatus = 'Not Started';
-      }
-
       leads.push({
         id: 'LD-' + leadIdCounter++,
         studentName: pick(CFG.firstNames) + ' ' + pick(CFG.lastNames),
@@ -318,12 +278,7 @@ function generateLeadsData(staff, count) {
         followUps: followUps,
         calls: calls,
         whatsAppCount: whatsAppCount,
-        activityLog: activityLog,
-        intake: intake,
-        prefCountry: prefCountry,
-        prefUniversity: prefUniversity,
-        appStatus: appStatus,
-        visaStatus: visaStatus
+        activityLog: activityLog
       });
     }
   });

@@ -68,18 +68,16 @@ const METRIC_DEFS = {
   'blended-quality': 'Aggregated quality score of leads across all active sources.',
   'leading-volume-generator': 'Acquisition channel that generated the highest number of leads.',
   'total-leads-managed': 'Total number of leads managed at the organizational level.',
-  'admissions-achieved': 'Total number of leads successfully converted (admitted).',
-  'blended-conversion-rate': 'Overall lead-to-admit conversion efficiency across the company.',
+  'converted-leads': 'Total number of leads successfully converted.',
+  'blended-conversion-rate': 'Overall lead conversion efficiency across the company.',
   'sla-response-compliance': 'Percentage of leads contacted within the 24-hour SLA window.',
   'avg-lead-aging': 'Average number of days a lead has remained active since it was assigned.',
-  'applications-submitted': 'Total number of student applications submitted to universities.',
-  'visas-filed': 'Total number of visa applications filed.',
 
   // Charts
   'chart-daily-activity': 'Daily volume of assigned vs converted leads over the last 14 days.',
   'chart-funnel-dist': 'Distribution of leads across current funnel statuses.',
   'chart-weekly-flow': 'Weekly comparison of assigned vs converted leads over the last 8 weeks.',
-  'chart-funnel-progression': 'Cumulative conversion funnel progression from new leads to admissions.',
+  'chart-funnel-progression': 'Cumulative conversion funnel progression from new leads to converted.',
   'chart-monthly-lead-flow': 'Monthly trend of assigned vs converted leads over the last 6 months.',
   'chart-top-counsellors': 'Counsellors with the highest conversion numbers in scope.',
   'chart-counsellor-metrics': 'Individual performance metrics of counselors in scope.',
@@ -88,7 +86,7 @@ const METRIC_DEFS = {
   'chart-response-latency-trends': 'Weekly trend of team average response latency.',
   'chart-overdue-followups-heatmap': 'Heatmap of overdue follow-ups by branch and day of the week.',
   'chart-overdue-followups-action': 'List of urgent follow-ups overdue for immediate action.',
-  'chart-branch-admission-output': 'Comparison of assigned vs converted leads by branch office.',
+  'chart-branch-admission-output': 'Assigned vs converted lead comparison by branch office.',
   'chart-lead-share-by-branch': 'Percentage share of total leads across branch offices.',
   'chart-monthly-lead-growth': 'Monthly lead volume growth trends for the top 3 branches.',
   'chart-branch-operational-ranking': 'Operational performance and efficiency metrics of branch offices.',
@@ -98,7 +96,7 @@ const METRIC_DEFS = {
   'chart-lead-quality-score-by-channel': 'Lead Quality Score based on conversion, SLA, and qualification progression.',
   'chart-lead-acquisition-performance': 'Acquisition channel performance metrics sorted by volume.',
   'chart-admissions-conversion-funnel': 'Stage-by-stage distribution of converted leads.',
-  'chart-branch-admissions-performance': 'Admissions output comparison by branch.',
+  'chart-branch-admissions-performance': 'Conversion output comparison by branch.',
   'chart-blended-conversion-trends': '6-month historic lead-to-admit conversion rate trend.',
   'chart-active-pipeline-stages': 'Pipeline stage breakdown of all currently active cases.',
   'chart-admissions-pipeline-aging': 'Days elapsed since case assignment for open leads.',
@@ -449,10 +447,7 @@ function applyFilters() {
       const matchesName = l.studentName.toLowerCase().includes(q);
       const matchesCounsellor = l.counsellorName.toLowerCase().includes(q);
       const matchesId = l.id.toLowerCase().includes(q);
-      const matchesUniv = l.prefUniversity.toLowerCase().includes(q);
-      const matchesCountry = l.prefCountry.toLowerCase().includes(q);
-      const matchesIntake = l.intake.toLowerCase().includes(q);
-      if (!matchesName && !matchesCounsellor && !matchesId && !matchesUniv && !matchesCountry && !matchesIntake) return false;
+      if (!matchesName && !matchesCounsellor && !matchesId) return false;
     }
 
     return true;
@@ -616,7 +611,7 @@ function buildInsightsList(leads, branchPerf, perf) {
   }
   const topCounsellor = perf.slice().sort((a,b) => b.converted - a.converted)[0];
   if (topCounsellor) {
-    out.push({ color: 'primary', text: `<b>${topCounsellor.name}</b> converted the most leads in scope (<b>${topCounsellor.converted} admitted</b>).` });
+    out.push({ color: 'primary', text: `<b>${topCounsellor.name}</b> converted the most leads in scope (<b>${topCounsellor.converted} converted</b>).` });
   }
   const overdue = Calc.overdueFollowups(leads);
   if (overdue.length) {
@@ -656,15 +651,15 @@ function renderCounsellorTab() {
     <div class="kpi-grid">${kpis}</div>
     <div class="grid-2">
       ${cardHtml('Daily Activity Volume', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-c-daily"></canvas></div>', false, 'chart-daily-activity')}
-      ${cardHtml('Admission Funnel Distribution', 'Current mix across candidate funnel stages', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>', false, 'chart-funnel-dist')}
+      ${cardHtml('Lead Funnel Distribution', 'Current mix across lead funnel stages', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>', false, 'chart-funnel-dist')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Weekly Flow Comparison', 'Assigned vs converted admissions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-c-weekly"></canvas></div>', false, 'chart-weekly-flow')}
-      ${cardHtml('Conversion Funnel Progression', 'Cumulative admissions stage completion', '<div id="funnel-c" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
+      ${cardHtml('Weekly Flow Comparison', 'Assigned vs converted — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-c-weekly"></canvas></div>', false, 'chart-weekly-flow')}
+      ${cardHtml('Conversion Funnel Progression', 'Cumulative lead stage completion', '<div id="funnel-c" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
     </div>
     <div class="grid-2">
       ${cardHtml('Monthly Lead Flow', '6-month assigned vs converted trends', '<div class="chart-wrap h260"><canvas id="chart-c-monthly"></canvas></div>', false, 'chart-monthly-lead-flow')}
-      ${cardHtml('Top Admitting Counsellors', 'Ranked by admitted conversions closed', '<div class="chart-wrap h260"><canvas id="chart-c-top"></canvas></div>', false, 'chart-top-counsellors')}
+      ${cardHtml('Top Counsellors by Conversion', 'Ranked by conversions closed', '<div class="chart-wrap h260"><canvas id="chart-c-top"></canvas></div>', false, 'chart-top-counsellors')}
     </div>
     ${cardHtml('Counsellor Performance Metrics', 'Workload and operational latency per counselor in scope', '<div id="table-c-perf"></div>', true, 'chart-counsellor-metrics')}`;
 
@@ -743,7 +738,7 @@ function renderCounsellorTab() {
     { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
     { key: 'branch', label: 'Branch' },
     { key: 'assigned', label: 'Assigned' },
-    { key: 'converted', label: 'Admitted' },
+    { key: 'converted', label: 'Converted' },
     { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
     { key: 'slaCompliance', label: 'SLA Compliance %', render: r => fmt.pct(r.slaCompliance) },
     { key: 'productivity', label: 'Productivity Score', render: r => r.productivity },
@@ -799,7 +794,7 @@ function renderTeamLeadTab() {
     data: {
       labels: top.map(p => p.name),
       datasets: [
-        { label: 'Admitted', data: top.map(p => p.converted), backgroundColor: CFG.chartColors.success, borderRadius: 4, stack: 's' },
+        { label: 'Converted', data: top.map(p => p.converted), backgroundColor: CFG.chartColors.success, borderRadius: 4, stack: 's' },
         { label: 'Open Cases', data: openCount, backgroundColor: CFG.chartColors.primary, borderRadius: 4, stack: 's' },
         { label: 'Lost Leads', data: top.map(p => leads.filter(l => l.counsellorId === p.id && l.lost).length), backgroundColor: CFG.chartColors.danger, borderRadius: 4, stack: 's' }
       ]
@@ -879,12 +874,12 @@ function renderBranchTab() {
           <div class="mini-stat-val">${b.productivity.toFixed(0)}</div>
         </div>
         <div>
-          <div class="mini-stat-label">Visa Approved</div>
-          <div class="mini-stat-val">${b.visaFiled}</div>
+          <div class="mini-stat-label">SLA Compliance</div>
+          <div class="mini-stat-val">${fmt.pct(b.slaCompliance)}</div>
         </div>
         <div>
-          <div class="mini-stat-label">Apps Sent</div>
-          <div class="mini-stat-val">${b.appsSubmitted}</div>
+          <div class="mini-stat-label">Pending FU</div>
+          <div class="mini-stat-val">${b.pendingFU}</div>
         </div>
       </div>
     </div>
@@ -893,7 +888,7 @@ function renderBranchTab() {
   panel.innerHTML = `
     <div class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">${branchCards}</div>
     <div class="grid-2">
-      ${cardHtml('Branch Admission Output', 'Assigned vs Admitted converted cases by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>', false, 'chart-branch-admission-output')}
+      ${cardHtml('Branch Lead Conversion', 'Assigned vs converted leads by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>', false, 'chart-branch-admission-output')}
       ${cardHtml('Lead share by Branch', 'Percentage share of company leads by branch', '<div class="chart-wrap h280"><canvas id="chart-b-dist"></canvas></div>', false, 'chart-lead-share-by-branch')}
     </div>
     ${cardHtml('Monthly Lead Growth Trends', 'Assigned cases volume growth for top 3 branches', '<div class="chart-wrap h280"><canvas id="chart-b-growth"></canvas></div>', false, 'chart-monthly-lead-growth')}
@@ -905,7 +900,7 @@ function renderBranchTab() {
       labels: branchPerf.map(b => b.branch),
       datasets: [
         Charts.barDS('Assigned', branchPerf.map(b => b.assigned), CFG.chartColors.primary),
-        Charts.barDS('Admitted', branchPerf.map(b => b.converted), CFG.chartColors.success)
+        Charts.barDS('Converted', branchPerf.map(b => b.converted), CFG.chartColors.success)
       ]
     },
     options: Charts.barOpts()
@@ -943,7 +938,7 @@ function renderBranchTab() {
     { key: 'branch', label: 'Branch Office' },
     { key: 'assigned', label: 'Total Leads' },
     { key: 'active', label: 'Active Leads' },
-    { key: 'converted', label: 'Admitted' },
+    { key: 'converted', label: 'Converted' },
     { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
     { key: 'productivity', label: 'Productivity Score', render: r => r.productivity.toFixed(0) },
     { key: 'slaCompliance', label: 'SLA Compliance %', render: r => fmt.pct(r.slaCompliance) },
@@ -967,8 +962,8 @@ function renderSourceTab() {
       ${kpiCardHtml('k-s-campaign', 'Leading Volume Generator', biggest.assigned, { color: 'purple', icon: iconLayers(), sub: biggest.source, tooltipKey: 'leading-volume-generator' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Source Admission Volumetrics', 'Total leads generated per channel', '<div class="chart-wrap h280"><canvas id="chart-s-funnel"></canvas></div>', false, 'chart-source-admission-volumetrics')}
-      ${cardHtml('Source Efficiency Metrics', 'Assigned vs admitted metrics by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-compare"></canvas></div>', false, 'chart-source-efficiency-metrics')}
+      ${cardHtml('Source Lead Volumetrics', 'Total leads generated per channel', '<div class="chart-wrap h280"><canvas id="chart-s-funnel"></canvas></div>', false, 'chart-source-admission-volumetrics')}
+      ${cardHtml('Source Efficiency Metrics', 'Assigned vs converted metrics by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-compare"></canvas></div>', false, 'chart-source-efficiency-metrics')}
     </div>
     <div class="grid-2">
       ${cardHtml('Conversion Efficiency Trends', 'Monthly conversion rate by source', '<div class="chart-wrap h260"><canvas id="chart-s-trend"></canvas></div>', false, 'chart-conversion-efficiency-trends')}
@@ -994,7 +989,7 @@ function renderSourceTab() {
       labels: srcPerf.map(s => s.source),
       datasets: [
         Charts.barDS('Assigned', srcPerf.map(s => s.assigned), CFG.chartColors.primary),
-        Charts.barDS('Admitted', srcPerf.map(s => s.converted), CFG.chartColors.success)
+        Charts.barDS('Converted', srcPerf.map(s => s.converted), CFG.chartColors.success)
       ]
     },
     options: Charts.barOpts()
@@ -1035,12 +1030,12 @@ function renderSourceTab() {
   renderTable('table-s-perf', [
     { key: 'source', label: 'Acquisition Source' },
     { key: 'assigned', label: 'Total Leads' },
-    { key: 'converted', label: 'Admitted' },
+    { key: 'converted', label: 'Converted' },
     { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
     { key: 'qualityScore', label: 'Quality Score (LQS)', render: r => `${r.qualityScore.toFixed(0)}/100` },
     { key: 'avgResponse', label: 'Avg Latency', render: r => fmt.hours(r.avgResponse) },
-    { key: 'avgCalls', label: 'Avg Calls/Admit', render: r => r.avgCalls.toFixed(1) },
-    { key: 'avgFUs', label: 'Avg FUs/Admit', render: r => r.avgFUs.toFixed(1) }
+    { key: 'avgCalls', label: 'Avg Calls/Conv', render: r => r.avgCalls.toFixed(1) },
+    { key: 'avgFUs', label: 'Avg FUs/Conv', render: r => r.avgFUs.toFixed(1) }
   ], srcPerf, { defaultSort: 'assigned' });
 }
 
@@ -1058,20 +1053,20 @@ function renderManagementTab() {
   panel.innerHTML = `
     <div class="summary-strip">
       ${summaryCardHtml('Total Leads Managed', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active cases: ${activeCount}`, 'total-leads-managed')}
-      ${summaryCardHtml('Admissions Achieved', fmt.int(Calc.converted(leads)), 'linear-gradient(135deg,#22c55e,#4ade80)', 'Leads successfully converted', 'admissions-achieved')}
-      ${summaryCardHtml('Blended Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Lead-to-admit efficiency', 'blended-conversion-rate')}
-      ${summaryCardHtml('SLA Response Compliance', fmt.pct(Calc.slaComplianceRate(leads)), 'linear-gradient(135deg,#eab308,#facc15)', 'Contact within 24 hours rate', 'sla-response-compliance')}
+      ${summaryCardHtml('Converted Leads', fmt.int(Calc.converted(leads)), 'linear-gradient(135deg,#22c55e,#4ade80)', 'Leads successfully converted', 'converted-leads')}
+      ${summaryCardHtml('Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Overall lead conversion efficiency', 'blended-conversion-rate')}
+      ${summaryCardHtml('SLA Compliance', fmt.pct(Calc.slaComplianceRate(leads)), 'linear-gradient(135deg,#eab308,#facc15)', 'Contact within 24 hours rate', 'sla-response-compliance')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Admissions conversion funnel', 'Stage distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>', false, 'chart-admissions-conversion-funnel')}
-      ${cardHtml('Branch admissions performance', 'Assigned vs Admitted converted cases by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>', false, 'chart-branch-admissions-performance')}
+      ${cardHtml('Lead Conversion Funnel', 'Stage distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>', false, 'chart-admissions-conversion-funnel')}
+      ${cardHtml('Branch Conversion Performance', 'Assigned vs converted leads by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>', false, 'chart-branch-admissions-performance')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Blended Conversion Trends', '6-month historic conversion rate performance', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>', false, 'chart-blended-conversion-trends')}
+      ${cardHtml('Conversion Trends', '6-month historic conversion rate performance', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>', false, 'chart-blended-conversion-trends')}
       ${cardHtml('Active Pipeline Stages', 'Active cases breakdown in pipeline stages', '<div class="chart-wrap h240"><canvas id="chart-m-pipeline"></canvas></div>', false, 'chart-active-pipeline-stages')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Admissions Pipeline Aging', 'Days elapsed since case assignment (open deals only)', '<div class="chart-wrap h240"><canvas id="chart-m-aging"></canvas></div>', false, 'chart-admissions-pipeline-aging')}
+      ${cardHtml('Lead Pipeline Aging', 'Days elapsed since case assignment (open deals only)', '<div class="chart-wrap h240"><canvas id="chart-m-aging"></canvas></div>', false, 'chart-admissions-pipeline-aging')}
       ${cardHtml('SLA Compliance & Response Latency', 'SLA Response compliance rate vs Average response latency', '<div class="chart-wrap h240"><canvas id="chart-m-revenue"></canvas></div>', false, 'chart-sla-compliance-response-latency')}
     </div>
     <div class="grid-2">
@@ -1079,7 +1074,7 @@ function renderManagementTab() {
       ${cardHtml('Daily Counselor activity logs', 'Total calls, WhatsApp, emails logged by counselors — last 14 days', '<div class="chart-wrap h230"><canvas id="chart-m-daily"></canvas></div>', false, 'chart-daily-counselor-activity-logs')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Counsellor Leaderboard', 'Top counsellors sorted by admitted cases', '<div id="table-m-leader"></div>', false, 'chart-counsellor-leaderboard')}
+      ${cardHtml('Counsellor Leaderboard', 'Top counsellors sorted by conversions', '<div id="table-m-leader"></div>', false, 'chart-counsellor-leaderboard')}
       ${cardHtml('Operational Insights & Anomalies', 'Automated alerts based on filtered metrics', '<div class="insight-list" id="insights-m"></div>', false, 'chart-operational-insights-anomalies')}
     </div>`;
 
@@ -1093,7 +1088,7 @@ function renderManagementTab() {
       labels: branchPerf.map(b => b.branch),
       datasets: [
         Charts.barDS('Assigned', branchPerf.map(b => b.assigned), CFG.chartColors.primary),
-        Charts.barDS('Admitted', branchPerf.map(b => b.converted), CFG.chartColors.success)
+        Charts.barDS('Converted', branchPerf.map(b => b.converted), CFG.chartColors.success)
       ]
     },
     options: Charts.barOpts()
@@ -1208,7 +1203,7 @@ function renderManagementTab() {
     { key: 'rank', label: '#', render: (r, i) => `<span class="rank-cell">${i + 1}</span>` },
     { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
     { key: 'branch', label: 'Branch Office' },
-    { key: 'converted', label: 'Admitted Cases' },
+    { key: 'converted', label: 'Converted' },
     { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
     { key: 'productivity', label: 'Productivity', render: r => r.productivity }
   ], perf.slice(0, 8), { 
@@ -1260,9 +1255,7 @@ function showCounsellorProfile(counsellorId) {
     kpiCardHtml('k-ind-overdue', 'Overdue Follow-ups', overdueList.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' }) +
     kpiCardHtml('k-ind-latency', 'Avg Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA', tooltipKey: 'avg-response' }) +
     kpiCardHtml('k-ind-aging', 'Avg Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), decimals: 0, tooltipKey: 'avg-lead-aging' }) +
-    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, tooltipKey: 'conversion-rate' }) +
-    kpiCardHtml('k-ind-apps', 'Applications Sent', Calc.applicationsSubmitted(cLeads), { color: 'purple', icon: iconLayers(), tooltipKey: 'applications-submitted' }) +
-    kpiCardHtml('k-ind-visa', 'Visas Filed', Calc.visaFiled(cLeads), { color: 'teal', icon: iconCheck(), tooltipKey: 'visas-filed' });
+    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, tooltipKey: 'conversion-rate' });
 
   // Chronological activity timeline logs
   const allLogs = [];
@@ -1334,7 +1327,7 @@ function showCounsellorProfile(counsellorId) {
           <div class="profile-stat-val" style="color:var(--primary)">${activeCount}</div>
         </div>
         <div class="profile-stat-box">
-          <div class="profile-stat-lbl">Admitted</div>
+          <div class="profile-stat-lbl">Converted</div>
           <div class="profile-stat-val" style="color:var(--success)">${convertedCount}</div>
         </div>
         <div class="profile-stat-box">
@@ -1349,20 +1342,19 @@ function showCounsellorProfile(counsellorId) {
 
     <!-- Charts row 1 -->
     <div class="grid-2">
-      ${cardHtml('Daily Admissions Activity', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>', false, 'chart-daily-activity')}
+      ${cardHtml('Daily Lead Activity', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>', false, 'chart-daily-activity')}
       ${cardHtml('Lead status ratio', 'Doughnut chart of all assigned leads in status steps', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>', false, 'chart-funnel-dist')}
     </div>
 
     <!-- Charts row 2 -->
     <div class="grid-2">
-      ${cardHtml('Weekly Lead Progress', 'Assigned vs admitted conversions — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-ind-weekly"></canvas></div>', false, 'chart-weekly-flow')}
-      ${cardHtml('Academic Funnel Conversion', 'Funnel analysis of this counselor\'s leads', '<div id="funnel-ind" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
+      ${cardHtml('Weekly Lead Progress', 'Assigned vs converted — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-ind-weekly"></canvas></div>', false, 'chart-weekly-flow')}
+      ${cardHtml('Lead Funnel Progression', 'Funnel analysis of this counselor\'s leads', '<div id="funnel-ind" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
     </div>
 
     <!-- Charts row 3 -->
     <div class="grid-2">
       ${cardHtml('WhatsApp vs Calls log trend', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-ind-contacts"></canvas></div>', false, 'chart-whatsapp-vs-calls-log-trend')}
-      ${cardHtml('Preferred Country Distribution', 'Total assigned leads breakdown by target country', '<div class="chart-wrap h260"><canvas id="chart-ind-country"></canvas></div>', false, 'chart-preferred-country-distribution')}
     </div>
 
     <!-- Activity timeline and leads list -->
@@ -1452,34 +1444,11 @@ function showCounsellorProfile(counsellorId) {
     options: Charts.barOpts()
   });
 
-  // Target Country Share
-  const countries = {};
-  cLeads.forEach(l => {
-    countries[l.prefCountry] = (countries[l.prefCountry] || 0) + 1;
-  });
-  const countryLabels = Object.keys(countries);
-  const countryCounts = Object.values(countries);
-
-  drawChart('chart-ind-country', {
-    type: 'doughnut',
-    data: {
-      labels: countryLabels,
-      datasets: [{
-        data: countryCounts,
-        backgroundColor: CFG.palette,
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
-  });
-
   // Leads list
   renderTable('table-ind-leads', [
     { key: 'studentName', label: 'Lead Name', render: r => `<span class="name-cell">${escapeHtml(r.studentName)}</span>` },
     { key: 'status', label: 'Status', render: r => statusBadge(r.status) },
-    { key: 'prefCountry', label: 'Country' },
-    { key: 'prefUniversity', label: 'Preferred University' },
+    { key: 'source', label: 'Source' },
     { key: 'responseTimeHours', label: 'Response', render: r => fmt.hours(r.responseTimeHours) },
     { key: 'assignedDate', label: 'Age', render: r => fmt.days(Calc.daysBetween(r.assignedDate, CFG.today)) }
   ], cLeads, { defaultSort: 'assignedDate', pageSize: 6 });
@@ -1844,11 +1813,6 @@ function wireEvents() {
       Status: l.status,
       AssignedDate: l.assignedDate.toISOString().slice(0, 10),
       LastActivity: l.lastActivityDate.toISOString().slice(0, 10),
-      Intake: l.intake,
-      PreferredCountry: l.prefCountry,
-      PreferredUniversity: l.prefUniversity,
-      AppStatus: l.appStatus,
-      VisaStatus: l.visaStatus,
       Converted: l.converted ? 'Yes' : 'No'
     }));
     exportCSV(rows, 'intelabroad_staff_panel_analytics_operational.csv');
