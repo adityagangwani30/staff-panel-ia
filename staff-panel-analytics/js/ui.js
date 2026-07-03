@@ -106,7 +106,6 @@ const METRIC_DEFS = {
   'chart-counsellor-leaderboard': 'Leaderboard of top performing counselors.',
   'chart-operational-insights-anomalies': 'Automated insights and anomaly alerts.',
   'chart-whatsapp-vs-calls-log-trend': 'Weekly calls logged vs WhatsApp messages exchanged.',
-  'chart-preferred-country-distribution': 'Leads distribution by preferred destination country.',
   'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
   'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.'
 };
@@ -635,12 +634,10 @@ function renderCounsellorTab() {
   const leads = State.filtered;
   const panel = document.getElementById('panel-counsellor');
   
-  const trend = { dir: 'up', text: '+3.5% vs prev month' };
-
   const kpis = 
-    kpiCardHtml('k-c-assigned', 'Total Leads Assigned', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), trend: trend, tooltipKey: 'total-assigned' }) +
+    kpiCardHtml('k-c-assigned', 'Total Leads Assigned', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
     kpiCardHtml('k-c-contacted', 'Leads Contacted', Calc.contacted(leads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(leads)) + ' contact rate', tooltipKey: 'contacted' }) +
-    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconCall(), sub: `Avg calls/conv: ${Calc.avgCallsPerConversion(leads).toFixed(1)}`, tooltipKey: 'calls' }) +
+    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconPhone(), sub: `Avg calls/conv: ${Calc.avgCallsPerConversion(leads).toFixed(1)}`, tooltipKey: 'calls' }) +
     kpiCardHtml('k-c-whatsapp', 'WhatsApp Chats Logged', leads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
     kpiCardHtml('k-c-fu', 'Follow-ups Completed', Calc.followupsCompleted(leads), { color: 'teal', icon: iconCheck(), sub: `Avg FUs/conv: ${Calc.avgFollowupsPerConversion(leads).toFixed(1)}`, tooltipKey: 'followups-completed' }) +
     kpiCardHtml('k-c-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'danger', icon: iconAlert(), sub: `${Calc.overdueFollowups(leads).length} overdue`, tooltipKey: 'pending-followups' }) +
@@ -751,7 +748,7 @@ function renderCounsellorTab() {
     clickableRows: true, 
     onRowClick: (rowId) => {
       // Find staff id
-      const staffMember = window.IntelAbroadData.staff.find(s => s.name === rowId);
+      const staffMember = window.IntelAbroadData.staff.find(s => s.id === rowId);
       if (staffMember) showCounsellorProfile(staffMember.id);
     }
   });
@@ -1047,9 +1044,6 @@ function renderManagementTab() {
   
   const activeCount = Calc.activeLeads(leads);
   const monthly = Calc.monthlySeries(leads, 6);
-  const lastGrowth = Calc.growth(monthly.assigned[5], monthly.assigned[4]);
-  const forecastNext = Math.round(monthly.assigned[5] * (1 + Math.max(lastGrowth, 0) / 100));
-
   panel.innerHTML = `
     <div class="summary-strip">
       ${summaryCardHtml('Total Leads Managed', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active cases: ${activeCount}`, 'total-leads-managed')}
@@ -1211,7 +1205,7 @@ function renderManagementTab() {
     pageSize: 8, 
     clickableRows: true, 
     onRowClick: (rowId) => {
-      const staffMember = window.IntelAbroadData.staff.find(s => s.name === rowId);
+      const staffMember = window.IntelAbroadData.staff.find(s => s.id === rowId);
       if (staffMember) showCounsellorProfile(staffMember.id);
     }
   });
@@ -1248,7 +1242,7 @@ function showCounsellorProfile(counsellorId) {
   const kpiSectionHtml = 
     kpiCardHtml('k-ind-assigned', 'Total Leads Assigned', cLeads.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
     kpiCardHtml('k-ind-contacted', 'Leads Contacted', Calc.contacted(cLeads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(cLeads)) + ' contacted', tooltipKey: 'contacted' }) +
-    kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconCall(), tooltipKey: 'calls' }) +
+    kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconPhone(), tooltipKey: 'calls' }) +
     kpiCardHtml('k-ind-whatsapp', 'WhatsApp Chats', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
     kpiCardHtml('k-ind-fu', 'FUs Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), sub: fmt.pct(Calc.followupCompletionRate(cLeads)) + ' rate', tooltipKey: 'followups-completed' }) +
     kpiCardHtml('k-ind-pending', 'Pending FUs', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue`, tooltipKey: 'pending-followups' }) +
@@ -1863,7 +1857,6 @@ function wireEvents() {
 
 function iconUsers() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>'; }
 function iconPhone() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>'; }
-function iconCall() { return iconPhone(); }
 function iconCheck() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>'; }
 function iconTarget() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>'; }
 function iconClock() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'; }
