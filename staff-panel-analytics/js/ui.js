@@ -3,7 +3,6 @@
    ============================================================ */
 
 const State = {
-  // Active logged-in user simulation
   currentUser: {
     role: 'Founder',
     name: 'Dr. Suhail',
@@ -11,7 +10,7 @@ const State = {
     branch: 'all'
   },
   filters: {
-    dateType: 'entry', // 'entry', 'updated', 'followup'
+    dateType: 'entry',
     from: null,
     to: null,
     branch: 'all',
@@ -22,13 +21,11 @@ const State = {
   },
   filtered: [],
   activeTab: 'counsellor',
-  theme: 'dark',
   charts: {},
   tables: {},
-  counsellorViewId: null // If set, displays individual counsellor dashboard
+  counsellorViewId: null
 };
 
-// Utilities for UI formatting
 const fmt = {
   int(n) {
     if (n == null || isNaN(n) || !isFinite(n)) return '0';
@@ -47,9 +44,7 @@ const fmt = {
   dateFull(d) { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
 };
 
-// Metric Definitions for Tooltips
 const METRIC_DEFS = {
-  // KPIs
   'total-assigned': 'Total number of leads assigned within the selected scope.',
   'contacted': 'Leads that have been contacted (have a recorded first contact date).',
   'calls': 'Total number of telephone calls completed with leads.',
@@ -58,54 +53,32 @@ const METRIC_DEFS = {
   'pending-followups': 'Number of follow-ups that are yet to be completed.',
   'avg-response': 'Average time taken by a counsellor to make the first contact with a lead.',
   'conversion-rate': 'Percentage of assigned leads that have been successfully converted.',
+  'overdue-followups': 'Number of follow-ups that have passed their scheduled date without completion.',
+  'avg-lead-aging': 'Average number of days a lead has remained active since it was assigned.',
   'team-members': 'Number of active counselors in the team.',
   'avg-workload': 'Average number of leads assigned per counselor.',
   'followup-compliance': 'Percentage of follow-ups completed on time.',
   'team-avg-response': 'Average time taken by team members to contact leads.',
-  'overdue-followups': 'Number of follow-ups that have passed their scheduled date without completion.',
-  'total-source-volume': 'Total volume of leads generated across all active sources.',
-  'top-conversion-channel': 'Acquisition channel with the highest lead-to-admit conversion rate.',
-  'blended-quality': 'Aggregated quality score of leads across all active sources.',
-  'leading-volume-generator': 'Acquisition channel that generated the highest number of leads.',
   'total-leads-managed': 'Total number of leads managed at the organizational level.',
   'converted-leads': 'Total number of leads successfully converted.',
-  'blended-conversion-rate': 'Overall lead conversion efficiency across the company.',
   'sla-response-compliance': 'Percentage of leads contacted within the 24-hour SLA window.',
-  'avg-lead-aging': 'Average number of days a lead has remained active since it was assigned.',
-
-  // Charts
   'chart-daily-activity': 'Daily volume of assigned vs converted leads over the last 14 days.',
-  'chart-funnel-dist': 'Distribution of leads across current funnel statuses.',
-  'chart-weekly-flow': 'Weekly comparison of assigned vs converted leads over the last 8 weeks.',
-  'chart-funnel-progression': 'Cumulative conversion funnel progression from new leads to converted.',
-  'chart-monthly-lead-flow': 'Monthly trend of assigned vs converted leads over the last 6 months.',
-  'chart-top-counsellors': 'Counsellors with the highest conversion numbers in scope.',
-  'chart-counsellor-metrics': 'Individual performance metrics of counselors in scope.',
-  'chart-workload-status': 'Workload status breakdown per counselor.',
-  'chart-followup-compliance-breakdown': 'Breakdown of completed, pending, and overdue follow-ups.',
-  'chart-response-latency-trends': 'Weekly trend of team average response latency.',
-  'chart-overdue-followups-heatmap': 'Heatmap of overdue follow-ups by branch and day of the week.',
-  'chart-overdue-followups-action': 'List of urgent follow-ups overdue for immediate action.',
-  'chart-branch-admission-output': 'Assigned vs converted lead comparison by branch office.',
-  'chart-lead-share-by-branch': 'Percentage share of total leads across branch offices.',
-  'chart-monthly-lead-growth': 'Monthly lead volume growth trends for the top 3 branches.',
-  'chart-branch-operational-ranking': 'Operational performance and efficiency metrics of branch offices.',
-  'chart-source-admission-volumetrics': 'Total lead volume generated per acquisition source.',
-  'chart-source-efficiency-metrics': 'Assigned vs converted leads comparison by acquisition source.',
-  'chart-conversion-efficiency-trends': 'Monthly conversion rate trend by acquisition source.',
-  'chart-lead-quality-score-by-channel': 'Lead Quality Score based on conversion, SLA, and qualification progression.',
-  'chart-lead-acquisition-performance': 'Acquisition channel performance metrics sorted by volume.',
-  'chart-admissions-conversion-funnel': 'Stage-by-stage distribution of converted leads.',
-  'chart-branch-admissions-performance': 'Conversion output comparison by branch.',
-  'chart-blended-conversion-trends': '6-month historic lead-to-admit conversion rate trend.',
-  'chart-active-pipeline-stages': 'Pipeline stage breakdown of all currently active cases.',
-  'chart-admissions-pipeline-aging': 'Days elapsed since case assignment for open leads.',
-  'chart-sla-compliance-response-latency': 'SLA compliance rate compared with average response latency.',
-  'chart-mom-lead-volume-growth': 'Month-over-month lead volume growth percentage.',
-  'chart-daily-counselor-activity-logs': 'Counsellor actions logged daily (calls, WhatsApp, emails).',
+  'chart-lead-status-dist': 'Distribution of leads across current funnel statuses.',
+  'chart-monthly-trend': 'Monthly trend of assigned vs converted leads over the last 6 months.',
+  'chart-calls-vs-whatsapp': 'Weekly comparison of calls logged vs WhatsApp messages exchanged.',
+  'chart-team-comparison': 'Comparison of team members by converted, open, and lost leads.',
+  'chart-workload-dist': 'Workload status breakdown per counselor.',
+  'chart-response-time-trend': 'Weekly trend of team average response latency.',
+  'chart-branch-comparison': 'Assigned vs converted lead comparison by branch office.',
+  'chart-monthly-growth': 'Monthly lead volume growth trends for branches.',
+  'chart-counsellor-ranking': 'Counsellor ranking by performance within branch.',
+  'chart-lead-volume': 'Total lead volume generated per acquisition source.',
+  'chart-conversion-rate': 'Conversion rate comparison by acquisition source.',
+  'chart-overall-funnel': 'Stage-by-stage distribution of leads through the conversion funnel.',
+  'chart-m-branch-comparison': 'Conversion output comparison by branch.',
+  'chart-monthly-conversion-trend': '6-month historic conversion rate trend.',
   'chart-counsellor-leaderboard': 'Leaderboard of top performing counselors.',
-  'chart-operational-insights-anomalies': 'Automated insights and anomaly alerts.',
-  'chart-whatsapp-vs-calls-log-trend': 'Weekly calls logged vs WhatsApp messages exchanged.',
+  'chart-lead-source-performance': 'Lead source performance comparison.',
   'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
   'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.'
 };
@@ -128,40 +101,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// Counter count-up micro interaction
-function animateCounter(elNode, target, opts = {}) {
-  const isPct = opts.isPct;
-  const decimals = opts.decimals ?? 0;
-  const duration = 400;
-  const start = performance.now();
-  
-  function tick(now) {
-    const p = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - p, 3);
-    const val = target * eased;
-    let text = val.toFixed(decimals);
-    
-    if (isPct) text = text + '%';
-    else text = Number(text).toLocaleString('en-US');
-    
-    elNode.textContent = text;
-    if (p < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-
-function runCounters(root) {
-  root.querySelectorAll('[data-target]').forEach(node => {
-    let target = parseFloat(node.dataset.target);
-    if (isNaN(target) || !isFinite(target)) target = 0;
-    animateCounter(node, target, {
-      isPct: !!node.dataset.ispct,
-      decimals: node.dataset.decimals != null ? parseInt(node.dataset.decimals) : 0
-    });
-  });
-}
-
-// CSV Export
 function exportCSV(rows, filename) {
   if (!rows || !rows.length) {
     alert('No records matching current filters.');
@@ -181,7 +120,6 @@ function exportCSV(rows, filename) {
   URL.revokeObjectURL(url);
 }
 
-// Table rendering engine with paging, sorting, selection
 function renderTable(containerId, cols, rows, opts = {}) {
   const key = containerId;
   if (!State.tables[key]) {
@@ -198,13 +136,11 @@ function renderTable(containerId, cols, rows, opts = {}) {
 
   let data = rows.slice();
   
-  // Table search
   if (ts.search) {
     const q = ts.search.toLowerCase();
     data = data.filter(r => cols.some(c => String(r[c.key]).toLowerCase().includes(q)));
   }
 
-  // Table sort
   data.sort((a, b) => {
     const va = a[ts.sortKey];
     const vb = b[ts.sortKey];
@@ -366,7 +302,6 @@ function drawChart(canvasId, config) {
       delete State.charts[canvasId];
     }
     
-    // Sanitize chart datasets to prevent NaN, Infinity, undefined, null
     if (config && config.data && Array.isArray(config.data.datasets)) {
       config.data.datasets.forEach(ds => {
         if (Array.isArray(ds.data)) {
@@ -386,12 +321,10 @@ function drawChart(canvasId, config) {
   }
 }
 
-// Global Filter engine
 function applyFilters() {
   const f = State.filters;
   const user = State.currentUser;
   
-  // Set filters base scope based on User Role Permissions
   let allowedLeads = window.IntelAbroadData.leads;
   
   if (user.role === 'Counsellor') {
@@ -399,24 +332,20 @@ function applyFilters() {
     f.counsellor = user.id;
   } else if (user.role === 'TeamLead') {
     f.branch = user.branch;
-    // Limit SList to team members
     const teamMembers = window.IntelAbroadData.staff
       .filter(s => s.reportsTo === user.id || s.id === user.id)
       .map(s => s.id);
     allowedLeads = allowedLeads.filter(l => teamMembers.includes(l.counsellorId));
     
-    // Filter assignee picker scope
     if (f.counsellor !== 'all' && !teamMembers.includes(f.counsellor)) {
       f.counsellor = 'all';
     }
   } else if (user.role === 'BranchManager') {
     f.branch = user.branch;
-    // Limit to branch leads
     allowedLeads = allowedLeads.filter(l => l.branch === user.branch);
   }
 
   State.filtered = allowedLeads.filter(l => {
-    // 1. Date Type Filters
     let targetDate = l.assignedDate;
     if (f.dateType === 'updated') targetDate = l.lastActivityDate;
     else if (f.dateType === 'followup') {
@@ -428,19 +357,11 @@ function applyFilters() {
     if (f.from && targetDate < f.from) return false;
     if (f.to && targetDate > f.to) return false;
 
-    // 2. Branch Filter
     if (f.branch !== 'all' && l.branch !== f.branch) return false;
-
-    // 3. Counsellor Filter
     if (f.counsellor !== 'all' && l.counsellorId !== f.counsellor) return false;
-
-    // 4. Source Filter
     if (f.source !== 'all' && l.source !== f.source) return false;
-
-    // 5. Status Filter
     if (f.status !== 'all' && l.status !== f.status) return false;
 
-    // 6. Text Search Filter
     if (f.search) {
       const q = f.search.toLowerCase();
       const matchesName = l.studentName.toLowerCase().includes(q);
@@ -453,7 +374,6 @@ function applyFilters() {
   });
 }
 
-// Render Filter Chips
 function renderChips() {
   const f = State.filters;
   const user = State.currentUser;
@@ -494,13 +414,10 @@ function renderChips() {
   });
 }
 
-// Layout Widget Templates
 function kpiCardHtml(id, label, target, opts = {}) {
   const icon = opts.icon || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>';
   const color = opts.color || 'primary';
-  const trend = opts.trend;
   const sub = opts.sub || '';
-  const attrs = `data-target="${target}"${opts.isPct ? ' data-ispct="1"' : ''}${opts.decimals != null ? ` data-decimals="${opts.decimals}"` : ''}`;
   const tooltip = opts.tooltipKey ? tooltipHtml(opts.tooltipKey) : '';
   
   return `
@@ -510,9 +427,8 @@ function kpiCardHtml(id, label, target, opts = {}) {
         ${opts.badge ? `<span class="card-tag">${opts.badge}</span>` : ''}
       </div>
       <div class="kpi-label">${label}${tooltip}</div>
-      <div class="kpi-value" id="${id}" ${attrs}>0</div>
+      <div class="kpi-value">${fmt.int(target)}${opts.isPct ? '%' : ''}</div>
       <div class="kpi-trend-row">
-        ${trend ? `<span class="kpi-trend ${trend.dir}">${trend.dir === 'up' ? '▲' : trend.dir === 'down' ? '▼' : '—'} ${trend.text}</span>` : ''}
         ${sub ? `<span class="kpi-sub">${sub}</span>` : ''}
       </div>
     </div>`;
@@ -554,7 +470,6 @@ function callsBadge(count) {
   return `<span class="calls-badge">${count}</span>`;
 }
 
-// Render Funnel List
 function drawFunnel(containerId, stages) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -572,60 +487,6 @@ function drawFunnel(containerId, stages) {
   container.innerHTML = `<div class="funnel">${html}</div>`;
 }
 
-// Render Overdue heatmap
-function drawHeatmap(containerId, branches, leads) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const overdue = Calc.overdueFollowups(leads);
-  
-  const matrix = branches.map(b => {
-    return days.map((_, d) => overdue.filter(r => r.branch === b && new Date(r.dueDate).getDay() === d).length);
-  });
-  
-  const flat = matrix.flat();
-  const max = Math.max(...flat, 1);
-  
-  let html = '<div class="heat-label"></div>' + days.map(d => `<div class="heat-label" style="justify-content:center">${d}</div>`).join('');
-  
-  branches.forEach((b, i) => {
-    html += `<div class="heat-label">${b.split(' ')[0]}</div>`;
-    matrix[i].forEach(v => {
-      const alpha = v > 0 ? 0.15 + (v / max) * 0.75 : 0;
-      const bg = v > 0 ? `rgba(239, 68, 68, ${alpha.toFixed(2)})` : '#18181b';
-      const borderStyle = v > 0 ? 'border: 1px solid rgba(239, 68, 68, 0.4);' : '';
-      html += `<div class="heat-cell" style="background:${bg};${borderStyle}">${v || ''}</div>`;
-    });
-  });
-  
-  container.innerHTML = `<div class="heatmap">${html}</div>`;
-}
-
-// Operational Insights
-function buildInsightsList(leads, branchPerf, perf) {
-  const out = [];
-  const topBranch = branchPerf.slice().sort((a,b) => b.conversionRate - a.conversionRate)[0];
-  if (topBranch) {
-    out.push({ color: 'success', text: `<b>${topBranch.branch}</b> reports the highest operational conversion at <b>${fmt.pct(topBranch.conversionRate)}</b>.` });
-  }
-  const topCounsellor = perf.slice().sort((a,b) => b.converted - a.converted)[0];
-  if (topCounsellor) {
-    out.push({ color: 'primary', text: `<b>${topCounsellor.name}</b> converted the most leads in scope (<b>${topCounsellor.converted} converted</b>).` });
-  }
-  const overdue = Calc.overdueFollowups(leads);
-  if (overdue.length) {
-    out.push({ color: 'danger', text: `<b>${overdue.length} follow-ups</b> are overdue. Branch heads must intervene immediately.` });
-  }
-  const avgSla = Calc.slaComplianceRate(leads);
-  out.push({ color: 'info', text: `Blended response SLA compliance stands at <b>${fmt.pct(avgSla)}</b> contacted within 24 hours.` });
-  
-  const slowest = branchPerf.slice().sort((a,b) => a.slaCompliance - b.slaCompliance)[0];
-  if (slowest) {
-    out.push({ color: 'warning', text: `<b>${slowest.branch}</b> has the lowest SLA compliance (<b>${fmt.pct(slowest.slaCompliance)}</b>). Re-evaluate counselor workloads.` });
-  }
-  return out;
-}
-
 // ============================================================
 // TAB RENDERING TRIGGERS
 // ============================================================
@@ -634,33 +495,31 @@ function renderCounsellorTab() {
   const leads = State.filtered;
   const panel = document.getElementById('panel-counsellor');
   
+  const overdueCount = Calc.overdueFollowups(leads).length;
   const kpis = 
     kpiCardHtml('k-c-assigned', 'Total Leads Assigned', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
     kpiCardHtml('k-c-contacted', 'Leads Contacted', Calc.contacted(leads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(leads)) + ' contact rate', tooltipKey: 'contacted' }) +
-    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconPhone(), sub: `Avg calls/conv: ${Calc.avgCallsPerConversion(leads).toFixed(1)}`, tooltipKey: 'calls' }) +
-    kpiCardHtml('k-c-whatsapp', 'WhatsApp Chats Logged', leads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
-    kpiCardHtml('k-c-fu', 'Follow-ups Completed', Calc.followupsCompleted(leads), { color: 'teal', icon: iconCheck(), sub: `Avg FUs/conv: ${Calc.avgFollowupsPerConversion(leads).toFixed(1)}`, tooltipKey: 'followups-completed' }) +
-    kpiCardHtml('k-c-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'danger', icon: iconAlert(), sub: `${Calc.overdueFollowups(leads).length} overdue`, tooltipKey: 'pending-followups' }) +
-    kpiCardHtml('k-c-resp', 'Avg Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA compliance', tooltipKey: 'avg-response' }) +
-    kpiCardHtml('k-c-aging', 'Lead Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: `Avg aging: ${Calc.avgLeadAging(leads).toFixed(0)} days`, tooltipKey: 'conversion-rate' });
+    kpiCardHtml('k-c-calls', 'Calls Completed', Calc.callsCompleted(leads), { color: 'purple', icon: iconPhone(), tooltipKey: 'calls' }) +
+    kpiCardHtml('k-c-whatsapp', 'WhatsApp Conversations', leads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
+    kpiCardHtml('k-c-fu', 'Follow-ups Completed', Calc.followupsCompleted(leads), { color: 'teal', icon: iconCheck(), tooltipKey: 'followups-completed' }) +
+    kpiCardHtml('k-c-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconAlert(), sub: `${overdueCount} overdue`, tooltipKey: 'pending-followups' }) +
+    kpiCardHtml('k-c-overdue', 'Overdue Follow-ups', overdueCount, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' }) +
+    kpiCardHtml('k-c-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA compliance', tooltipKey: 'avg-response' }) +
+    kpiCardHtml('k-c-aging', 'Lead Aging', Calc.avgLeadAging(leads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging' }) +
+    kpiCardHtml('k-c-conv', 'Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' }) +
+    kpiCardHtml('k-c-prod', 'Productivity Score', Calc.productivity(leads), { color: 'primary', icon: iconTarget(), sub: 'Simplified score', tooltipKey: 'conversion-rate' });
 
   panel.innerHTML = `
     <div class="kpi-grid">${kpis}</div>
     <div class="grid-2">
-      ${cardHtml('Daily Activity Volume', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-c-daily"></canvas></div>', false, 'chart-daily-activity')}
-      ${cardHtml('Lead Funnel Distribution', 'Current mix across lead funnel stages', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>', false, 'chart-funnel-dist')}
+      ${cardHtml('Daily Performance', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-c-daily"></canvas></div>', false, 'chart-daily-activity')}
+      ${cardHtml('Lead Status Distribution', 'Current mix across lead statuses', '<div class="chart-wrap h260"><canvas id="chart-c-status"></canvas></div>', false, 'chart-lead-status-dist')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Weekly Flow Comparison', 'Assigned vs converted — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-c-weekly"></canvas></div>', false, 'chart-weekly-flow')}
-      ${cardHtml('Conversion Funnel Progression', 'Cumulative lead stage completion', '<div id="funnel-c" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
+      ${cardHtml('Monthly Performance Trend', '6-month assigned vs converted trends', '<div class="chart-wrap h260"><canvas id="chart-c-monthly"></canvas></div>', false, 'chart-monthly-trend')}
+      ${cardHtml('Calls vs WhatsApp Activity', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-c-contacts"></canvas></div>', false, 'chart-calls-vs-whatsapp')}
     </div>
-    <div class="grid-2">
-      ${cardHtml('Monthly Lead Flow', '6-month assigned vs converted trends', '<div class="chart-wrap h260"><canvas id="chart-c-monthly"></canvas></div>', false, 'chart-monthly-lead-flow')}
-      ${cardHtml('Top Counsellors by Conversion', 'Ranked by conversions closed', '<div class="chart-wrap h260"><canvas id="chart-c-top"></canvas></div>', false, 'chart-top-counsellors')}
-    </div>
-    ${cardHtml('Counsellor Performance Metrics', 'Workload and operational latency per counselor in scope', '<div id="table-c-perf"></div>', true, 'chart-counsellor-metrics')}`;
-
-  runCounters(panel);
+    ${cardHtml('Counsellor Performance', 'Performance metrics per counselor', '<div id="table-c-perf"></div>', true, 'chart-counsellor-metrics')}`;
 
   const daily = Calc.dailySeries(leads, 14);
   drawChart('chart-c-daily', {
@@ -690,21 +549,6 @@ function renderCounsellorTab() {
     options: Charts.donutOpts()
   });
 
-  const weekly = Calc.weeklySeries(leads, 8);
-  drawChart('chart-c-weekly', {
-    type: 'bar',
-    data: {
-      labels: weekly.labels,
-      datasets: [
-        Charts.barDS('Assigned', weekly.assigned, CFG.chartColors.primary),
-        Charts.barDS('Converted', weekly.converted, CFG.chartColors.success)
-      ]
-    },
-    options: Charts.barOpts()
-  });
-
-  drawFunnel('funnel-c', Calc.funnelStages(leads));
-
   const monthly = Calc.monthlySeries(leads, 6);
   drawChart('chart-c-monthly', {
     type: 'line',
@@ -718,16 +562,28 @@ function renderCounsellorTab() {
     options: Charts.lineOpts()
   });
 
-  const perf = Calc.counsellorPerformance(leads, window.IntelAbroadData.staff.filter(s => s.role !== 'Founder'))
-                   .sort((a,b) => b.converted - a.converted)
-                   .slice(0, 8);
-  drawChart('chart-c-top', {
+  // Calls vs WhatsApp - weekly trend (8 weeks)
+  const callsTrend = [];
+  const waTrend = [];
+  const labels = [];
+  for (let i = 7; i >= 0; i--) {
+    const start = addDays(CFG.today, -(i + 1) * 7);
+    const end = addDays(CFG.today, -i * 7);
+    const wl = leads.filter(l => l.assignedDate >= start && l.assignedDate < end);
+    labels.push('W' + (8 - i));
+    callsTrend.push(Calc.callsCompleted(wl));
+    waTrend.push(wl.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0));
+  }
+  drawChart('chart-c-contacts', {
     type: 'bar',
     data: {
-      labels: perf.map(p => p.name),
-      datasets: [Charts.barDS('Converted', perf.map(p => p.converted), CFG.chartColors.purple)]
+      labels: labels,
+      datasets: [
+        Charts.barDS('Calls Logged', callsTrend, CFG.chartColors.purple),
+        Charts.barDS('WhatsApp Chat Count', waTrend, CFG.chartColors.pink)
+      ]
     },
-    options: Charts.hbarOpts()
+    options: Charts.barOpts()
   });
 
   const allPerf = Calc.counsellorPerformance(leads, window.IntelAbroadData.staff.filter(s => s.role !== 'Founder'));
@@ -747,7 +603,6 @@ function renderCounsellorTab() {
     defaultSort: 'converted', 
     clickableRows: true, 
     onRowClick: (rowId) => {
-      // Find staff id
       const staffMember = window.IntelAbroadData.staff.find(s => s.id === rowId);
       if (staffMember) showCounsellorProfile(staffMember.id);
     }
@@ -762,23 +617,21 @@ function renderTeamLeadTab() {
 
   panel.innerHTML = `
     <div class="kpi-grid">
-      ${kpiCardHtml('k-t-team', 'Team Members Handled', perf.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'team-members' })}
-      ${kpiCardHtml('k-t-workload', 'Avg Workload / Counsellor', perf.length ? Calc.totalAssigned(leads) / perf.length : 0, { color: 'info', icon: iconLayers(), decimals: 1, tooltipKey: 'avg-workload' })}
-      ${kpiCardHtml('k-t-fu', 'Follow-up Compliance', Calc.followupCompletionRate(leads), { color: 'success', icon: iconCheck(), isPct: true, decimals: 1, tooltipKey: 'followup-compliance' })}
-      ${kpiCardHtml('k-t-resp', 'Team Avg Response', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), decimals: 1, sub: 'hours average', tooltipKey: 'team-avg-response' })}
-      ${kpiCardHtml('k-t-overdue', 'Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA Compliance', tooltipKey: 'overdue-followups' })}
+      ${kpiCardHtml('k-t-team', 'Team Performance', perf.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'team-members' })}
+      ${kpiCardHtml('k-t-convrate', 'Team Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' })}
+      ${kpiCardHtml('k-t-workload', 'Average Workload', perf.length ? (Calc.totalAssigned(leads) / perf.length).toFixed(1) : 0, { color: 'info', icon: iconLayers(), tooltipKey: 'avg-workload' })}
+      ${kpiCardHtml('k-t-resp', 'Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'team-avg-response' })}
+      ${kpiCardHtml('k-t-fu', 'Follow-up Compliance', Calc.followupCompletionRate(leads), { color: 'success', icon: iconCheck(), isPct: true, tooltipKey: 'followup-compliance' })}
+      ${kpiCardHtml('k-t-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconAlert(), tooltipKey: 'pending-followups' })}
+      ${kpiCardHtml('k-t-overdue', 'Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Workload Status Distribution', 'Assigned leads status split per counselor', '<div class="chart-wrap h300"><canvas id="chart-t-stack"></canvas></div>', false, 'chart-workload-status')}
-      ${cardHtml('Follow-up Compliance breakdown', 'Completed vs pending vs overdue follow-ups', '<div class="chart-wrap h300"><canvas id="chart-t-pie"></canvas></div>', false, 'chart-followup-compliance-breakdown')}
+      ${cardHtml('Team Comparison', 'Assigned leads status split per counselor', '<div class="chart-wrap h300"><canvas id="chart-t-stack"></canvas></div>', false, 'chart-team-comparison')}
+      ${cardHtml('Response Time Trend', 'Team average response latency — weekly', '<div class="chart-wrap h260"><canvas id="chart-t-line"></canvas></div>', false, 'chart-response-time-trend')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Response Latency Trends', 'Team average response latency — weekly', '<div class="chart-wrap h260"><canvas id="chart-t-line"></canvas></div>', false, 'chart-response-latency-trends')}
-      ${cardHtml('Overdue Follow-ups Heatmap', 'Critical follow-ups overdue by branch office and day of week due', '<div id="heat-t" style="padding-top:8px"></div>', false, 'chart-overdue-followups-heatmap')}
-    </div>
-    ${cardHtml('Overdue Follow-ups Action List', 'Immediate counselor attention needed', '<div id="table-t-overdue"></div>', true, 'chart-overdue-followups-action')}`;
-
-  runCounters(panel);
+      ${cardHtml('Workload Distribution', 'Lead status breakdown across the team', '<div class="chart-wrap h260"><canvas id="chart-t-workload"></canvas></div>', false, 'chart-workload-dist')}
+    </div>`;
 
   const top = perf.sort((a,b) => b.assigned - a.assigned).slice(0, 10);
   const openCount = top.map(p => {
@@ -797,24 +650,6 @@ function renderTeamLeadTab() {
       ]
     },
     options: Charts.stackOpts()
-  });
-
-  const fuCompleted = Calc.followupsCompleted(leads);
-  const fuOverdue = overdue.length;
-  const fuPending = Math.max(Calc.followupsTotal(leads) - fuCompleted - fuOverdue, 0);
-
-  drawChart('chart-t-pie', {
-    type: 'pie',
-    data: {
-      labels: ['Completed', 'Pending', 'Overdue'],
-      datasets: [{
-        data: [fuCompleted, fuPending, fuOverdue],
-        backgroundColor: [CFG.chartColors.success, CFG.chartColors.warning, CFG.chartColors.danger],
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
   });
 
   const weeks = 8;
@@ -837,17 +672,20 @@ function renderTeamLeadTab() {
     options: Charts.lineOpts()
   });
 
-  drawHeatmap('heat-t', window.IntelAbroadData.branches, leads);
-
-  renderTable('table-t-overdue', [
-    { key: 'leadId', label: 'Lead ID' },
-    { key: 'student', label: 'Student', render: r => `<span class="name-cell">${escapeHtml(r.student)}</span>` },
-    { key: 'counsellor', label: 'Counsellor' },
-    { key: 'branch', label: 'Branch' },
-    { key: 'dueDate', label: 'Due Date', render: r => fmt.dateFull(r.dueDate) },
-    { key: 'overdueDays', label: 'Days Overdue', render: r => `${r.overdueDays}d` },
-    { key: 'status', label: 'Status', render: r => statusBadge(r.status) }
-  ], overdue, { defaultSort: 'overdueDays' });
+  const workloadDist = Calc.statusDistribution(leads);
+  drawChart('chart-t-workload', {
+    type: 'doughnut',
+    data: {
+      labels: workloadDist.map(d => d.status),
+      datasets: [{
+        data: workloadDist.map(d => d.count),
+        backgroundColor: CFG.palette,
+        borderWidth: 1,
+        borderColor: '#0c0c0e'
+      }]
+    },
+    options: Charts.donutOpts()
+  });
 }
 
 function renderBranchTab() {
@@ -863,7 +701,7 @@ function renderBranchTab() {
       </div>
       <div style="display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap">
         <div>
-          <div class="mini-stat-label">Conversion</div>
+          <div class="mini-stat-label">Conversion Rate</div>
           <div class="mini-stat-val">${fmt.pct(b.conversionRate)}</div>
         </div>
         <div>
@@ -871,8 +709,8 @@ function renderBranchTab() {
           <div class="mini-stat-val">${b.productivity.toFixed(0)}</div>
         </div>
         <div>
-          <div class="mini-stat-label">SLA Compliance</div>
-          <div class="mini-stat-val">${fmt.pct(b.slaCompliance)}</div>
+          <div class="mini-stat-label">Avg Response</div>
+          <div class="mini-stat-val">${fmt.hours(b.avgResponse)}</div>
         </div>
         <div>
           <div class="mini-stat-label">Pending FU</div>
@@ -885,11 +723,10 @@ function renderBranchTab() {
   panel.innerHTML = `
     <div class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">${branchCards}</div>
     <div class="grid-2">
-      ${cardHtml('Branch Lead Conversion', 'Assigned vs converted leads by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>', false, 'chart-branch-admission-output')}
-      ${cardHtml('Lead share by Branch', 'Percentage share of company leads by branch', '<div class="chart-wrap h280"><canvas id="chart-b-dist"></canvas></div>', false, 'chart-lead-share-by-branch')}
+      ${cardHtml('Branch Comparison', 'Assigned vs converted leads by branch office', '<div class="chart-wrap h280"><canvas id="chart-b-compare"></canvas></div>', false, 'chart-branch-comparison')}
+      ${cardHtml('Monthly Growth', 'Monthly lead volume growth trends for top branches', '<div class="chart-wrap h280"><canvas id="chart-b-growth"></canvas></div>', false, 'chart-monthly-growth')}
     </div>
-    ${cardHtml('Monthly Lead Growth Trends', 'Assigned cases volume growth for top 3 branches', '<div class="chart-wrap h280"><canvas id="chart-b-growth"></canvas></div>', false, 'chart-monthly-lead-growth')}
-    ${cardHtml('Branch Operational Performance Ranking', 'Branch offices sorted by conversion efficiency', '<div id="table-b-rank"></div>', true, 'chart-branch-operational-ranking')}`;
+    ${cardHtml('Counsellor Ranking', 'Counsellor performance ranking by branch', '<div id="table-b-rank"></div>', true, 'chart-counsellor-ranking')}`;
 
   drawChart('chart-b-compare', {
     type: 'bar',
@@ -901,20 +738,6 @@ function renderBranchTab() {
       ]
     },
     options: Charts.barOpts()
-  });
-
-  drawChart('chart-b-dist', {
-    type: 'doughnut',
-    data: {
-      labels: branchPerf.map(b => b.branch),
-      datasets: [{
-        data: branchPerf.map(b => b.assigned),
-        backgroundColor: CFG.palette,
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
   });
 
   const topBranches = branchPerf.slice().sort((a,b) => b.assigned - a.assigned).slice(0, 3).map(b => b.branch);
@@ -931,109 +754,54 @@ function renderBranchTab() {
     options: Charts.lineOpts()
   });
 
+  const allCounsellors = Calc.counsellorPerformance(leads, window.IntelAbroadData.staff.filter(s => s.role !== 'Founder'));
+  const branchRanking = allCounsellors.slice().sort((a, b) => b.productivity - a.productivity);
   renderTable('table-b-rank', [
-    { key: 'branch', label: 'Branch Office' },
-    { key: 'assigned', label: 'Total Leads' },
-    { key: 'active', label: 'Active Leads' },
-    { key: 'converted', label: 'Converted' },
+    { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
+    { key: 'branch', label: 'Branch' },
     { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
-    { key: 'productivity', label: 'Productivity Score', render: r => r.productivity.toFixed(0) },
-    { key: 'slaCompliance', label: 'SLA Compliance %', render: r => fmt.pct(r.slaCompliance) },
-    { key: 'avgResponse', label: 'Avg Response', render: r => fmt.hours(r.avgResponse) },
-    { key: 'avgAging', label: 'Lead Aging', render: r => fmt.days(r.avgAging) }
-  ], branchPerf, { defaultSort: 'conversionRate' });
+    { key: 'productivity', label: 'Productivity', render: r => r.productivity },
+    { key: 'pending', label: 'Pending FU' },
+    { key: 'responseTime', label: 'Avg Response', render: r => fmt.hours(r.responseTime) }
+  ], branchRanking, { defaultSort: 'productivity' });
 }
 
 function renderSourceTab() {
   const leads = State.filtered;
   const panel = document.getElementById('panel-source');
   const srcPerf = Calc.sourcePerformance(leads, window.IntelAbroadData.sources);
-  const best = srcPerf.slice().sort((a,b) => b.conversionRate - a.conversionRate)[0] || { source: '—', conversionRate: 0 };
-  const biggest = srcPerf.slice().sort((a,b) => b.assigned - a.assigned)[0] || { source: '—', assigned: 0 };
 
   panel.innerHTML = `
     <div class="kpi-grid">
-      ${kpiCardHtml('k-s-total', 'Total Source Volume', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), sub: `across ${window.IntelAbroadData.sources.length} active channels`, tooltipKey: 'total-source-volume' })}
-      ${kpiCardHtml('k-s-convrate', 'Top Conversion Channel', best.conversionRate, { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, sub: best.source, tooltipKey: 'top-conversion-channel' })}
-      ${kpiCardHtml('k-s-quality', 'Blended Quality Factor', Calc.leadQualityScore(leads), { color: 'info', icon: iconCheck(), sub: 'Global quality score', tooltipKey: 'blended-quality' })}
-      ${kpiCardHtml('k-s-campaign', 'Leading Volume Generator', biggest.assigned, { color: 'purple', icon: iconLayers(), sub: biggest.source, tooltipKey: 'leading-volume-generator' })}
+      ${kpiCardHtml('k-s-volume', 'Lead Volume', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), sub: `across ${window.IntelAbroadData.sources.length} sources`, tooltipKey: 'total-assigned' })}
+      ${kpiCardHtml('k-s-convrate', 'Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' })}
+      ${kpiCardHtml('k-s-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'avg-response' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Source Lead Volumetrics', 'Total leads generated per channel', '<div class="chart-wrap h280"><canvas id="chart-s-funnel"></canvas></div>', false, 'chart-source-admission-volumetrics')}
-      ${cardHtml('Source Efficiency Metrics', 'Assigned vs converted metrics by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-compare"></canvas></div>', false, 'chart-source-efficiency-metrics')}
-    </div>
-    <div class="grid-2">
-      ${cardHtml('Conversion Efficiency Trends', 'Monthly conversion rate by source', '<div class="chart-wrap h260"><canvas id="chart-s-trend"></canvas></div>', false, 'chart-conversion-efficiency-trends')}
-      ${cardHtml('Lead Quality Score by Channel', 'Lead Quality Score based on conversion, SLA, and qualification progression', '<div class="chart-wrap h260"><canvas id="chart-s-quality"></canvas></div>', false, 'chart-lead-quality-score-by-channel')}
-    </div>
-    ${cardHtml('Lead Acquisition Performance', 'Channel performance metrics sorted by volume', '<div id="table-s-perf"></div>', true, 'chart-lead-acquisition-performance')}`;
-
-  runCounters(panel);
+      ${cardHtml('Lead Volume', 'Total leads generated per source', '<div class="chart-wrap h280"><canvas id="chart-s-volume"></canvas></div>', false, 'chart-lead-volume')}
+      ${cardHtml('Conversion Rate', 'Conversion rate by acquisition source', '<div class="chart-wrap h280"><canvas id="chart-s-convrate"></canvas></div>', false, 'chart-conversion-rate')}
+    </div>`;
 
   const sorted = srcPerf.slice().sort((a,b) => b.assigned - a.assigned);
-  drawChart('chart-s-funnel', {
+  drawChart('chart-s-volume', {
     type: 'bar',
     data: {
       labels: sorted.map(s => s.source),
-      datasets: [Charts.barDS('Assigned', sorted.map(s => s.assigned), CFG.chartColors.info)]
+      datasets: [Charts.barDS('Lead Volume', sorted.map(s => s.assigned), CFG.chartColors.info)]
     },
     options: Charts.hbarOpts()
   });
 
-  drawChart('chart-s-compare', {
+  drawChart('chart-s-convrate', {
     type: 'bar',
     data: {
       labels: srcPerf.map(s => s.source),
       datasets: [
-        Charts.barDS('Assigned', srcPerf.map(s => s.assigned), CFG.chartColors.primary),
-        Charts.barDS('Converted', srcPerf.map(s => s.converted), CFG.chartColors.success)
+        Charts.barDS('Conversion Rate', srcPerf.map(s => s.conversionRate), CFG.chartColors.success)
       ]
     },
     options: Charts.barOpts()
   });
-
-  const months = Calc.monthlySeries(leads, 6).labels;
-  const trendVals = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(CFG.today.getFullYear(), CFG.today.getMonth() - i, 1);
-    const next = new Date(CFG.today.getFullYear(), CFG.today.getMonth() - i + 1, 1);
-    const ml = leads.filter(l => l.assignedDate >= d && l.assignedDate < next);
-    trendVals.push(Calc.conversionRate(ml));
-  }
-
-  drawChart('chart-s-trend', {
-    type: 'line',
-    data: {
-      labels: months,
-      datasets: [Charts.lineDS('Conversion Rate', trendVals, CFG.chartColors.success, true)]
-    },
-    options: Charts.lineOpts(true)
-  });
-
-  drawChart('chart-s-quality', {
-    type: 'bar',
-    data: {
-      labels: srcPerf.map(s => s.source),
-      datasets: [{
-        label: 'Quality Score (0-100)',
-        data: srcPerf.map(s => Math.round(s.qualityScore)),
-        backgroundColor: CFG.chartColors.teal,
-        borderRadius: 4
-      }]
-    },
-    options: Charts.barOpts()
-  });
-
-  renderTable('table-s-perf', [
-    { key: 'source', label: 'Acquisition Source' },
-    { key: 'assigned', label: 'Total Leads' },
-    { key: 'converted', label: 'Converted' },
-    { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
-    { key: 'qualityScore', label: 'Quality Score (LQS)', render: r => `${r.qualityScore.toFixed(0)}/100` },
-    { key: 'avgResponse', label: 'Avg Latency', render: r => fmt.hours(r.avgResponse) },
-    { key: 'avgCalls', label: 'Avg Calls/Conv', render: r => r.avgCalls.toFixed(1) },
-    { key: 'avgFUs', label: 'Avg FUs/Conv', render: r => r.avgFUs.toFixed(1) }
-  ], srcPerf, { defaultSort: 'assigned' });
 }
 
 function renderManagementTab() {
@@ -1046,33 +814,28 @@ function renderManagementTab() {
   const monthly = Calc.monthlySeries(leads, 6);
   panel.innerHTML = `
     <div class="summary-strip">
-      ${summaryCardHtml('Total Leads Managed', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active cases: ${activeCount}`, 'total-leads-managed')}
+      ${summaryCardHtml('Total Leads', fmt.int(leads.length), 'linear-gradient(135deg,#3b82f6,#60a5fa)', `Active leads: ${activeCount}`, 'total-leads-managed')}
+      ${summaryCardHtml('Active Leads', fmt.int(activeCount), 'linear-gradient(135deg,#06b6d4,#22d3ee)', 'Leads currently in progress', 'total-leads-managed')}
       ${summaryCardHtml('Converted Leads', fmt.int(Calc.converted(leads)), 'linear-gradient(135deg,#22c55e,#4ade80)', 'Leads successfully converted', 'converted-leads')}
-      ${summaryCardHtml('Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Overall lead conversion efficiency', 'blended-conversion-rate')}
-      ${summaryCardHtml('SLA Compliance', fmt.pct(Calc.slaComplianceRate(leads)), 'linear-gradient(135deg,#eab308,#facc15)', 'Contact within 24 hours rate', 'sla-response-compliance')}
+      ${summaryCardHtml('Conversion Rate', fmt.pct(Calc.conversionRate(leads)), 'linear-gradient(135deg,#a855f7,#c084fc)', 'Overall conversion efficiency', 'conversion-rate')}
+    </div>
+    <div class="kpi-grid">
+      ${kpiCardHtml('k-m-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), sub: fmt.pct(Calc.slaComplianceRate(leads)) + ' SLA compliance', tooltipKey: 'avg-response' })}
+      ${kpiCardHtml('k-m-aging', 'Lead Aging', Calc.avgLeadAging(leads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging' })}
+      ${kpiCardHtml('k-m-sla', 'SLA Compliance', Calc.slaComplianceRate(leads), { color: 'info', icon: iconClock(), isPct: true, tooltipKey: 'sla-response-compliance' })}
+      ${kpiCardHtml('k-m-fucomp', 'Follow-up Compliance', Calc.followupCompletionRate(leads), { color: 'success', icon: iconCheck(), isPct: true, tooltipKey: 'followup-compliance' })}
     </div>
     <div class="grid-2">
-      ${cardHtml('Lead Conversion Funnel', 'Stage distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>', false, 'chart-admissions-conversion-funnel')}
-      ${cardHtml('Branch Conversion Performance', 'Assigned vs converted leads by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>', false, 'chart-branch-admissions-performance')}
+      ${cardHtml('Overall Funnel', 'Stage-wise distribution company-wide', '<div id="funnel-m" style="padding-top:6px"></div>', false, 'chart-overall-funnel')}
+      ${cardHtml('Branch Comparison', 'Assigned vs converted leads by branch', '<div class="chart-wrap h260"><canvas id="chart-m-branch"></canvas></div>', false, 'chart-m-branch-comparison')}
     </div>
     <div class="grid-2">
-      ${cardHtml('Conversion Trends', '6-month historic conversion rate performance', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>', false, 'chart-blended-conversion-trends')}
-      ${cardHtml('Active Pipeline Stages', 'Active cases breakdown in pipeline stages', '<div class="chart-wrap h240"><canvas id="chart-m-pipeline"></canvas></div>', false, 'chart-active-pipeline-stages')}
-    </div>
-    <div class="grid-2">
-      ${cardHtml('Lead Pipeline Aging', 'Days elapsed since case assignment (open deals only)', '<div class="chart-wrap h240"><canvas id="chart-m-aging"></canvas></div>', false, 'chart-admissions-pipeline-aging')}
-      ${cardHtml('SLA Compliance & Response Latency', 'SLA Response compliance rate vs Average response latency', '<div class="chart-wrap h240"><canvas id="chart-m-revenue"></canvas></div>', false, 'chart-sla-compliance-response-latency')}
-    </div>
-    <div class="grid-2">
-      ${cardHtml('MoM Lead Volume Growth', 'Percentage change in assigned leads volume', '<div class="chart-wrap h230"><canvas id="chart-m-growth"></canvas></div>', false, 'chart-mom-lead-volume-growth')}
-      ${cardHtml('Daily Counselor activity logs', 'Total calls, WhatsApp, emails logged by counselors — last 14 days', '<div class="chart-wrap h230"><canvas id="chart-m-daily"></canvas></div>', false, 'chart-daily-counselor-activity-logs')}
-    </div>
-    <div class="grid-2">
+      ${cardHtml('Monthly Conversion Trend', '6-month historic conversion rate trend', '<div class="chart-wrap h240"><canvas id="chart-m-trend"></canvas></div>', false, 'chart-monthly-conversion-trend')}
       ${cardHtml('Counsellor Leaderboard', 'Top counsellors sorted by conversions', '<div id="table-m-leader"></div>', false, 'chart-counsellor-leaderboard')}
-      ${cardHtml('Operational Insights & Anomalies', 'Automated alerts based on filtered metrics', '<div class="insight-list" id="insights-m"></div>', false, 'chart-operational-insights-anomalies')}
+    </div>
+    <div class="grid-2">
+      ${cardHtml('Lead Source Performance', 'Lead volume and conversion by source', '<div class="chart-wrap h260"><canvas id="chart-m-source"></canvas></div>', false, 'chart-lead-source-performance')}
     </div>`;
-
-  runCounters(panel);
 
   drawFunnel('funnel-m', Calc.funnelStages(leads));
 
@@ -1104,95 +867,6 @@ function renderManagementTab() {
     options: Charts.lineOpts(true)
   });
 
-  const openStatuses = CFG.statuses.filter(s => s !== 'Converted' && s !== 'Lost');
-  const pipeDist = openStatuses.map(s => leads.filter(l => l.status === s).length);
-  drawChart('chart-m-pipeline', {
-    type: 'doughnut',
-    data: {
-      labels: openStatuses,
-      datasets: [{
-        data: pipeDist,
-        backgroundColor: CFG.palette,
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
-  });
-
-  const agingBuckets = [[0, 15], [16, 30], [31, 60], [61, 90], [91, 9999]];
-  const agingLabels = ['0-15d', '16-30d', '31-60d', '61-90d', '90d+'];
-  const openLeads = leads.filter(l => !l.converted && !l.lost);
-  const agingCounts = agingBuckets.map(b => openLeads.filter(l => {
-    const d = Calc.daysBetween(l.assignedDate, CFG.today);
-    return d >= b[0] && d <= b[1];
-  }).length);
-
-  drawChart('chart-m-aging', {
-    type: 'bar',
-    data: {
-      labels: agingLabels,
-      datasets: [Charts.barDS('Open cases count', agingCounts, CFG.chartColors.warning)]
-    },
-    options: Charts.barOpts()
-  });
-
-  const slaTrend = [];
-  const latencyTrend = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(CFG.today.getFullYear(), CFG.today.getMonth() - i, 1);
-    const next = new Date(CFG.today.getFullYear(), CFG.today.getMonth() - i + 1, 1);
-    const ml = leads.filter(l => l.assignedDate >= d && l.assignedDate < next);
-    slaTrend.push(Calc.slaComplianceRate(ml));
-    latencyTrend.push(Calc.avgResponseTime(ml));
-  }
-
-  drawChart('chart-m-revenue', {
-    type: 'line',
-    data: {
-      labels: monthly.labels,
-      datasets: [
-        { label: 'SLA Compliance %', data: slaTrend, borderColor: CFG.chartColors.primary, backgroundColor: 'transparent', tension: 0.35, pointRadius: 2, borderWidth: 2 },
-        { label: 'Avg Latency (hrs)', data: latencyTrend, borderColor: CFG.chartColors.warning, backgroundColor: 'transparent', tension: 0.35, pointRadius: 2, borderWidth: 2 }
-      ]
-    },
-    options: Charts.lineOpts()
-  });
-
-  const growthVals = [];
-  for (let i = 1; i < monthly.assigned.length; i++) {
-    growthVals.push(Calc.growth(monthly.assigned[i], monthly.assigned[i-1]));
-  }
-  drawChart('chart-m-growth', {
-    type: 'bar',
-    data: {
-      labels: monthly.labels.slice(1),
-      datasets: [{
-        label: 'Growth %',
-        data: growthVals,
-        backgroundColor: growthVals.map(v => v >= 0 ? CFG.chartColors.success : CFG.chartColors.danger),
-        borderRadius: 4
-      }]
-    },
-    options: Charts.barOpts()
-  });
-
-  const daily14 = Calc.dailySeries(leads, 14);
-  const dailyActivity = daily14.labels.map((_, idx) => {
-    const day = addDays(CFG.today, -(13 - idx));
-    const key = day.toDateString();
-    return leads.reduce((s, l) => s + l.activityLog.filter(a => a.date.toDateString() === key).length, 0);
-  });
-
-  drawChart('chart-m-daily', {
-    type: 'bar',
-    data: {
-      labels: daily14.labels,
-      datasets: [Charts.barDS('Counselor actions logged', dailyActivity, CFG.chartColors.teal)]
-    },
-    options: Charts.barOpts()
-  });
-
   renderTable('table-m-leader', [
     { key: 'rank', label: '#', render: (r, i) => `<span class="rank-cell">${i + 1}</span>` },
     { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
@@ -1210,14 +884,18 @@ function renderManagementTab() {
     }
   });
 
-  const insights = buildInsightsList(leads, branchPerf, perf);
-  const insightsHtml = insights.map(i => `
-    <div class="insight-item">
-      <span class="insight-dot" style="background:${CFG.chartColors[i.color] || '#3b82f6'}"></span>
-      <div class="insight-text">${i.text}</div>
-    </div>
-  `).join('');
-  document.getElementById('insights-m').innerHTML = insightsHtml;
+  const srcPerf = Calc.sourcePerformance(leads, window.IntelAbroadData.sources);
+  drawChart('chart-m-source', {
+    type: 'bar',
+    data: {
+      labels: srcPerf.map(s => s.source),
+      datasets: [
+        Charts.barDS('Assigned', srcPerf.map(s => s.assigned), CFG.chartColors.primary),
+        Charts.barDS('Converted', srcPerf.map(s => s.converted), CFG.chartColors.success)
+      ]
+    },
+    options: Charts.barOpts()
+  });
 }
 
 // ============================================================
@@ -1235,23 +913,21 @@ function showCounsellorProfile(counsellorId) {
   const convertedCount = Calc.converted(cLeads);
   const lostCount = Calc.lost(cLeads);
 
-  // Find manager name
   const manager = window.IntelAbroadData.staff.find(s => s.id === staff.reportsTo) || { name: 'Dr. Suhail (Founder)' };
 
-  // 12 KPI card string
   const kpiSectionHtml = 
     kpiCardHtml('k-ind-assigned', 'Total Leads Assigned', cLeads.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
     kpiCardHtml('k-ind-contacted', 'Leads Contacted', Calc.contacted(cLeads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(cLeads)) + ' contacted', tooltipKey: 'contacted' }) +
     kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconPhone(), tooltipKey: 'calls' }) +
-    kpiCardHtml('k-ind-whatsapp', 'WhatsApp Chats', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
-    kpiCardHtml('k-ind-fu', 'FUs Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), sub: fmt.pct(Calc.followupCompletionRate(cLeads)) + ' rate', tooltipKey: 'followups-completed' }) +
-    kpiCardHtml('k-ind-pending', 'Pending FUs', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue`, tooltipKey: 'pending-followups' }) +
+    kpiCardHtml('k-ind-whatsapp', 'WhatsApp Conversations', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
+    kpiCardHtml('k-ind-fu', 'Follow-ups Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), tooltipKey: 'followups-completed' }) +
+    kpiCardHtml('k-ind-pending', 'Pending Follow-ups', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue`, tooltipKey: 'pending-followups' }) +
     kpiCardHtml('k-ind-overdue', 'Overdue Follow-ups', overdueList.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' }) +
-    kpiCardHtml('k-ind-latency', 'Avg Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), decimals: 1, sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA', tooltipKey: 'avg-response' }) +
-    kpiCardHtml('k-ind-aging', 'Avg Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), decimals: 0, tooltipKey: 'avg-lead-aging' }) +
-    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, decimals: 1, tooltipKey: 'conversion-rate' });
+    kpiCardHtml('k-ind-latency', 'Average Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA', tooltipKey: 'avg-response' }) +
+    kpiCardHtml('k-ind-aging', 'Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging' }) +
+    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' }) +
+    kpiCardHtml('k-ind-prod', 'Productivity Score', Calc.counsellorProductivity(cLeads), { color: 'primary', icon: iconTarget(), sub: 'Simplified score', tooltipKey: 'conversion-rate' });
 
-  // Chronological activity timeline logs
   const allLogs = [];
   cLeads.forEach(l => {
     l.activityLog.forEach(a => {
@@ -1264,7 +940,6 @@ function showCounsellorProfile(counsellorId) {
       });
     });
   });
-  // Sort descending chronological
   allLogs.sort((a, b) => b.date - a.date);
   const recentLogs = allLogs.slice(0, 15);
 
@@ -1281,13 +956,11 @@ function showCounsellorProfile(counsellorId) {
     </div>
   `).join('') : '<div class="empty-state">No recent activity logs found for this counsellor.</div>';
 
-  // Toggle DOM view container
   document.getElementById('mainDashboard').style.display = 'none';
   const cDashboard = document.getElementById('counsellorDashboard');
   cDashboard.classList.add('active');
 
   cDashboard.innerHTML = `
-    <!-- Back Header -->
     <div class="back-btn-row">
       <button class="back-btn" id="exitProfileBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1298,7 +971,6 @@ function showCounsellorProfile(counsellorId) {
       </button>
     </div>
 
-    <!-- Profile details -->
     <div class="counsellor-profile-header">
       <div class="profile-meta-left">
         <div class="profile-avatar-large">${initials(staff.name)}</div>
@@ -1331,35 +1003,22 @@ function showCounsellorProfile(counsellorId) {
       </div>
     </div>
 
-    <!-- KPI Grid -->
     <div class="kpi-grid">${kpiSectionHtml}</div>
 
-    <!-- Charts row 1 -->
     <div class="grid-2">
-      ${cardHtml('Daily Lead Activity', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>', false, 'chart-daily-activity')}
-      ${cardHtml('Lead status ratio', 'Doughnut chart of all assigned leads in status steps', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>', false, 'chart-funnel-dist')}
+      ${cardHtml('Daily Performance', 'Leads assigned vs converted — last 14 days', '<div class="chart-wrap h260"><canvas id="chart-ind-daily"></canvas></div>', false, 'chart-daily-activity')}
+      ${cardHtml('Lead Status Distribution', 'Current lead status breakdown', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>', false, 'chart-lead-status-dist')}
     </div>
 
-    <!-- Charts row 2 -->
     <div class="grid-2">
-      ${cardHtml('Weekly Lead Progress', 'Assigned vs converted — last 8 weeks', '<div class="chart-wrap h260"><canvas id="chart-ind-weekly"></canvas></div>', false, 'chart-weekly-flow')}
-      ${cardHtml('Lead Funnel Progression', 'Funnel analysis of this counselor\'s leads', '<div id="funnel-ind" style="padding-top:6px"></div>', false, 'chart-funnel-progression')}
+      ${cardHtml('Calls vs WhatsApp Activity', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-ind-contacts"></canvas></div>', false, 'chart-calls-vs-whatsapp')}
     </div>
 
-    <!-- Charts row 3 -->
     <div class="grid-2">
-      ${cardHtml('WhatsApp vs Calls log trend', 'Weekly logged calls vs WhatsApp messages exchanged', '<div class="chart-wrap h260"><canvas id="chart-ind-contacts"></canvas></div>', false, 'chart-whatsapp-vs-calls-log-trend')}
-    </div>
-
-    <!-- Activity timeline and leads list -->
-    <div class="grid-2">
-      ${cardHtml('Chronological Activity Log', 'Recent calls, WhatsApp messages, and status updates logged', `<div class="timeline-container">${timelineHtml}</div>`, false, 'chart-chronological-activity-log')}
-      ${cardHtml('Assigned Lead Records', 'Filter, search and select student details assigned to this counselor', '<div id="table-ind-leads"></div>', false, 'chart-assigned-lead-records')}
+      ${cardHtml('Recent Activities', 'Latest calls, WhatsApp messages, and status updates', `<div class="timeline-container">${timelineHtml}</div>`, false, 'chart-chronological-activity-log')}
+      ${cardHtml('Assigned Leads', 'Lead details assigned to this counselor', '<div id="table-ind-leads"></div>', false, 'chart-assigned-lead-records')}
     </div>`;
 
-  runCounters(cDashboard);
-
-  // Wire back button
   document.getElementById('exitProfileBtn').addEventListener('click', () => {
     State.counsellorViewId = null;
     cDashboard.classList.remove('active');
@@ -1367,7 +1026,6 @@ function showCounsellorProfile(counsellorId) {
     runPipeline(false);
   });
 
-  // Daily Chart
   const daily = Calc.dailySeries(cLeads, 14);
   drawChart('chart-ind-daily', {
     type: 'line',
@@ -1381,7 +1039,6 @@ function showCounsellorProfile(counsellorId) {
     options: Charts.lineOpts()
   });
 
-  // Status doughnut
   const dist = Calc.statusDistribution(cLeads);
   drawChart('chart-ind-status', {
     type: 'doughnut',
@@ -1397,23 +1054,6 @@ function showCounsellorProfile(counsellorId) {
     options: Charts.donutOpts()
   });
 
-  // Weekly bar
-  const weekly = Calc.weeklySeries(cLeads, 8);
-  drawChart('chart-ind-weekly', {
-    type: 'bar',
-    data: {
-      labels: weekly.labels,
-      datasets: [
-        Charts.barDS('Assigned', weekly.assigned, CFG.chartColors.primary),
-        Charts.barDS('Converted', weekly.converted, CFG.chartColors.success)
-      ]
-    },
-    options: Charts.barOpts()
-  });
-
-  drawFunnel('funnel-ind', Calc.funnelStages(cLeads));
-
-  // WhatsApp vs Calls logs trend (Weekly, 8 weeks)
   const callsTrend = [];
   const waTrend = [];
   const labels = [];
@@ -1438,7 +1078,6 @@ function showCounsellorProfile(counsellorId) {
     options: Charts.barOpts()
   });
 
-  // Leads list
   renderTable('table-ind-leads', [
     { key: 'studentName', label: 'Lead Name', render: r => `<span class="name-cell">${escapeHtml(r.studentName)}</span>` },
     { key: 'status', label: 'Status', render: r => statusBadge(r.status) },
@@ -1456,7 +1095,6 @@ function toggleTabVisibility() {
   const user = State.currentUser;
   const tabs = document.querySelectorAll('.tab');
   
-  // Reset tabs labels
   document.getElementById('tab-counsellor').textContent = 'Counsellor Analytics';
   
   tabs.forEach(t => t.style.display = 'none');
@@ -1476,10 +1114,8 @@ function toggleTabVisibility() {
     cTab.style.display = 'block';
   }
 
-  // Force click first active tab if current tab is hidden
   const currentTabButton = document.querySelector(`.tab[data-tab="${State.activeTab}"]`);
   if (!currentTabButton || currentTabButton.style.display === 'none') {
-    // Select first visible tab
     const firstVisible = Array.from(tabs).find(t => t.style.display !== 'none');
     if (firstVisible) {
       tabs.forEach(t => t.classList.remove('active'));
@@ -1496,7 +1132,6 @@ function updateAssigneeDropdownOptions() {
   const select = document.getElementById('fCounsellor');
   if (!select) return;
 
-  // Clear options except "Any Assignee"
   select.innerHTML = '<option value="all">Any Assignee</option>';
 
   let allowedStaff = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
@@ -1522,7 +1157,6 @@ function updateAssigneeDropdownOptions() {
   }
 }
 
-// Branch Dropdown configurations
 function updateBranchDropdownOptions() {
   const user = State.currentUser;
   const pill = document.getElementById('branchPill');
@@ -1534,7 +1168,6 @@ function updateBranchDropdownOptions() {
     pill.querySelector('svg').style.display = 'block';
     pill.querySelector('.branch-name-text').textContent = State.filters.branch === 'all' ? 'All Branches' : State.filters.branch;
   } else {
-    // Lock to manager's branch
     pill.style.pointerEvents = 'none';
     pill.querySelector('svg').style.display = 'none';
     pill.querySelector('.branch-name-text').textContent = user.branch;
@@ -1542,7 +1175,6 @@ function updateBranchDropdownOptions() {
   }
 }
 
-// "View Counsellor" dropdown selector (top bar)
 function renderCounsellorSelectorPill() {
   const user = State.currentUser;
   const pill = document.getElementById('counsellorPill');
@@ -1550,7 +1182,6 @@ function renderCounsellorSelectorPill() {
   if (!pill || !menu) return;
 
   if (user.role === 'Counsellor') {
-    // Counsellor cannot view other profiles
     pill.style.display = 'none';
     return;
   }
@@ -1583,7 +1214,6 @@ function renderActiveTab() {
   else if (State.activeTab === 'management') renderManagementTab();
 }
 
-// Pipeline processor
 function runPipeline(showTransition = true) {
   applyFilters();
   renderChips();
@@ -1659,9 +1289,7 @@ function readFiltersFromForm() {
   f.search = document.getElementById('fSearch')?.value.trim() || '';
 }
 
-// Wire Event listeners
 function wireEvents() {
-  // Pill selections
   const branchPill = document.getElementById('branchPill');
   const branchMenu = document.getElementById('branchMenu');
   if (branchPill && branchMenu) {
@@ -1692,18 +1320,15 @@ function wireEvents() {
     counsellorMenu?.classList.remove('show');
   });
 
-  // Role Switcher logic
   const roleSwitcher = document.getElementById('demoRoleSwitcher');
   if (roleSwitcher) {
     roleSwitcher.addEventListener('change', () => {
       const val = roleSwitcher.value;
       
-      // Clear counsellor view when switching roles
       State.counsellorViewId = null;
       document.getElementById('counsellorDashboard').classList.remove('active');
       document.getElementById('mainDashboard').style.display = 'flex';
 
-      // Update simulated currentUser details
       if (val === 'Founder') {
         State.currentUser = { role: 'Founder', name: 'Dr. Suhail', id: 'S001', branch: 'all' };
       } else if (val === 'BranchManager') {
@@ -1714,18 +1339,15 @@ function wireEvents() {
         State.currentUser = { role: 'Counsellor', name: 'Aditya Gangwani', id: 'S016', branch: 'Raipur Office' };
       }
 
-      // Update sidebar footer profile card
       document.getElementById('sidebarProfileName').textContent = State.currentUser.name;
       document.getElementById('sidebarProfileEmail').textContent = 
         State.currentUser.role === 'Founder' ? 'founder@intelabroad.com' :
         State.currentUser.role === 'BranchManager' ? 'delhi.manager@intelabroad.com' :
         State.currentUser.role === 'TeamLead' ? 'delhi.lead@intelabroad.com' : 'aditya@intelabroad.com';
 
-      // Reset state filters to avoid invalid scoping
       State.filters.branch = State.currentUser.branch;
       State.filters.counsellor = 'all';
 
-      // Redecorate widgets
       toggleTabVisibility();
       updateBranchDropdownOptions();
       updateAssigneeDropdownOptions();
@@ -1790,13 +1412,6 @@ function wireEvents() {
     });
   });
 
-  document.getElementById('refreshBtn')?.addEventListener('click', () => {
-    const icon = document.querySelector('#refreshBtn svg');
-    if (icon) icon.style.animation = 'spin .6s linear';
-    setTimeout(() => { if (icon) icon.style.animation = ''; }, 650);
-    runPipeline(true);
-  });
-
   document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
     const rows = State.filtered.map(l => ({
       LeadID: l.id,
@@ -1828,18 +1443,6 @@ function wireEvents() {
     });
   }
 
-  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-    State.theme = State.theme === 'dark' ? 'light' : 'dark';
-    document.body.dataset.theme = State.theme;
-    
-    const textNode = document.getElementById('themeToggleText');
-    if (textNode) {
-      textNode.textContent = State.theme === 'dark' ? 'Light mode' : 'Dark mode';
-    }
-    runPipeline(false);
-  });
-
-  // Tap/Click toggles for mobile tooltips
   document.addEventListener('click', e => {
     const btn = e.target.closest('.info-btn');
     if (btn) {
@@ -1865,18 +1468,11 @@ function iconHourglass() { return '<svg viewBox="0 0 24 24" fill="none" stroke="
 function iconLayers() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg>'; }
 function iconMessage() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'; }
 
-// Initialization
 function initUI() {
   populateFilterOptions();
   readFiltersFromForm();
-  
-  const spinStyle = document.createElement('style');
-  spinStyle.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
-  document.head.appendChild(spinStyle);
-  
   wireEvents();
   
-  // Set default initial view layout states
   toggleTabVisibility();
   updateBranchDropdownOptions();
   updateAssigneeDropdownOptions();

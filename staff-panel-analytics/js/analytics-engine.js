@@ -77,31 +77,24 @@ const Calc = {
     return (compliant / contactedLeads.length) * 100;
   },
 
-  // Weighted Activity-Based Productivity Score (0 to 100)
+  // Simplified Productivity Score (0 to 100)
+  // 40% Conversion Rate, 30% Follow-up Completion, 20% Response Time SLA, 10% Calls Completed
   counsellorProductivity(cLeads) {
     if (!cLeads.length) return 0;
-    
-    // 1. Calls (5 pts each, max 25)
-    const calls = this.callsCompleted(cLeads);
-    const callsPts = Math.min(25, calls * 5);
-    
-    // 2. Follow-ups (8 pts each, max 40)
-    const fus = this.followupsCompleted(cLeads);
-    const fusPts = Math.min(40, fus * 8);
-    
-    // 3. WhatsApp conversations count (0.5 pts each message exchange, max 15)
-    const wa = cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0);
-    const waPts = Math.min(15, wa * 0.5);
-    
-    // 4. Response Time SLA (max 10 points based on SLA rate)
-    const slaRate = this.slaComplianceRate(cLeads);
-    const slaPts = (slaRate / 100) * 10;
-    
-    // 5. Conversion Rate (max 20 points, scaled up to 50% conversion)
+
     const convRate = this.conversionRate(cLeads);
-    const convPts = Math.min(20, convRate * 0.4);
-    
-    return Math.round(callsPts + fusPts + waPts + slaPts + convPts);
+    const convPts = Math.min(40, (convRate / 100) * 40);
+
+    const fuRate = this.followupCompletionRate(cLeads);
+    const fuPts = Math.min(30, (fuRate / 100) * 30);
+
+    const slaRate = this.slaComplianceRate(cLeads);
+    const slaPts = Math.min(20, (slaRate / 100) * 20);
+
+    const calls = this.callsCompleted(cLeads);
+    const callsPts = Math.min(10, calls * 2);
+
+    return Math.round(convPts + fuPts + slaPts + callsPts);
   },
 
   // Overall Productivity Score (average of individual counselor scores)
@@ -113,51 +106,6 @@ const Calc = {
       sum += this.counsellorProductivity(cLeads);
     });
     return sum / map.size;
-  },
-
-  // Lead Quality Score (LQS) based on source characteristics (0 to 100)
-  leadQualityScore(leads) {
-    if (!leads.length) return 0;
-
-    // 1. Conversion Rate weight (40%)
-    const convRate = this.conversionRate(leads);
-    const convPts = Math.min(40, convRate * 3.33); // 12% conversion yields full 40 pts
-
-    // 2. Qualified Lead % weight (30%)
-    const rank = {
-      'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Qualified': 3,
-      'Converted': 4, 'Lost': -1
-    };
-    const qualifiedCount = leads.filter(l => l.status !== 'Lost' && rank[l.status] >= 3).length;
-    const qualRate = (qualifiedCount / leads.length) * 100;
-    const qualPts = (qualRate / 100) * 30;
-
-    // 3. Follow-up compliance weight (15%)
-    const fuRate = this.followupCompletionRate(leads);
-    const fuPts = (fuRate / 100) * 15;
-
-    // 4. SLA compliance weight (15%)
-    const slaRate = this.slaComplianceRate(leads);
-    const slaPts = (slaRate / 100) * 15;
-
-    return Math.round(convPts + qualPts + fuPts + slaPts);
-  },
-
-  avgCallsPerConversion(leads) {
-    const convertedLeads = leads.filter(l => l.converted);
-    if (!convertedLeads.length) return 0;
-    return this.callsCompleted(convertedLeads) / convertedLeads.length;
-  },
-
-  avgFollowupsPerConversion(leads) {
-    const convertedLeads = leads.filter(l => l.converted);
-    if (!convertedLeads.length) return 0;
-    return this.followupsCompleted(convertedLeads) / convertedLeads.length;
-  },
-
-  growth(curr, prev) {
-    if (!prev) return curr > 0 ? 100 : 0;
-    return ((curr - prev) / prev) * 100;
   },
 
   groupBy(leads, keyFn) {
@@ -205,20 +153,6 @@ const Calc = {
       labels.push(day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
       assigned.push(leads.filter(l => l.assignedDate.toDateString() === key).length);
       converted.push(leads.filter(l => l.converted && l.lastActivityDate.toDateString() === key).length);
-    }
-    return { labels, assigned, converted };
-  },
-
-  weeklySeries(leads, weeks = 8, today = CFG.today) {
-    const labels = [];
-    const assigned = [];
-    const converted = [];
-    for (let i = weeks - 1; i >= 0; i--) {
-      const start = addDays(today, -(i + 1) * 7);
-      const end = addDays(today, -i * 7);
-      labels.push('W' + (weeks - i));
-      assigned.push(leads.filter(l => l.assignedDate >= start && l.assignedDate < end).length);
-      converted.push(leads.filter(l => l.converted && l.lastActivityDate >= start && l.lastActivityDate < end).length);
     }
     return { labels, assigned, converted };
   },
@@ -289,22 +223,12 @@ const Calc = {
       const sl = leads.filter(l => l.source === s);
       const assigned = sl.length;
       const converted = sl.filter(l => l.converted).length;
-      
-      const totalCalls = this.callsCompleted(sl);
-      const avgCalls = converted ? totalCalls / converted : 0;
-      
-      const totalFUs = this.followupsCompleted(sl);
-      const avgFUs = converted ? totalFUs / converted : 0;
-
       return {
         source: s,
         assigned: assigned,
         converted: converted,
         conversionRate: assigned ? (converted / assigned) * 100 : 0,
-        qualityScore: this.leadQualityScore(sl),
-        avgResponse: this.avgResponseTime(sl),
-        avgCalls: avgCalls,
-        avgFUs: avgFUs
+        avgResponse: this.avgResponseTime(sl)
       };
     });
   },
