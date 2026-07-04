@@ -285,6 +285,72 @@ const Calc = {
     });
   },
 
+  // Recovery trend: mock weekly recovered vs dormant counts
+  recoveryTrend(weeks = 4, today = CFG.today) {
+    const labels = [];
+    const dormant = [];
+    const recovered = [];
+    for (let i = weeks - 1; i >= 0; i--) {
+      labels.push('W' + (weeks - i));
+      // Mock: dormant count decreases slightly, recovered count increases slightly over recent weeks
+      const baseDormant = 40 + Math.floor(Math.random() * 15) - i * 2;
+      const baseRecovered = 8 + Math.floor(Math.random() * 6) + i * 1;
+      dormant.push(Math.max(0, baseDormant));
+      recovered.push(Math.max(0, baseRecovered));
+    }
+    return { labels, dormant, recovered };
+  },
+
+  // Quick insights for re-engagement (returns plain text data; UI handles HTML)
+  reEngagementInsights(leads, today = CFG.today) {
+    const insights = [];
+
+    const dormant30 = this.inactiveLeads(leads, 30, today);
+
+    // Branch with most dormant leads
+    const branchMap = new Map();
+    dormant30.forEach(l => {
+      branchMap.set(l.branch, (branchMap.get(l.branch) || 0) + 1);
+    });
+    let topBranch = { branch: '', count: 0 };
+    branchMap.forEach((count, branch) => {
+      if (count > topBranch.count) topBranch = { branch, count };
+    });
+    if (topBranch.branch) {
+      insights.push({ type: 'branch', text: `Most dormant leads belong to ${topBranch.branch} (${topBranch.count} leads).` });
+    }
+
+    // Counsellor with most inactive leads
+    const csMap = new Map();
+    dormant30.forEach(l => {
+      csMap.set(l.counsellorName, (csMap.get(l.counsellorName) || 0) + 1);
+    });
+    let topCS = { name: '', count: 0 };
+    csMap.forEach((count, name) => {
+      if (count > topCS.count) topCS = { name, count };
+    });
+    if (topCS.name) {
+      insights.push({ type: 'counsellor', text: `Counsellor ${topCS.name} has the highest number of inactive leads (${topCS.count}).` });
+    }
+
+    // 60-day trend using reEngagementBuckets
+    const buckets = this.reEngagementBuckets(leads, today);
+    const bucket60 = buckets.find(b => b.days === 60);
+    if (bucket60 && Math.abs(bucket60.trend) > 0) {
+      const direction = bucket60.trend > 0 ? 'increased' : 'decreased';
+      insights.push({ type: 'trend', text: `60-Day dormant leads ${direction} by ${Math.abs(bucket60.trend)} this period.` });
+    }
+
+    // Mock recovery rate
+    const recoveryRate = 10 + Math.floor(Math.random() * 8);
+    const prevRecoveryRate = recoveryRate - 2 - Math.floor(Math.random() * 4);
+    const diff = recoveryRate - prevRecoveryRate;
+    const recDirection = diff >= 0 ? 'improved' : 'declined';
+    insights.push({ type: 'recovery', text: `Recovery rate ${recDirection} by ${Math.abs(diff)}% compared to last period.` });
+
+    return insights;
+  },
+
   // Lead Objection Analytics
   objectionBreakdown(leads) {
     const withObj = leads.filter(l => l.objection);

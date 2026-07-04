@@ -82,6 +82,7 @@ const METRIC_DEFS = {
   'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
   'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.',
   're-engagement': 'Leads with no activity for the specified period — opportunities for re-engagement.',
+  're-engagement-section': 'Lead Re-engagement Analytics helps identify dormant leads that have not been contacted for an extended period. These insights enable counsellors and management to plan targeted follow-up campaigns, improve lead recovery, and increase overall conversion opportunities.',
   'objection-tracking': 'Breakdown of stated reasons why leads did not convert, helping identify patterns.'
 };
 
@@ -838,10 +839,7 @@ function renderManagementTab() {
     <div class="grid-2">
       ${cardHtml('Lead Source Performance', 'Lead volume and conversion by source', '<div class="chart-wrap h260"><canvas id="chart-m-source"></canvas></div>', false, 'chart-lead-source-performance')}
     </div>
-    <div class="grid-2">
-      ${renderReEngagementCard(leads)}
-      ${renderObjectionCard(leads)}
-    </div>`;
+    ${renderObjectionCard(leads)}`;
 
   drawFunnel('funnel-m', Calc.funnelStages(leads));
 
@@ -904,34 +902,88 @@ function renderManagementTab() {
   });
 }
 
-function renderReEngagementCard(leads) {
-  const buckets = Calc.reEngagementBuckets(leads);
-  const rows = buckets.map(b => {
-    const trendIcon = b.trend > 0 ? '↑' : b.trend < 0 ? '↓' : '→';
-    const trendColor = b.trend > 0 ? 'var(--danger)' : b.trend < 0 ? 'var(--success)' : 'var(--text-muted)';
-    return `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft)">
-        <div>
-          <div style="font-weight:600;color:var(--text-2);font-size:13px">${b.label}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${fmt.pct(b.pct)} of active leads</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:20px;font-weight:700;color:var(--text-1)">${fmt.int(b.count)}</div>
-          <div style="font-size:11px;color:${trendColor}">${trendIcon} ${fmt.int(Math.abs(b.trend))} vs prev.</div>
-        </div>
-      </div>`;
-  }).join('');
+function renderReengagementTab() {
+  const leads = State.filtered;
+  const panel = document.getElementById('panel-reengagement');
 
-  return `
-    <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="card-title">Lead Re-engagement${tooltipHtml('re-engagement')}</div>
-          <div class="card-sub">Active leads inactive for extended periods</div>
+  const buckets = Calc.reEngagementBuckets(leads);
+  const totalDormant = buckets.reduce((sum, b) => sum + b.count, 0);
+  const totalLeads = leads.length;
+  const trend = Calc.recoveryTrend(4);
+  const insights = Calc.reEngagementInsights(leads);
+
+  panel.innerHTML = `
+    <div class="kpi-grid">
+      ${kpiCardHtml('k-re-30', '30-Day Inactive Leads', buckets[0].count, { color: 'warning', icon: iconClock(), sub: fmt.pct(buckets[0].pct) + ' of active', tooltipKey: 're-engagement' })}
+      ${kpiCardHtml('k-re-60', '60-Day Inactive Leads', buckets[1].count, { color: 'danger', icon: iconHourglass(), sub: fmt.pct(buckets[1].pct) + ' of active', tooltipKey: 're-engagement' })}
+      ${kpiCardHtml('k-re-90', '90+ Day Inactive Leads', buckets[2].count, { color: 'slate', icon: iconAlert(), sub: fmt.pct(buckets[2].pct) + ' of active', tooltipKey: 're-engagement' })}
+      ${kpiCardHtml('k-re-total', 'Total Dormant Leads', totalDormant, { color: 'primary', icon: iconUsers(), sub: fmt.pct(totalLeads ? (totalDormant / totalLeads) * 100 : 0) + ' of total leads', tooltipKey: 're-engagement' })}
+    </div>
+    <div class="grid-2">
+      ${cardHtml('Dormant Lead Distribution', 'Inactive lead breakdown by period', '<div class="chart-wrap h260"><canvas id="chart-re-dist"></canvas></div>', false, 're-engagement')}
+      ${cardHtml('Recovery Trend', 'Recovered vs dormant leads — weekly', '<div class="chart-wrap h260"><canvas id="chart-re-trend"></canvas></div>', false, 're-engagement')}
+    </div>
+    <div class="grid-2b">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Quick Insights${tooltipHtml('re-engagement')}</div>
+            <div class="card-sub">Actionable observations on dormant leads</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${insights.length ? insights.map(i => `
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surface-hover);border-radius:var(--radius-sm);border-left:3px solid var(--${i.type === 'branch' ? 'warning' : i.type === 'counsellor' ? 'info' : i.type === 'trend' ? 'danger' : 'success'})">
+              <div style="font-size:12.5px;color:var(--text-2);line-height:1.5">${escapeHtml(i.text)}</div>
+            </div>
+          `).join('') : '<div class="empty-state">No insights available for current filters.</div>'}
         </div>
       </div>
-      ${rows}
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Dormant Leads Breakdown</div>
+            <div class="card-sub">Period-wise counts and percentages</div>
+          </div>
+        </div>
+        <div id="table-re-breakdown"></div>
+      </div>
     </div>`;
+
+  // Dormant Lead Distribution bar chart
+  drawChart('chart-re-dist', {
+    type: 'bar',
+    data: {
+      labels: buckets.map(b => b.label),
+      datasets: [Charts.barDS('Inactive Leads', buckets.map(b => b.count), CFG.chartColors.warning)]
+    },
+    options: Charts.barOpts()
+  });
+
+  // Recovery Trend line chart
+  drawChart('chart-re-trend', {
+    type: 'line',
+    data: {
+      labels: trend.labels,
+      datasets: [
+        Charts.lineDS('Dormant Leads', trend.dormant, CFG.chartColors.danger),
+        Charts.lineDS('Recovered Leads', trend.recovered, CFG.chartColors.success)
+      ]
+    },
+    options: Charts.lineOpts()
+  });
+
+  // Table: Dormant breakdown
+  renderTable('table-re-breakdown', [
+    { key: 'period', label: 'Period' },
+    { key: 'count', label: 'Inactive Leads', render: r => fmt.int(r.count) },
+    { key: 'pct', label: '% of Active', render: r => fmt.pct(r.pct) },
+    { key: 'trend', label: 'Trend', render: r => {
+      if (r.trend > 0) return `<span style="color:var(--danger)">↑ ${fmt.int(r.trend)}</span>`;
+      if (r.trend < 0) return `<span style="color:var(--success)">↓ ${fmt.int(Math.abs(r.trend))}</span>`;
+      return `<span style="color:var(--text-muted)">→ 0</span>`;
+    }}
+  ], buckets, { defaultSort: 'count' });
 }
 
 function renderObjectionCard(leads) {
@@ -1170,10 +1222,12 @@ function toggleTabVisibility() {
   } else if (user.role === 'BranchManager') {
     document.getElementById('tab-counsellor').style.display = 'block';
     document.getElementById('tab-teamlead').style.display = 'block';
+    document.getElementById('tab-reengagement').style.display = 'block';
     document.getElementById('tab-source').style.display = 'block';
   } else if (user.role === 'TeamLead') {
     document.getElementById('tab-counsellor').style.display = 'block';
     document.getElementById('tab-teamlead').style.display = 'block';
+    document.getElementById('tab-reengagement').style.display = 'block';
   } else if (user.role === 'Counsellor') {
     const cTab = document.getElementById('tab-counsellor');
     cTab.textContent = 'My Performance';
@@ -1277,6 +1331,7 @@ function renderActiveTab() {
   else if (State.activeTab === 'teamlead') renderTeamLeadTab();
   else if (State.activeTab === 'branch') renderBranchTab();
   else if (State.activeTab === 'source') renderSourceTab();
+  else if (State.activeTab === 'reengagement') renderReengagementTab();
   else if (State.activeTab === 'management') renderManagementTab();
 }
 
