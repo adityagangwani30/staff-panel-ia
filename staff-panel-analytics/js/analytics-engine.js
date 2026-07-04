@@ -367,6 +367,39 @@ const Calc = {
       return { reason: o, count: c, pct: total ? (c / total) * 100 : 0 };
     });
     return { rows, total, mostCommon };
+  },
+
+  // Call Outcome Analytics
+  callOutcomeBreakdown(leads) {
+    const outcomeMap = new Map();
+    const outcomes = ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'];
+    outcomes.forEach(o => outcomeMap.set(o, 0));
+
+    leads.forEach(l => {
+      if (l.calls) {
+        l.calls.forEach(c => {
+          const mapped = c.outcome;
+          if (outcomeMap.has(mapped)) {
+            outcomeMap.set(mapped, outcomeMap.get(mapped) + 1);
+          }
+        });
+      }
+    });
+
+    let total = 0;
+    outcomeMap.forEach(v => total += v);
+    let mostCommon = { outcome: '', count: 0 };
+    const rows = outcomes.map(o => {
+      const c = outcomeMap.get(o) || 0;
+      if (c > mostCommon.count) { mostCommon = { outcome: o, count: c }; }
+      return { outcome: o, count: c, pct: total ? (c / total) * 100 : 0 };
+    });
+    return { rows, total, mostCommon };
+  },
+
+  leadsContactedToday(leads, today = CFG.today) {
+    return leads.filter(l => l.firstContactDate &&
+      l.firstContactDate.toDateString() === today.toDateString()).length;
   }
 };
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analytics — IntelAbroad Staff Panel</title>
+  <title>Overview — IntelAbroad Staff Panel</title>
   
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
@@ -47,7 +47,7 @@
     </a>
     <a href="#" class="nav-item active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-      Analytics
+      Overview
     </a>
 
     <div class="sidebar-footer">
@@ -73,7 +73,7 @@
     <div class="topbar">
       <div class="topbar-left">
         <div class="topbar-title-row">
-          <h1 id="topbarTitle">Analytics</h1>
+          <h1 id="topbarTitle">Overview</h1>
           <div class="branch-pill" id="branchPill">
             <span class="branch-name-text">All Branches</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -100,7 +100,7 @@
             </div>
           </div>
         </div>
-        <div class="topbar-subtitle" id="topbarSubtitle">Lead performance analytics dashboard</div>
+        <div class="topbar-subtitle" id="topbarSubtitle">Executive overview dashboard</div>
       </div>
       
       <div class="topbar-right">
@@ -173,23 +173,8 @@
         <div class="filter-chip-row" id="chipRow"></div>
       </div>
 
-      <!-- ===================== SECTION TABS ===================== -->
-      <div class="tabs" id="sectionTabs">
-        <div class="tab active" data-tab="counsellor" id="tab-counsellor">Counsellor Analytics</div>
-        <div class="tab" data-tab="teamlead" id="tab-teamlead">Team Lead Analytics</div>
-        <div class="tab" data-tab="branch" id="tab-branch">Branch Analytics</div>
-        <div class="tab" data-tab="source" id="tab-source">Lead Source Analytics</div>
-        <div class="tab" data-tab="reengagement" id="tab-reengagement">Lead Re-engagement</div>
-        <div class="tab" data-tab="management" id="tab-management">Management Dashboard</div>
-      </div>
-
-      <!-- Main Panels -->
-      <div class="tab-panel active" id="panel-counsellor"></div>
-      <div class="tab-panel" id="panel-teamlead"></div>
-      <div class="tab-panel" id="panel-branch"></div>
-      <div class="tab-panel" id="panel-source"></div>
-      <div class="tab-panel" id="panel-reengagement"></div>
-      <div class="tab-panel" id="panel-management"></div>
+      <!-- Overview Dashboard Panel -->
+      <div id="panel-overview"></div>
     </div>
 
     <!-- SINGLE COUNSELLOR VIEW CONTAINER -->

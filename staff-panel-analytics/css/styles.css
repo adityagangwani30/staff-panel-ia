@@ -1092,6 +1092,29 @@ tbody tr.clickable-row {
   flex-shrink: 0;
 }
 
+/* ============================================================
+   SECTION DIVIDER / TITLE
+   ============================================================ */
+.section-divider {
+  margin: 8px 0 4px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 16px;
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Empty State / Skeleton Loading */
 .empty-state {
   display: flex;

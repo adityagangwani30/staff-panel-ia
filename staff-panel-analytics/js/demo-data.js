@@ -16,7 +16,7 @@ const CFG = {
     'Converted': 'st-converted',
     'Lost': 'st-lost'
   },
-  objections: ['Budget', 'Parents', 'Government College', 'Another Consultancy', 'Another Country', 'NEET', 'Not Interested', 'No Response', 'Next Year', 'Other'],
+  objections: ['Budget Constraints', 'Parents Not Convinced', 'Preparing for Government College', 'Joined Another Consultancy', 'Interested in Another Country', 'Did Not Qualify NEET', 'Not Interested Anymore', 'No Response', 'Wants to Apply Next Year', 'Other'],
   chartColors: {
     primary: '#3b82f6',
     primaryLight: '#60a5fa',
@@ -236,7 +236,7 @@ function generateLeadsData(staff, count) {
         calls.push({
           date: addDays(assignedDate, randInt(0, daysAgo)),
           durationMin: randInt(1, 15),
-          outcome: pick(['Connected', 'No Answer', 'Follow-up Scheduled', 'Interested', 'Busy'])
+          outcome: pick(['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'])
         });
       }
 
