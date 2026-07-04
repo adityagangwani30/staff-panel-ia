@@ -1,14 +1,6 @@
-/* ============================================================
-   ANALYTICS CALCULATION ENGINE — IntelAbroad Staff Panel
-   ============================================================ */
-
 const Calc = {
   totalAssigned(leads) {
     return leads.length;
-  },
-
-  contacted(leads) {
-    return leads.filter(l => l.firstContactDate).length;
   },
 
   converted(leads) {
@@ -20,7 +12,7 @@ const Calc = {
   },
 
   activeLeads(leads) {
-    return leads.filter(l => l.status !== 'Converted' && l.status !== 'Lost').length;
+    return leads.filter(l => !l.converted && !l.lost).length;
   },
 
   conversionRate(leads) {
@@ -28,84 +20,57 @@ const Calc = {
     return t ? (this.converted(leads) / t) * 100 : 0;
   },
 
-  contactRate(leads) {
+  newLeads(leads, today) {
+    const target = today || CFG.today;
+    const key = target.toDateString();
+    return leads.filter(l => l.assignedDate.toDateString() === key).length;
+  },
+
+  newLeadsPeriod(leads, days, today) {
+    const target = today || CFG.today;
+    const cutoff = addDays(target, -days);
+    return leads.filter(l => l.assignedDate >= cutoff).length;
+  },
+
+  applicationsFiled(leads) {
+    return leads.filter(l => l.applicationFiled === 'Yes').length;
+  },
+
+  applicationsPending(leads) {
+    return leads.filter(l => !l.lost && l.applicationFiled !== 'Yes').length;
+  },
+
+  applicationConversionRate(leads) {
     const t = this.totalAssigned(leads);
-    return t ? (this.contacted(leads) / t) * 100 : 0;
+    return t ? (this.applicationsFiled(leads) / t) * 100 : 0;
   },
 
-  callsCompleted(leads) {
-    return leads.reduce((sum, l) => sum + (l.calls ? l.calls.length : 0), 0);
+  pendingFollowups(leads, today) {
+    const target = today || CFG.today;
+    return leads.filter(l => l.nextFollowUp && l.nextFollowUp >= target && !l.converted && !l.lost).length;
   },
 
-  followupsCompleted(leads) {
-    return leads.reduce((sum, l) => sum + (l.followUps ? l.followUps.filter(f => f.completed).length : 0), 0);
+  overdueFollowups(leads, today) {
+    const target = today || CFG.today;
+    return leads.filter(l => l.nextFollowUp && l.nextFollowUp < target && !l.converted && !l.lost).length;
   },
 
-  followupsTotal(leads) {
-    return leads.reduce((sum, l) => sum + (l.followUps ? l.followUps.length : 0), 0);
+  followupsDueToday(leads, today) {
+    const target = today || CFG.today;
+    const key = target.toDateString();
+    return leads.filter(l => l.nextFollowUp && l.nextFollowUp.toDateString() === key).length;
   },
 
-  followupCompletionRate(leads) {
-    const t = this.followupsTotal(leads);
-    return t ? (this.followupsCompleted(leads) / t) * 100 : 0;
+  followupsDueTomorrow(leads, today) {
+    const target = today || CFG.today;
+    const tomorrow = addDays(target, 1);
+    const key = tomorrow.toDateString();
+    return leads.filter(l => l.nextFollowUp && l.nextFollowUp.toDateString() === key).length;
   },
 
-  pendingFollowups(leads, today = CFG.today) {
-    return leads.reduce((sum, l) => {
-      if (!l.followUps) return sum;
-      return sum + l.followUps.filter(f => !f.completed && f.dueDate < today).length;
-    }, 0);
-  },
-
-  avgResponseTime(leads) {
-    const withResp = leads.filter(l => l.responseTimeHours != null);
-    if (!withResp.length) return 0;
-    return withResp.reduce((sum, l) => sum + l.responseTimeHours, 0) / withResp.length;
-  },
-
-  avgLeadAging(leads, today = CFG.today) {
-    const open = leads.filter(l => !l.converted && !l.lost);
-    if (!open.length) return 0;
-    return open.reduce((sum, l) => sum + this.daysBetween(l.assignedDate, today), 0) / open.length;
-  },
-
-  // SLA Compliance: contacted within 24 hours of assignment
-  slaComplianceRate(leads) {
-    const contactedLeads = leads.filter(l => l.firstContactDate != null);
-    if (!contactedLeads.length) return 0;
-    const compliant = contactedLeads.filter(l => l.responseTimeHours <= 24).length;
-    return (compliant / contactedLeads.length) * 100;
-  },
-
-  // Simplified Productivity Score (0 to 100)
-  // 40% Conversion Rate, 30% Follow-up Completion, 20% Response Time SLA, 10% Calls Completed
-  counsellorProductivity(cLeads) {
-    if (!cLeads.length) return 0;
-
-    const convRate = this.conversionRate(cLeads);
-    const convPts = Math.min(40, (convRate / 100) * 40);
-
-    const fuRate = this.followupCompletionRate(cLeads);
-    const fuPts = Math.min(30, (fuRate / 100) * 30);
-
-    const slaRate = this.slaComplianceRate(cLeads);
-    const slaPts = Math.min(20, (slaRate / 100) * 20);
-
-    const calls = this.callsCompleted(cLeads);
-    const callsPts = Math.min(10, calls * 2);
-
-    return Math.round(convPts + fuPts + slaPts + callsPts);
-  },
-
-  // Overall Productivity Score (average of individual counselor scores)
-  productivity(leads) {
-    const map = this.groupBy(leads, l => l.counsellorId);
-    if (!map.size) return 0;
-    let sum = 0;
-    map.forEach((cLeads) => {
-      sum += this.counsellorProductivity(cLeads);
-    });
-    return sum / map.size;
+  averageCallAttempts(leads) {
+    if (!leads.length) return 0;
+    return leads.reduce((sum, l) => sum + (l.callAttempts || 0), 0) / leads.length;
   },
 
   groupBy(leads, keyFn) {
@@ -120,50 +85,39 @@ const Calc = {
 
   statusDistribution(leads) {
     const map = this.groupBy(leads, l => l.status);
-    return CFG.statuses.map(s => {
-      return { status: s, count: (map.get(s) || []).length };
-    });
+    return CFG.statuses.map(s => ({ status: s, count: (map.get(s) || []).length }));
   },
 
   funnelStages(leads) {
-    const order = CFG.funnelStages;
-    const rank = {
-      'New': 0,
-      'Contacted': 1,
-      'Follow-up': 2,
-      'Qualified': 3,
-      'Converted': 4,
-      'Lost': -1
-    };
-    return order.map((stage, i) => {
-      return {
-        stage: stage,
-        count: leads.filter(l => l.status !== 'Lost' && rank[l.status] >= i).length
-      };
-    });
+    const total = leads.length;
+    const active = leads.filter(l => !l.lost);
+    const order = { 'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Interested': 3, 'Qualified': 4, 'Converted': 5 };
+
+    const stageNew = total;
+    function progress(s) { return order[s] !== undefined ? order[s] : 0; }
+    const stageContacted = Math.min(stageNew, active.filter(l => l.status !== 'New').length);
+    const stageInterested = Math.min(stageContacted, active.filter(l => progress(l.status) >= 2).length);
+    const stageApps = Math.min(stageInterested, active.filter(l => l.applicationFiled === 'Yes').length);
+    const stageConverted = Math.min(stageApps, active.filter(l => l.converted).length);
+
+    return [
+      { stage: 'New', count: stageNew },
+      { stage: 'Contacted', count: stageContacted },
+      { stage: 'Interested', count: stageInterested },
+      { stage: 'Application Filed', count: stageApps },
+      { stage: 'Converted', count: stageConverted }
+    ];
   },
 
-  dailySeries(leads, days = 14, today = CFG.today) {
+  monthlySeries(leads, months, today) {
+    const t = today || CFG.today;
+    const m = months || 6;
     const labels = [];
     const assigned = [];
     const converted = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const day = addDays(today, -i);
-      const key = day.toDateString();
-      labels.push(day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-      assigned.push(leads.filter(l => l.assignedDate.toDateString() === key).length);
-      converted.push(leads.filter(l => l.converted && l.lastActivityDate.toDateString() === key).length);
-    }
-    return { labels, assigned, converted };
-  },
-
-  monthlySeries(leads, months = 6, today = CFG.today) {
-    const labels = [];
-    const assigned = [];
-    const converted = [];
-    for (let i = months - 1; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const next = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
+    for (let i = m - 1; i >= 0; i--) {
+      const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+      const next = new Date(t.getFullYear(), t.getMonth() - i + 1, 1);
       labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
       assigned.push(leads.filter(l => l.assignedDate >= d && l.assignedDate < next).length);
       converted.push(leads.filter(l => l.converted && l.lastActivityDate >= d && l.lastActivityDate < next).length);
@@ -171,49 +125,82 @@ const Calc = {
     return { labels, assigned, converted };
   },
 
-  counsellorPerformance(leads, counsellors) {
-    return counsellors.map(c => {
-      const cl = leads.filter(l => l.counsellorId === c.id);
-      const assigned = cl.length;
-      const converted = cl.filter(l => l.converted).length;
-      const pending = this.pendingFollowups(cl);
-      const totalWhatsApp = cl.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0);
-      return {
-        id: c.id,
-        name: c.name,
-        branch: c.branch,
-        assigned: assigned,
-        converted: converted,
-        conversionRate: assigned ? (converted / assigned) * 100 : 0,
-        pending: pending,
-        calls: this.callsCompleted(cl),
-        whatsApp: totalWhatsApp,
-        followups: this.followupsCompleted(cl),
-        responseTime: this.avgResponseTime(cl),
-        aging: this.avgLeadAging(cl),
-        productivity: this.counsellorProductivity(cl),
-        slaCompliance: this.slaComplianceRate(cl)
-      };
-    }).filter(r => r.assigned > 0);
+  monthlyLeadGrowth(leads, months, today) {
+    const t = today || CFG.today;
+    const m = months || 6;
+    const labels = [];
+    const newLeads = [];
+    for (let i = m - 1; i >= 0; i--) {
+      const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+      const next = new Date(t.getFullYear(), t.getMonth() - i + 1, 1);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+      newLeads.push(leads.filter(l => l.assignedDate >= d && l.assignedDate < next).length);
+    }
+    return { labels, newLeads };
   },
 
-  branchPerformance(leads, branches) {
-    return branches.map(b => {
-      const bl = leads.filter(l => l.branch === b);
-      const assigned = bl.length;
-      const converted = bl.filter(l => l.converted).length;
+  monthlyApplicationTrend(leads, months, today) {
+    const t = today || CFG.today;
+    const m = months || 6;
+    const labels = [];
+    const filed = [];
+    const pending = [];
+    for (let i = m - 1; i >= 0; i--) {
+      const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+      const next = new Date(t.getFullYear(), t.getMonth() - i + 1, 1);
+      const monthLeads = leads.filter(l => l.assignedDate >= d && l.assignedDate < next);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+      filed.push(monthLeads.filter(l => l.applicationFiled === 'Yes').length);
+      pending.push(monthLeads.filter(l => l.applicationFiled !== 'Yes' && !l.lost).length);
+    }
+    return { labels, filed, pending };
+  },
+
+  stateDistribution(leads) {
+    return this._dimensionDistribution(leads, 'state');
+  },
+
+  cityDistribution(leads) {
+    return this._dimensionDistribution(leads, 'city');
+  },
+
+  examCityDistribution(leads) {
+    return this._dimensionDistribution(leads, 'examCity');
+  },
+
+  categoryDistribution(leads) {
+    const map = this.groupBy(leads, l => l.category);
+    return CFG.categories.map(c => ({ dimension: c, count: (map.get(c) || []).length }));
+  },
+
+  _dimensionDistribution(leads, field) {
+    const map = this.groupBy(leads, l => l[field]);
+    const rows = [];
+    map.forEach((group, key) => {
+      rows.push({
+        dimension: key,
+        count: group.length,
+        applications: group.filter(l => l.applicationFiled === 'Yes').length
+      });
+    });
+    rows.sort((a, b) => b.count - a.count);
+    return rows;
+  },
+
+  topValues(distribution, n) {
+    return distribution.slice(0, n || 5);
+  },
+
+  sourceCentrePerformance(leads, centres) {
+    return centres.map(c => {
+      const cl = leads.filter(l => l.sourceCentre === c);
       return {
-        branch: b,
-        assigned: assigned,
-        active: this.activeLeads(bl),
-        converted: converted,
-        conversionRate: assigned ? (converted / assigned) * 100 : 0,
-        productivity: this.productivity(bl),
-        slaCompliance: this.slaComplianceRate(bl),
-        avgResponse: this.avgResponseTime(bl),
-        avgAging: this.avgLeadAging(bl),
-        pendingFU: this.pendingFollowups(bl),
-        overdueFU: this.overdueFollowups(bl).length
+        centre: c,
+        assigned: cl.length,
+        active: this.activeLeads(cl),
+        applications: this.applicationsFiled(cl),
+        converted: this.converted(cl),
+        conversionRate: cl.length ? (this.converted(cl) / cl.length) * 100 : 0
       };
     });
   },
@@ -221,35 +208,71 @@ const Calc = {
   sourcePerformance(leads, sources) {
     return sources.map(s => {
       const sl = leads.filter(l => l.source === s);
-      const assigned = sl.length;
-      const converted = sl.filter(l => l.converted).length;
+      const apps = this.applicationsFiled(sl);
+      const conv = this.converted(sl);
       return {
         source: s,
-        assigned: assigned,
-        converted: converted,
-        conversionRate: assigned ? (converted / assigned) * 100 : 0,
-        avgResponse: this.avgResponseTime(sl)
+        assigned: sl.length,
+        applications: apps,
+        converted: conv,
+        conversionRate: sl.length ? (conv / sl.length) * 100 : 0,
+        applicationRate: sl.length ? (apps / sl.length) * 100 : 0
       };
     });
   },
 
-  overdueFollowups(leads, today = CFG.today) {
-    const rows = [];
-    leads.forEach(l => {
-      if (!l.followUps) return;
-      l.followUps.filter(f => !f.completed && f.dueDate < today).forEach(f => {
-        rows.push({
-          leadId: l.id,
-          student: l.studentName,
-          counsellor: l.counsellorName,
-          branch: l.branch,
-          dueDate: f.dueDate,
-          overdueDays: this.daysBetween(f.dueDate, today),
-          status: l.status
-        });
-      });
+  bestSource(sourcePerf) {
+    let best = sourcePerf[0] || { source: '—', conversionRate: 0 };
+    sourcePerf.forEach(s => {
+      if (s.assigned >= 5 && s.conversionRate > best.conversionRate) best = s;
     });
-    return rows.sort((a, b) => b.overdueDays - a.overdueDays);
+    return best;
+  },
+
+  counsellorPerformance(leads, counsellors) {
+    return counsellors.map(c => {
+      const cl = leads.filter(l => l.counsellorId === c.id);
+      const apps = this.applicationsFiled(cl);
+      return {
+        id: c.id,
+        name: c.name,
+        centre: c.sourceCentre,
+        role: c.role,
+        assigned: cl.length,
+        active: this.activeLeads(cl),
+        applications: apps,
+        converted: this.converted(cl),
+        conversionRate: cl.length ? (this.converted(cl) / cl.length) * 100 : 0,
+        avgCallAttempts: this.averageCallAttempts(cl)
+      };
+    }).filter(r => r.assigned > 0);
+  },
+
+  followupTimeline(leads, days, today) {
+    const t = today || CFG.today;
+    const d = days || 7;
+    const labels = [];
+    const counts = [];
+    for (let i = 0; i < d; i++) {
+      const day = addDays(t, i);
+      const key = day.toDateString();
+      labels.push(day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+      counts.push(leads.filter(l => l.nextFollowUp && l.nextFollowUp.toDateString() === key).length);
+    }
+    return { labels, counts };
+  },
+
+  callAttemptsDistribution(leads) {
+    const buckets = { '0': 0, '1-2': 0, '3-5': 0, '6-10': 0, '10+': 0 };
+    leads.forEach(l => {
+      const ca = l.callAttempts || 0;
+      if (ca === 0) buckets['0']++;
+      else if (ca <= 2) buckets['1-2']++;
+      else if (ca <= 5) buckets['3-5']++;
+      else if (ca <= 10) buckets['6-10']++;
+      else buckets['10+']++;
+    });
+    return Object.entries(buckets).map(([label, count]) => ({ label, count }));
   },
 
   daysBetween(a, b) {
@@ -258,148 +281,9 @@ const Calc = {
     return Math.round((bDate - aDate) / (1000 * 60 * 60 * 24));
   },
 
-  // Lead Re-engagement: inactivity buckets
-  inactiveLeads(leads, days, today = CFG.today) {
-    return leads.filter(l => {
-      if (l.converted || l.lost) return false;
-      const lastAct = l.lastActivityDate || l.assignedDate;
-      return this.daysBetween(lastAct, today) >= days;
-    });
-  },
-
-  reEngagementBuckets(leads, today = CFG.today) {
-    const active = leads.filter(l => !l.converted && !l.lost);
-    const total = active.length;
-    const buckets = [30, 60, 90];
-    const prevPeriodMultiplier = 1.5; // compare to (days * 1.5) ago
-    return buckets.map(days => {
-      const count = this.inactiveLeads(leads, days, today).length;
-      const prevCount = this.inactiveLeads(leads, Math.round(days * prevPeriodMultiplier), today).length;
-      return {
-        label: days + '+ days',
-        days,
-        count,
-        pct: total ? (count / total) * 100 : 0,
-        trend: prevCount ? count - prevCount : 0
-      };
-    });
-  },
-
-  // Recovery trend: mock weekly recovered vs dormant counts
-  recoveryTrend(weeks = 4, today = CFG.today) {
-    const labels = [];
-    const dormant = [];
-    const recovered = [];
-    for (let i = weeks - 1; i >= 0; i--) {
-      labels.push('W' + (weeks - i));
-      // Mock: dormant count decreases slightly, recovered count increases slightly over recent weeks
-      const baseDormant = 40 + Math.floor(Math.random() * 15) - i * 2;
-      const baseRecovered = 8 + Math.floor(Math.random() * 6) + i * 1;
-      dormant.push(Math.max(0, baseDormant));
-      recovered.push(Math.max(0, baseRecovered));
-    }
-    return { labels, dormant, recovered };
-  },
-
-  // Quick insights for re-engagement (returns plain text data; UI handles HTML)
-  reEngagementInsights(leads, today = CFG.today) {
-    const insights = [];
-
-    const dormant30 = this.inactiveLeads(leads, 30, today);
-
-    // Branch with most dormant leads
-    const branchMap = new Map();
-    dormant30.forEach(l => {
-      branchMap.set(l.branch, (branchMap.get(l.branch) || 0) + 1);
-    });
-    let topBranch = { branch: '', count: 0 };
-    branchMap.forEach((count, branch) => {
-      if (count > topBranch.count) topBranch = { branch, count };
-    });
-    if (topBranch.branch) {
-      insights.push({ type: 'branch', text: `Most dormant leads belong to ${topBranch.branch} (${topBranch.count} leads).` });
-    }
-
-    // Counsellor with most inactive leads
-    const csMap = new Map();
-    dormant30.forEach(l => {
-      csMap.set(l.counsellorName, (csMap.get(l.counsellorName) || 0) + 1);
-    });
-    let topCS = { name: '', count: 0 };
-    csMap.forEach((count, name) => {
-      if (count > topCS.count) topCS = { name, count };
-    });
-    if (topCS.name) {
-      insights.push({ type: 'counsellor', text: `Counsellor ${topCS.name} has the highest number of inactive leads (${topCS.count}).` });
-    }
-
-    // 60-day trend using reEngagementBuckets
-    const buckets = this.reEngagementBuckets(leads, today);
-    const bucket60 = buckets.find(b => b.days === 60);
-    if (bucket60 && Math.abs(bucket60.trend) > 0) {
-      const direction = bucket60.trend > 0 ? 'increased' : 'decreased';
-      insights.push({ type: 'trend', text: `60-Day dormant leads ${direction} by ${Math.abs(bucket60.trend)} this period.` });
-    }
-
-    // Mock recovery rate
-    const recoveryRate = 10 + Math.floor(Math.random() * 8);
-    const prevRecoveryRate = recoveryRate - 2 - Math.floor(Math.random() * 4);
-    const diff = recoveryRate - prevRecoveryRate;
-    const recDirection = diff >= 0 ? 'improved' : 'declined';
-    insights.push({ type: 'recovery', text: `Recovery rate ${recDirection} by ${Math.abs(diff)}% compared to last period.` });
-
-    return insights;
-  },
-
-  // Lead Objection Analytics
-  objectionBreakdown(leads) {
-    const withObj = leads.filter(l => l.objection);
-    const map = new Map();
-    CFG.objections.forEach(o => map.set(o, 0));
-    withObj.forEach(l => {
-      map.set(l.objection, (map.get(l.objection) || 0) + 1);
-    });
-    let total = withObj.length;
-    let mostCommon = { reason: '', count: 0 };
-    const rows = CFG.objections.map(o => {
-      const c = map.get(o) || 0;
-      if (c > mostCommon.count) { mostCommon = { reason: o, count: c }; }
-      return { reason: o, count: c, pct: total ? (c / total) * 100 : 0 };
-    });
-    return { rows, total, mostCommon };
-  },
-
-  // Call Outcome Analytics
-  callOutcomeBreakdown(leads) {
-    const outcomeMap = new Map();
-    const outcomes = ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'];
-    outcomes.forEach(o => outcomeMap.set(o, 0));
-
-    leads.forEach(l => {
-      if (l.calls) {
-        l.calls.forEach(c => {
-          const mapped = c.outcome;
-          if (outcomeMap.has(mapped)) {
-            outcomeMap.set(mapped, outcomeMap.get(mapped) + 1);
-          }
-        });
-      }
-    });
-
-    let total = 0;
-    outcomeMap.forEach(v => total += v);
-    let mostCommon = { outcome: '', count: 0 };
-    const rows = outcomes.map(o => {
-      const c = outcomeMap.get(o) || 0;
-      if (c > mostCommon.count) { mostCommon = { outcome: o, count: c }; }
-      return { outcome: o, count: c, pct: total ? (c / total) * 100 : 0 };
-    });
-    return { rows, total, mostCommon };
-  },
-
-  leadsContactedToday(leads, today = CFG.today) {
-    return leads.filter(l => l.firstContactDate &&
-      l.firstContactDate.toDateString() === today.toDateString()).length;
+  hasColumn(name) {
+    if (!DataLoader.rawHeaders || !DataLoader.rawHeaders.length) return false;
+    return DataLoader.rawHeaders.some(h => h.toLowerCase().trim() === name.toLowerCase().trim());
   }
 };
 

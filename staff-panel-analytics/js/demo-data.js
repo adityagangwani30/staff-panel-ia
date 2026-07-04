@@ -1,22 +1,22 @@
-/* ============================================================
-   REALISTIC DEMO DATA GENERATOR — IntelAbroad Staff Panel
-   ============================================================ */
-
 const CFG = {
   today: new Date('2026-07-03T09:00:00'),
-  branches: ['Delhi Office', 'Delhi 2026', 'Nagpur 2026', 'Raipur Office'],
+  sourceCentres: ['Delhi Office', 'Delhi 2026', 'Nagpur 2026', 'Raipur Office'],
   sources: ['Facebook Ads', 'Google Ads', 'Instagram', 'Referral', 'Walk-in', 'Website', 'Education Fair', 'Agent Partner'],
-  statuses: ['New', 'Contacted', 'Follow-up', 'Qualified', 'Converted', 'Lost'],
-  funnelStages: ['New', 'Contacted', 'Follow-up', 'Qualified', 'Converted'],
+  statuses: ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified', 'Converted', 'Lost'],
+  funnelStages: ['New', 'Contacted', 'Interested', 'Application Filed', 'Converted'],
+  categories: ['General', 'OBC', 'SC', 'ST', 'EWS'],
+  states: ['Delhi', 'Uttar Pradesh', 'Maharashtra', 'Madhya Pradesh', 'Rajasthan', 'Bihar', 'Haryana', 'Punjab', 'Gujarat', 'West Bengal'],
+  cities: ['Delhi', 'Mumbai', 'Nagpur', 'Raipur', 'Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Jaipur', 'Jodhpur', 'Ahmedabad', 'Indore', 'Bhopal', 'Patna', 'Chandigarh', 'Ludhiana', 'Kolkata', 'Pune', 'Surat', 'Noida'],
+  examCities: ['Delhi', 'Mumbai', 'Nagpur', 'Raipur', 'Lucknow', 'Jaipur', 'Ahmedabad', 'Bhopal', 'Patna', 'Chandigarh', 'Kolkata', 'Pune'],
   statusClass: {
     'New': 'st-new',
     'Contacted': 'st-contacted',
     'Follow-up': 'st-followup',
+    'Interested': 'st-interested',
     'Qualified': 'st-qualified',
     'Converted': 'st-converted',
     'Lost': 'st-lost'
   },
-  objections: ['Budget Constraints', 'Parents Not Convinced', 'Preparing for Government College', 'Joined Another Consultancy', 'Interested in Another Country', 'Did Not Qualify NEET', 'Not Interested Anymore', 'No Response', 'Wants to Apply Next Year', 'Other'],
   chartColors: {
     primary: '#3b82f6',
     primaryLight: '#60a5fa',
@@ -30,37 +30,35 @@ const CFG = {
     slate: '#64748b'
   },
   palette: ['#3b82f6', '#22c55e', '#eab308', '#a855f7', '#06b6d4', '#ec4899', '#14b8a6', '#ef4444', '#64748b', '#f97316'],
-  
-  // Specific organizational hierarchy
+
   staff: [
-    { id: 'S001', name: 'Dr. Suhail', role: 'Founder', branch: 'all', reportsTo: null, profile: 'star-performer' },
-    
-    { id: 'S002', name: 'Vanshta Verma', role: 'BranchManager', branch: 'Delhi Office', reportsTo: 'S001', profile: 'high-performer' },
-    { id: 'S003', name: 'Raunaq', role: 'BranchManager', branch: 'Delhi 2026', reportsTo: 'S001', profile: 'medium-performer' },
-    { id: 'S004', name: 'Dr. Roshan', role: 'BranchManager', branch: 'Nagpur 2026', reportsTo: 'S001', profile: 'high-performer' },
-    { id: 'S005', name: 'Kunal Taswala', role: 'BranchManager', branch: 'Raipur Office', reportsTo: 'S001', profile: 'medium-performer' },
-    
-    { id: 'S006', name: 'Hemant Vaidya', role: 'TeamLead', branch: 'Delhi Office', reportsTo: 'S002', profile: 'star-performer' },
-    { id: 'S007', name: 'Firdauss', role: 'TeamLead', branch: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
-    { id: 'S008', name: 'Mehak Khan', role: 'TeamLead', branch: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
-    { id: 'S009', name: 'Monty Sharma', role: 'TeamLead', branch: 'Delhi 2026', reportsTo: 'S003', profile: 'medium-performer' },
-    
-    { id: 'S010', name: 'Adhira Saxena', role: 'Counsellor', branch: 'Delhi 2026', reportsTo: 'S009', profile: 'star-performer' },
-    
-    { id: 'S011', name: 'Vimlesh Tiwari', role: 'Counsellor', branch: 'Nagpur 2026', reportsTo: 'S004', profile: 'low-performer' },
-    { id: 'S012', name: 'Gargi Raparia', role: 'Counsellor', branch: 'Nagpur 2026', reportsTo: 'S004', profile: 'high-performer' },
-    { id: 'S013', name: 'Brinder Singh', role: 'Counsellor', branch: 'Nagpur 2026', reportsTo: 'S004', profile: 'medium-performer' },
-    
-    { id: 'S014', name: 'Sofiya Khan', role: 'Counsellor', branch: 'Raipur Office', reportsTo: 'S005', profile: 'low-performer' },
-    { id: 'S015', name: 'Payal Shankhwar', role: 'Counsellor', branch: 'Raipur Office', reportsTo: 'S005', profile: 'medium-performer' },
-    { id: 'S016', name: 'Aditya Gangwani', role: 'Counsellor', branch: 'Raipur Office', reportsTo: 'S005', profile: 'star-performer' },
-    { id: 'S017', name: 'Heena Bandhe', role: 'Counsellor', branch: 'Raipur Office', reportsTo: 'S005', profile: 'high-performer' }
+    { id: 'S001', name: 'Dr. Suhail', role: 'Founder', sourceCentre: 'all', reportsTo: null, profile: 'star-performer' },
+    { id: 'S002', name: 'Vanshta Verma', role: 'BranchManager', sourceCentre: 'Delhi Office', reportsTo: 'S001', profile: 'high-performer' },
+    { id: 'S003', name: 'Raunaq', role: 'BranchManager', sourceCentre: 'Delhi 2026', reportsTo: 'S001', profile: 'medium-performer' },
+    { id: 'S004', name: 'Dr. Roshan', role: 'BranchManager', sourceCentre: 'Nagpur 2026', reportsTo: 'S001', profile: 'high-performer' },
+    { id: 'S005', name: 'Kunal Taswala', role: 'BranchManager', sourceCentre: 'Raipur Office', reportsTo: 'S001', profile: 'medium-performer' },
+    { id: 'S006', name: 'Hemant Vaidya', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'star-performer' },
+    { id: 'S007', name: 'Firdauss', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
+    { id: 'S008', name: 'Mehak Khan', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
+    { id: 'S009', name: 'Monty Sharma', role: 'TeamLead', sourceCentre: 'Delhi 2026', reportsTo: 'S003', profile: 'medium-performer' },
+    { id: 'S010', name: 'Adhira Saxena', role: 'Counsellor', sourceCentre: 'Delhi 2026', reportsTo: 'S009', profile: 'star-performer' },
+    { id: 'S011', name: 'Vimlesh Tiwari', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'low-performer' },
+    { id: 'S012', name: 'Gargi Raparia', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'high-performer' },
+    { id: 'S013', name: 'Brinder Singh', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'medium-performer' },
+    { id: 'S014', name: 'Sofiya Khan', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'low-performer' },
+    { id: 'S015', name: 'Payal Shankhwar', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'medium-performer' },
+    { id: 'S016', name: 'Aditya Gangwani', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'star-performer' },
+    { id: 'S017', name: 'Heena Bandhe', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'high-performer' }
   ],
 
   firstNames: ['Aarav','Priya','Rohan','Ananya','Vikram','Sneha','Kabir','Ishita','Arjun','Meera','Dev','Riya','Aditya','Kavya','Rahul','Neha','Sahil','Pooja','Karan','Divya','Nikhil','Sanya','Yash','Tanya','Aryan','Simran','Varun','Nisha','Manav','Alisha','Rohit','Preeti','Siddharth','Radhika','Harsh','Anjali','Vivek','Shreya','Amit','Kriti'],
   lastNames: ['Sharma','Verma','Iyer','Nair','Reddy','Gupta','Malhotra','Kapoor','Chatterjee','Menon','Joshi','Bhat','Rao','Singh','Patel','Mehta','Chawla','Bose','Pillai','Kulkarni'],
+  guardianSuffixes: ['Father', 'Mother'],
+  emailProviders: ['gmail.com', 'yahoo.com', 'outlook.com', 'rediffmail.com', 'hotmail.com'],
+  statusOrder: { 'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Interested': 3, 'Qualified': 4, 'Converted': 5, 'Lost': -1 },
 
-  // Lead management CRM — no admission/visa fields
+  callOutcomes: ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'],
+  objectionReasons: ['Budget Constraints', 'Parents Not Convinced', 'Government College Preference', 'Joined Another Consultancy', 'Different Country Preference', 'Did Not Qualify NEET', 'Not Interested Anymore', 'No Response', 'Wants to Apply Next Year', 'Other']
 };
 
 let _seed = 98765;
@@ -72,17 +70,9 @@ function seededRandom() {
   return _seed / (m - 1);
 }
 
-function randRange(min, max) {
-  return seededRandom() * (max - min) + min;
-}
-
-function randInt(min, max) {
-  return Math.floor(seededRandom() * (max - min + 1)) + min;
-}
-
-function pick(arr) {
-  return arr[Math.floor(seededRandom() * arr.length)];
-}
+function randRange(min, max) { return seededRandom() * (max - min) + min; }
+function randInt(min, max) { return Math.floor(seededRandom() * (max - min + 1)) + min; }
+function pick(arr) { return arr[Math.floor(seededRandom() * arr.length)]; }
 
 function addDays(date, days) {
   const d = new Date(date);
@@ -90,15 +80,9 @@ function addDays(date, days) {
   return d;
 }
 
-function addHours(date, hours) {
-  const d = new Date(date);
-  d.setHours(d.getHours() + hours);
-  return d;
-}
-
 function generateLeadsData(staff, count) {
   const leads = [];
-  
+
   const sourceWeights = [
     { source: 'Facebook Ads', volumeWeight: 0.38, baseConv: 0.05 },
     { source: 'Google Ads', volumeWeight: 0.18, baseConv: 0.12 },
@@ -120,167 +104,127 @@ function generateLeadsData(staff, count) {
     return sourceWeights[0];
   }
 
-  // Map counts per branch
-  const branchLeadsCount = {
+  const centreLeadsCount = {
     'Delhi Office': Math.floor(count * 0.44),
     'Delhi 2026': Math.floor(count * 0.26),
     'Nagpur 2026': Math.floor(count * 0.18),
     'Raipur Office': Math.floor(count * 0.12)
   };
 
-  // Group staff assignees by branch
-  // Founder (S001) does not get direct lead assignments, others do.
-  const branchStaff = {};
+  const centreStaff = {};
   staff.forEach(s => {
     if (s.id === 'S001') return;
-    if (!branchStaff[s.branch]) branchStaff[s.branch] = [];
-    branchStaff[s.branch].push(s);
+    if (!centreStaff[s.sourceCentre]) centreStaff[s.sourceCentre] = [];
+    centreStaff[s.sourceCentre].push(s);
   });
-
-  const staffWorkloads = {};
-  staff.forEach(s => { staffWorkloads[s.id] = 0; });
 
   let leadIdCounter = 6110;
 
-  CFG.branches.forEach(branch => {
-    const branchCount = branchLeadsCount[branch] || 25;
-    const branchSList = branchStaff[branch] || [];
-    if (branchSList.length === 0) return;
+  CFG.sourceCentres.forEach(centre => {
+    const centreCount = centreLeadsCount[centre] || 25;
+    const centreSList = centreStaff[centre] || [];
+    if (centreSList.length === 0) return;
 
-    for (let i = 0; i < branchCount; i++) {
+    for (let i = 0; i < centreCount; i++) {
       const sw = getWeightedSource();
       const source = sw.source;
-      
-      // Counsellor assignment based on workload distribution
+
       let assignee;
       let r = seededRandom();
       if (r < 0.45) {
-        assignee = branchSList.find(s => s.profile === 'star-performer') || branchSList[0];
+        assignee = centreSList.find(s => s.profile === 'star-performer') || centreSList[0];
       } else if (r < 0.80) {
-        assignee = branchSList.find(s => s.profile === 'high-performer') || branchSList[0];
+        assignee = centreSList.find(s => s.profile === 'high-performer') || centreSList[0];
       } else if (r < 0.95) {
-        assignee = branchSList.find(s => s.profile === 'medium-performer') || branchSList[0];
+        assignee = centreSList.find(s => s.profile === 'medium-performer') || centreSList[0];
       } else {
-        assignee = branchSList.find(s => s.profile === 'low-performer') || branchSList[0];
+        assignee = centreSList.find(s => s.profile === 'low-performer') || centreSList[0];
       }
 
-      staffWorkloads[assignee.id]++;
-
       let convProb = sw.baseConv;
-      if (assignee.profile === 'star-performer') convProb += 0.20;
-      else if (assignee.profile === 'high-performer') convProb += 0.10;
-      else if (assignee.profile === 'medium-performer') convProb += 0.04;
-      else convProb -= 0.04;
-
-      if (branch === 'Delhi Office') convProb += 0.04;
-      if (branch === 'Raipur Office') convProb -= 0.02;
-
+      const profileBonus = { 'star-performer': 0.20, 'high-performer': 0.10, 'medium-performer': 0.04, 'low-performer': -0.04 };
+      convProb += (profileBonus[assignee.profile] || 0);
+      if (centre === 'Delhi Office') convProb += 0.04;
+      if (centre === 'Raipur Office') convProb -= 0.02;
       convProb = Math.max(0.02, Math.min(0.85, convProb));
 
       let status = 'New';
       let rStatus = seededRandom();
-
       if (rStatus < convProb) {
         status = 'Converted';
       } else if (rStatus > 0.86) {
         status = 'Lost';
       } else {
-        const openStatusChoices = ['Contacted', 'Follow-up', 'Qualified'];
+        const openStatuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified'];
+        const weights = [0.10, 0.20, 0.25, 0.25, 0.20];
         let w = seededRandom();
-        if (w < 0.15) status = 'New';
-        else if (w < 0.35) status = 'Contacted';
-        else if (w < 0.65) status = 'Follow-up';
-        else status = 'Qualified';
+        let cum = 0;
+        for (let s = 0; s < openStatuses.length; s++) {
+          cum += weights[s];
+          if (w <= cum) { status = openStatuses[s]; break; }
+        }
       }
 
-      const daysAgo = randInt(2, 120);
+      const isTodayLead = seededRandom() < 0.04;
+      const daysAgo = isTodayLead ? randInt(0, 1) : randInt(2, 120);
       const assignedDate = addDays(CFG.today, -daysAgo);
 
-      const contacted = status !== 'New';
-      let responseHours = null;
-      let firstContactDate = null;
-      if (contacted) {
-        let baseResponse = randRange(1, 14);
-        const workloadCount = staffWorkloads[assignee.id];
-        baseResponse += workloadCount * 0.45; 
-        
-        if (assignee.profile === 'star-performer') baseResponse *= 0.55;
-        else if (assignee.profile === 'low-performer') baseResponse *= 2.0;
+      const firstName = pick(CFG.firstNames);
+      const lastName = pick(CFG.lastNames);
+      const studentName = firstName + ' ' + lastName;
 
-        responseHours = Math.max(0.2, baseResponse);
-        firstContactDate = addHours(assignedDate, responseHours);
-      }
+      const state = pick(CFG.states);
+      const city = randInt(0, 3) === 0 ? state : pick(CFG.cities);
+      const examCity = pick(CFG.examCities);
+      const category = pick(CFG.categories);
+      const neetAppeared = seededRandom() < 0.7 ? 'Yes' : 'No';
+      const guardianName = pick(CFG.guardianSuffixes) + ' of ' + studentName;
+      const guardianPhone = '99' + String(randInt(10000000, 99999999));
+      const email = firstName.toLowerCase() + '.' + lastName.toLowerCase() + randInt(10, 99) + '@' + pick(CFG.emailProviders);
 
-      // Follow-ups
-      const followUps = [];
-      let followUpCount = 0;
-      if (daysAgo > 8) {
-        followUpCount = randInt(1, Math.min(6, Math.floor(daysAgo / 6)));
-      }
-      
-      for (let f = 0; f < followUpCount; f++) {
-        const due = addDays(assignedDate, randInt(2, Math.max(3, daysAgo - 1)));
-        const completed = due < CFG.today ? (assignee.profile === 'star-performer' ? seededRandom() < 0.92 : (assignee.profile === 'low-performer' ? seededRandom() < 0.45 : seededRandom() < 0.78)) : false;
-        followUps.push({
-          dueDate: due,
-          completed: completed,
-          completedDate: completed ? addDays(due, randInt(0, 2)) : null
-        });
-      }
+      const nextFollowUp = (status !== 'Converted' && status !== 'Lost' && seededRandom() < 0.6)
+        ? addDays(assignedDate, randInt(3, 30))
+        : null;
 
-      // Calls
-      const calls = [];
-      let callCount = contacted ? randInt(1, 5) : 0;
-      if (status === 'Converted') callCount = randInt(3, 7);
-      for (let c = 0; c < callCount; c++) {
-        calls.push({
-          date: addDays(assignedDate, randInt(0, daysAgo)),
-          durationMin: randInt(1, 15),
-          outcome: pick(['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'])
-        });
-      }
+      const callAttempts = (status === 'Converted') ? randInt(5, 15) :
+                           (status === 'Lost') ? randInt(3, 10) :
+                           (status === 'New') ? randInt(0, 2) : randInt(2, 8);
 
-      let whatsAppCount = 0;
-      if (contacted) {
-        whatsAppCount = randInt(3, 12);
-        if (status === 'Converted') whatsAppCount = randInt(15, 35);
-      }
+      const progressed = status !== 'New' && status !== 'Lost';
+      const applicationFiled = status === 'Converted' ? 'Yes' :
+                                (progressed && seededRandom() < 0.30 ? 'Yes' : 'No');
 
-      // Activity logs
-      const activityLog = [];
-      const actTypes = ['Call', 'WhatsApp', 'Email', 'Status Change', 'Meeting', 'Note'];
-      const activityCount = randInt(2, 6);
-      for (let a = 0; a < activityCount; a++) {
-        activityLog.push({
-          date: addDays(assignedDate, randInt(0, daysAgo)),
-          type: pick(actTypes),
-          note: 'Counsellor logged lead activity'
-        });
-      }
-      activityLog.sort((a,b) => a.date - b.date);
-
-      const lastActivityDate = activityLog.length ? activityLog[activityLog.length - 1].date : assignedDate;
+      const lastActivityDate = addDays(assignedDate, randInt(0, Math.min(daysAgo, 5)));
 
       leads.push({
         id: 'LD-' + leadIdCounter++,
-        studentName: pick(CFG.firstNames) + ' ' + pick(CFG.lastNames),
+        studentName: studentName,
         phone: '98' + String(randInt(10000000, 99999999)),
-        branch: branch,
+        guardianName: guardianName,
+        guardianPhone: guardianPhone,
+        email: email,
+        city: city,
+        state: state,
+        examCity: examCity,
+        category: category,
+        neetAppeared: neetAppeared,
+        source: source,
+        sourceCentre: centre,
+        operator: assignee.name,
+        status: status,
         counsellorId: assignee.id,
         counsellorName: assignee.name,
-        source: source,
-        status: status,
         assignedDate: assignedDate,
-        firstContactDate: firstContactDate,
         lastActivityDate: lastActivityDate,
+        nextFollowUp: nextFollowUp,
+        callAttempts: callAttempts,
+        applicationFiled: applicationFiled,
         converted: status === 'Converted',
         lost: status === 'Lost',
-        responseTimeHours: responseHours,
-        followUps: followUps,
-        calls: calls,
-        whatsAppCount: whatsAppCount,
-        activityLog: activityLog,
-        objection: status === 'Lost' || seededRandom() < 0.25 ? pick(CFG.objections) : null
+        callOutcome: null,
+        objectionReason: null,
+        objectionRemarks: null,
+        firstContactDateTime: null
       });
     }
   });
@@ -290,26 +234,30 @@ function generateLeadsData(staff, count) {
 
 function getInitialDataset() {
   _seed = 98765;
-
-  const staffList = CFG.staff.map(s => {
-    return {
-      id: s.id,
-      name: s.name,
-      role: s.role,
-      branch: s.branch,
-      reportsTo: s.reportsTo,
-      profile: s.profile
-    };
-  });
-
+  const staffList = CFG.staff.map(s => ({
+    id: s.id, name: s.name, role: s.role,
+    sourceCentre: s.sourceCentre, reportsTo: s.reportsTo, profile: s.profile
+  }));
   const leads = generateLeadsData(staffList, 640);
-
-  return {
-    staff: staffList,
-    leads: leads,
-    branches: CFG.branches,
-    sources: CFG.sources
-  };
+  return { staff: staffList, leads: leads, sourceCentres: CFG.sourceCentres, sources: CFG.sources };
 }
 
-window.IntelAbroadData = getInitialDataset();
+function getPersistedDataset() {
+  try {
+    const raw = localStorage.getItem('intelabroad_leads');
+    if (raw) {
+      const leads = JSON.parse(raw);
+      leads.forEach(l => {
+        if (l.assignedDate) l.assignedDate = new Date(l.assignedDate);
+        if (l.nextFollowUp) l.nextFollowUp = new Date(l.nextFollowUp);
+        if (l.lastActivityDate) l.lastActivityDate = new Date(l.lastActivityDate);
+        if (l.firstContactDateTime) l.firstContactDateTime = new Date(l.firstContactDateTime);
+      });
+      const demo = getInitialDataset();
+      return { leads: leads, staff: demo.staff, sourceCentres: demo.sourceCentres, sources: demo.sources };
+    }
+  } catch (e) {}
+  return null;
+}
+
+window.IntelAbroadData = getPersistedDataset() || getInitialDataset();

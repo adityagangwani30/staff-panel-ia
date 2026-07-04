@@ -1,479 +1,155 @@
-/* ============================================================
-   UI CONTROLLER & INTERACTION ENGINE — IntelAbroad Staff Panel
-   ============================================================ */
-
 const State = {
   currentUser: {
     role: 'Founder',
     name: 'Dr. Suhail',
     id: 'S001',
-    branch: 'all'
+    sourceCentre: 'all'
   },
   filters: {
-    dateType: 'entry',
     from: null,
     to: null,
-    branch: 'all',
+    sourceCentre: 'all',
     counsellor: 'all',
     source: 'all',
-    status: 'all',
-    search: ''
+    status: 'all'
   },
   filtered: [],
   charts: {},
-  tables: {},
-  counsellorViewId: null
+  activeTab: 'lead',
+  allTabs: ['lead', 'counsellor', 'followup', 'source', 'geography', 'application', 'call-outcome', 'objection', 'reengagement', 'sla']
 };
+
+function getVisibleTabs(role) {
+  switch (role) {
+    case 'Counsellor':
+      return ['lead', 'counsellor', 'followup', 'application'];
+    default:
+      return State.allTabs;
+  }
+}
+
+function updateTabVisibility() {
+  const visible = getVisibleTabs(State.currentUser.role);
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.style.display = visible.includes(tab.dataset.tab) ? '' : 'none';
+  });
+  if (!visible.includes(State.activeTab)) {
+    State.activeTab = visible[0];
+  }
+}
 
 const fmt = {
   int(n) {
     if (n == null || isNaN(n) || !isFinite(n)) return '0';
     return Math.round(n).toLocaleString('en-US');
   },
-  pct(n, d = 1) { return (isFinite(n) && !isNaN(n) ? n : 0).toFixed(d) + '%'; },
-  hours(n) {
-    if (n == null || !isFinite(n) || isNaN(n)) return '—';
-    return n < 1 ? Math.round(n * 60) + 'm' : n.toFixed(1) + 'h';
-  },
-  days(n) {
-    if (n == null || isNaN(n) || !isFinite(n)) return '0d';
-    return Math.round(n) + 'd';
-  },
+  pct(n, d) { return (isFinite(n) && !isNaN(n) ? n : 0).toFixed(d || 1) + '%'; },
+  dec(n, d) { return (isFinite(n) && !isNaN(n) ? n : 0).toFixed(d || 1); },
   date(d) { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'; },
   dateFull(d) { return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
 };
 
+const SECTION_DEFS = {
+  lead: 'Lead Analytics provides an overview of the entire lead pipeline — from acquisition through conversion. Use this section to track pipeline health, identify bottlenecks, and monitor lead volume trends.',
+  counsellor: 'Counsellor Analytics measures individual counsellor productivity and performance. Use this section to identify top performers, compare workloads, and optimise team resource allocation.',
+  followup: 'Follow-up Analytics tracks scheduled and overdue lead follow-ups. Use this section to monitor counsellor follow-up discipline and reduce lead stagnation.',
+  source: 'Lead Source Analytics evaluates lead generation performance across all acquisition channels. Use this section to optimise marketing spend and identify high-converting sources.',
+  geography: 'Geography Analytics reveals where prospective students are located. Use this section to target regional marketing efforts and understand demographic distribution.',
+  application: 'Application Analytics monitors the application pipeline from submission to conversion. Use this section to track application progress and identify conversion bottlenecks.',
+  'call-outcome': 'Call Outcome Analytics evaluates the results of outbound call attempts. Use this section to understand call effectiveness and identify common response patterns.',
+  objection: 'Lead Objection Analytics surfaces the most common reasons leads are not converting. Use this section to address recurring objections and refine your sales approach.',
+  reengagement: 'Lead Re-engagement Analytics identifies inactive leads that may be ready for re-contact. Use this section to recover dormant opportunities and reduce lead decay.',
+  sla: 'SLA & Response Analytics tracks how quickly your team responds to new leads. Use this section to monitor compliance with service-level agreements and improve first-contact speed.'
+};
+
 const METRIC_DEFS = {
-  'total-assigned': 'Total number of leads assigned within the selected scope.',
-  'contacted': 'Leads that have been contacted (have a recorded first contact date).',
-  'calls': 'Total number of telephone calls completed with leads.',
-  'whatsapp': 'Total number of WhatsApp messages exchanged with leads.',
-  'followups-completed': 'Total number of scheduled follow-ups successfully marked as completed.',
-  'pending-followups': 'Number of follow-ups that are due or overdue and still require action from counsellors.',
-  'avg-response': 'Average time taken by counsellors to make the first contact after a lead is assigned.',
-  'conversion-rate': 'Percentage of assigned leads that have been successfully converted.',
-  'overdue-followups': 'Number of follow-ups that have passed their scheduled date without completion.',
-  'avg-lead-aging': 'Average number of days active leads have remained in the pipeline without being converted or closed.',
-  'team-members': 'Number of active counselors in the team.',
-  'avg-workload': 'Average number of leads assigned per counselor.',
-  'followup-compliance': 'Percentage of follow-ups completed on time.',
-  'team-avg-response': 'Average time taken by team members to contact leads.',
-  'total-leads-managed': 'Total number of leads managed at the organizational level.',
-  'converted-leads': 'Total number of leads successfully converted.',
-  'sla-response-compliance': 'Percentage of leads contacted within the defined SLA window. This metric helps monitor responsiveness and service quality.',
-  'chart-daily-activity': 'Daily volume of assigned vs converted leads over the last 14 days.',
-  'chart-lead-status-dist': 'Distribution of leads across current funnel statuses.',
-  'chart-monthly-trend': 'Monthly trend of assigned vs converted leads over the last 6 months.',
-  'chart-calls-vs-whatsapp': 'Weekly comparison of calls logged vs WhatsApp messages exchanged.',
-  'chart-team-comparison': 'Comparison of team members by converted, open, and lost leads.',
-  'chart-workload-dist': 'Workload status breakdown per counselor.',
-  'chart-response-time-trend': 'Weekly trend of team average response latency.',
-  'chart-branch-comparison': 'Assigned vs converted lead comparison by branch office.',
-  'chart-monthly-growth': 'Monthly lead volume growth trends for branches.',
-  'chart-counsellor-ranking': 'Counsellor ranking by performance within branch.',
-  'chart-lead-volume': 'Total lead volume generated per acquisition source.',
-  'chart-conversion-rate': 'Conversion rate comparison by acquisition source.',
-  'chart-overall-funnel': 'Stage-by-stage distribution of leads through the conversion funnel.',
-  'chart-m-branch-comparison': 'Conversion output comparison by branch.',
-  'chart-monthly-conversion-trend': '6-month historic conversion rate trend.',
-  'chart-counsellor-leaderboard': 'Leaderboard of top performing counselors.',
-  'chart-lead-source-performance': 'Lead source performance comparison.',
-  'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
-  'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.',
-  're-engagement': 'Leads with no activity for the specified period — opportunities for re-engagement.',
-  're-engagement-section': 'Lead Re-engagement Analytics helps identify dormant leads that have not been contacted for an extended period. These insights enable counsellors and management to plan targeted follow-up campaigns, improve lead recovery, and increase overall conversion opportunities.',
-  'objection-analytics': 'Lead Objection Analytics helps identify the most common reasons why leads do not convert. These insights enable management to improve counselling strategies, marketing communication, and overall lead conversion.',
-  'call-outcome-analytics': 'Call Outcome Analytics provides visibility into the outcomes of counselling calls, helping management identify communication trends, improve follow-up strategies, and understand where leads are dropping off.',
-  'leads-contacted-today': 'Number of leads contacted for the first time today.'
+  'total-leads': 'Total number of leads assigned within the selected scope. Calculation: Count of all leads. This is the primary volume metric for pipeline sizing.',
+  'new-leads-today': 'Number of leads assigned today. Calculation: Count of leads where assigned date is today. Provides a snapshot of daily intake velocity.',
+  'new-leads': 'Number of new leads generated in the selected period (default: last 7 days). Calculation: Count of leads assigned within the period. Helps track acquisition momentum.',
+  'active-leads': 'Leads currently active in the pipeline — not converted and not lost. Calculation: Total leads minus converted and lost. Measures current workload and opportunity pool.',
+  'applications-filed': 'Total number of leads that have submitted an application. Calculation: Count of leads where Application Filed = Yes. Tracks progression through the funnel.',
+  'applications-pending': 'Leads that have not yet submitted an application but remain active. Calculation: Active leads minus those with Application Filed = Yes. Identifies stalled leads needing attention.',
+  'application-conversion-rate': 'Percentage of assigned leads that have filed applications. Calculation: (Applications Filed / Total Leads) × 100. Measures overall pipeline progression efficiency.',
+  'pending-followups': 'Number of follow-ups scheduled for future dates and still pending. Calculation: Count of leads with a future Next Follow-up date. Indicates upcoming counsellor workload.',
+  'overdue-followups': 'Number of follow-ups past their scheduled date without completion. Calculation: Count of leads with a past Next Follow-up date where status is not Converted or Lost. High numbers may indicate poor follow-up discipline.',
+  'avg-call-attempts': 'Average number of call attempts made per lead. Calculation: Sum of Call Attempts ÷ Total Leads. Helps assess counsellor persistence and outreach effort.',
+  'leads-assigned': 'Total number of leads assigned to counsellors or teams. Calculation: Count of all leads. Useful as a denominator for per-counsellor performance metrics.',
+  'conversion-rate': 'Percentage of assigned leads that have been successfully converted. Calculation: (Converted / Total Leads) × 100. The primary success metric for the sales pipeline.',
+  'lost-leads': 'Number of leads lost during the selected period. Calculation: Count of leads with Status = Lost. Tracking lost leads helps identify objection patterns and churn.',
+  'followups-due-today': 'Number of follow-ups scheduled for today. Calculation: Count of leads where Next Follow-up date is today. Actionable metric for daily counsellor task planning.',
+  'followups-due-tomorrow': 'Number of follow-ups scheduled for tomorrow. Calculation: Count of leads where Next Follow-up date is tomorrow. Enables proactive planning.',
+  'total-by-source': 'Total number of leads attributed to each acquisition source. Calculation: Count of leads grouped by Source. Helps evaluate which marketing channels drive volume.',
+  'apps-by-source': 'Number of applications filed from each acquisition source. Calculation: Count of leads with Application Filed = Yes, grouped by Source. Measures source quality beyond volume.',
+  'conv-rate-by-source': 'Conversion rate comparison across acquisition sources. Calculation: (Converted per Source / Leads per Source) × 100. Identifies highest-value acquisition channels.',
+  'best-source': 'The acquisition source with the highest conversion rate (minimum 5 leads). Calculation: Source with max (Converted / Leads) where Leads ≥ 5. Quick reference for channel effectiveness.',
+  'top-states': 'States with the highest number of leads. Calculation: Count of leads grouped by State, sorted descending. Useful for regional targeting and resource allocation.',
+  'top-cities': 'Cities with the highest number of leads. Calculation: Count of leads grouped by City, sorted descending. Enables city-level marketing focus.',
+  'top-exam-cities': 'Exam cities with the highest lead concentration. Calculation: Count of leads grouped by Exam City, sorted descending. Helps plan exam-day outreach and support.',
+  'category-distribution': 'Distribution of leads across different category groups (General, OBC, SC, ST, EWS). Calculation: Count of leads grouped by Category. Provides demographic insight for inclusive outreach.',
+  'chart-status-dist': 'Doughnut chart showing the breakdown of leads by their current pipeline status. Each segment represents a status group and its proportion of the total.',
+  'chart-monthly-growth': 'Bar chart displaying monthly new lead volume over recent months. Each bar represents lead intake for a single month, showing acquisition trends.',
+  'chart-funnel': 'Horizontal funnel chart showing stage-by-stage lead progression from New through to Converted. Each stage width is proportional to the number of leads reaching that stage.',
+  'chart-leaderboard': 'Bar chart ranking counsellors by conversion count. Shows top performers at a glance for management recognition and performance review.',
+  'chart-assigned-vs-apps': 'Grouped bar chart comparing leads assigned versus applications filed per counsellor. Highlights counsellors who effectively convert assignments into applications.',
+  'chart-call-attempts-counsellor': 'Bar chart showing average call attempts per counsellor. Helps identify differences in outreach persistence across the team.',
+  'chart-followup-timeline': 'Bar chart showing the upcoming follow-up schedule for the next 7 days. Each bar represents the number of follow-ups scheduled on that day.',
+  'chart-overdue-dist': 'Bar chart showing overdue follow-ups grouped by counsellor. Identifies which counsellors have the most overdue follow-ups requiring attention.',
+  'chart-call-attempts-dist': 'Doughnut chart showing the distribution of leads by call attempt ranges (0, 1-2, 3-5, 6-10, 10+). Helps understand outreach patterns.',
+  'chart-source-dist': 'Doughnut chart showing lead volume distribution by acquisition source. Each segment represents a source and its share of total leads.',
+  'chart-source-conv-rate': 'Bar chart comparing conversion rates across acquisition sources. Higher bars indicate sources with better conversion performance.',
+  'chart-source-centre-comp': 'Grouped bar chart comparing lead volume and application counts across source centres. High-level regional performance comparison.',
+  'chart-state-dist': 'Bar chart showing the top states by lead volume. Useful for geographic targeting and understanding regional demand.',
+  'chart-city-dist': 'Bar chart showing the top cities by lead volume. Enables city-level marketing and operational planning.',
+  'chart-category-dist': 'Doughnut chart showing the distribution of leads across demographic categories.',
+  'chart-filed-vs-pending': 'Doughnut chart comparing filed applications versus pending ones. Quick visual of application pipeline balance.',
+  'chart-monthly-app-trend': 'Stacked bar chart showing monthly application submissions — filed versus pending — over recent months. Tracks application momentum.',
+  'total-call-outcomes': 'Total number of call outcome records logged. Calculation: Count of leads with a Call Outcome value. Baseline metric for call effectiveness analysis.',
+  'interested-outcome': 'Number of leads marked as Interested during call outreach. Calculation: Count of Call Outcomes = Interested. Indicates positive engagement.',
+  'not-interested-outcome': 'Number of leads marked as Not Interested. Calculation: Count of Call Outcomes = Not Interested. Important for refining targeting.',
+  'callback-outcome': 'Number of leads asked to call back later. Calculation: Count of Call Outcomes = Call Back Later. Tracks follow-up scheduling.',
+  'did-not-answer': 'Number of calls that went unanswered. Calculation: Count of Call Outcomes = Didn\'t Answer. Helps assess contact rate.',
+  'wrong-number-outcome': 'Number of leads with wrong or disconnected numbers. Calculation: Count of Call Outcomes = Wrong Number. Data quality indicator.',
+  'total-objections': 'Total number of objection records captured. Calculation: Count of leads with an Objection Reason. Baseline for objection tracking.',
+  'top-objection': 'Most frequently cited objection reason. Calculation: Mode of Objection Reason values. Primary barrier to conversion.',
+  'budget-objection': 'Number of leads citing Budget Constraints. Calculation: Count of Objection Reason = Budget Constraints. Pricing sensitivity indicator.',
+  'parent-objection': 'Number of leads where parents are not convinced. Calculation: Count of Objection Reason = Parents Not Convinced. Family influence metric.',
+  'govt-college-objection': 'Number of leads preferring government colleges. Calculation: Count of Objection Reason = Government College Preference. Competitive landscape.',
+  '30-day-inactive': 'Leads with no activity for 30+ days. Calculation: Count of leads where Last Activity DateTime is 30–59 days ago. Early re-engagement opportunity.',
+  '60-day-inactive': 'Leads with no activity for 60+ days. Calculation: Count of leads where Last Activity DateTime is 60–89 days ago. Moderate re-engagement opportunity.',
+  '90-day-inactive': 'Leads with no activity for 90+ days. Calculation: Count of leads where Last Activity DateTime is 90+ days ago. May need stronger reactivation.',
+  'dormant-leads': 'Leads considered dormant (90+ days inactive). Calculation: Count of leads with no activity for 90+ days and not converted/lost.',
+  'recovered-leads': 'Leads previously inactive that have been re-engaged. Calculation: Count of leads with activity after an inactivity period of 30+ days.',
+  'avg-response-time': 'Average time from lead assignment to first contact. Calculation: Mean of (First Contact DateTime minus Assigned Date) across all leads.',
+  'sla-compliance': 'Percentage of leads contacted within SLA target (e.g., 24 hours). Calculation: (Leads contacted within SLA ÷ Total leads) × 100.',
+  'sla-breaches': 'Number of leads where first contact exceeded SLA target. Calculation: Count of leads with response time > SLA threshold.',
+  'response-time-by-counsellor': 'Average first-response time broken down by counsellor. Calculation: Mean response time grouped by Assigned To. Identifies coaching needs.'
 };
 
 function tooltipHtml(key) {
   const definition = METRIC_DEFS[key];
   if (!definition) return '';
-  return `
-    <span class="tooltip-wrap">
-      <span class="info-btn" data-tooltip-key="${key}">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-      </span>
-      <span class="tooltip-bubble">${escapeHtml(definition)}</span>
-    </span>`;
+  return `<span class="tooltip-wrap"><span class="info-btn" data-tooltip-key="${key}"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble">${escapeHtml(definition)}</span></span>`;
+}
+
+function sectionTooltipHtml(key) {
+  const text = SECTION_DEFS[key];
+  if (!text) return '';
+  return `<span class="tooltip-wrap"><span class="info-btn" data-tooltip-key="section-${key}"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble">${escapeHtml(text)}</span></span>`;
 }
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function exportCSV(rows, filename) {
-  if (!rows || !rows.length) {
-    alert('No records matching current filters.');
-    return;
-  }
+  if (!rows || !rows.length) { alert('No data to export for the current section.'); return; }
   const headers = Object.keys(rows[0]);
-  const csv = [headers.join(',')].concat(
-    rows.map(r => headers.map(h => '"' + String(r[h]).replace(/"/g, '""') + '"').join(','))
-  ).join('\n');
-  
+  const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => '"' + String(r[h] || '').replace(/"/g, '""') + '"').join(','))).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
+  a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
-}
-
-function renderTable(containerId, cols, rows, opts = {}) {
-  const key = containerId;
-  if (!State.tables[key]) {
-    State.tables[key] = {
-      sortKey: opts.defaultSort || cols[0].key,
-      sortDir: 'desc',
-      page: 1,
-      pageSize: opts.pageSize || 8,
-      search: '',
-      selectedRows: new Set()
-    };
-  }
-  const ts = State.tables[key];
-
-  let data = rows.slice();
-  
-  if (ts.search) {
-    const q = ts.search.toLowerCase();
-    data = data.filter(r => cols.some(c => String(r[c.key]).toLowerCase().includes(q)));
-  }
-
-  data.sort((a, b) => {
-    const va = a[ts.sortKey];
-    const vb = b[ts.sortKey];
-    let cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
-    return ts.sortDir === 'asc' ? cmp : -cmp;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(data.length / ts.pageSize));
-  ts.page = Math.min(ts.page, totalPages);
-  const pageRows = data.slice((ts.page - 1) * ts.pageSize, ts.page * ts.pageSize);
-
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  if (!data.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
-        </svg>
-        <div class="et">No matching records</div>
-        <div>Try widening your filters or search terms.</div>
-      </div>`;
-    return;
-  }
-
-  function toggleRowSelection(rowId) {
-    if (ts.selectedRows.has(rowId)) {
-      ts.selectedRows.delete(rowId);
-    } else {
-      ts.selectedRows.add(rowId);
-    }
-    renderTable(containerId, cols, rows, opts);
-  }
-
-  const thead = '<tr>' +
-    `<th class="td-checkbox">
-      <div class="custom-chk ${ts.selectedRows.size === data.length ? 'checked' : ''}" id="chk-all-${containerId}"></div>
-     </th>` +
-    cols.map(c => {
-      const isSorted = ts.sortKey === c.key;
-      const arrow = isSorted ? (ts.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
-      return `<th data-key="${c.key}">${c.label}<span class="arrow">${arrow}</span></th>`;
-    }).join('') + '</tr>';
-
-  const tbody = pageRows.map((r, i) => {
-    const rowId = r.id || `row-${i}`;
-    const isSelected = ts.selectedRows.has(rowId);
-    const cellsHtml = cols.map(c => {
-      const val = c.render ? c.render(r, (ts.page - 1) * ts.pageSize + i) : escapeHtml(r[c.key]);
-      return `<td>${val}</td>`;
-    }).join('');
-    
-    return `<tr class="${isSelected ? 'selected-row' : ''} ${opts.clickableRows ? 'clickable-row' : ''}" data-rowid="${rowId}">
-      <td class="td-checkbox">
-        <div class="custom-chk ${isSelected ? 'checked' : ''}" data-chk-rowid="${rowId}"></div>
-      </td>
-      ${cellsHtml}
-    </tr>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="table-toolbar">
-      <input class="table-search" placeholder="Search table…" value="${escapeHtml(ts.search)}" data-role="tsearch"/>
-      <span class="card-tag">${data.length} records</span>
-    </div>
-    <div class="table-scroll">
-      <table>
-        <thead>${thead}</thead>
-        <tbody>${tbody}</tbody>
-      </table>
-    </div>
-    <div class="pagination">
-      <span>Page ${ts.page} of ${totalPages}</span>
-      <div class="pg-btns">
-        <button class="pg-btn" data-role="prev" ${ts.page === 1 ? 'disabled' : ''}>Prev</button>
-        <button class="pg-btn" data-role="next" ${ts.page === totalPages ? 'disabled' : ''}>Next</button>
-      </div>
-    </div>`;
-
-  container.querySelectorAll('th[data-key]').forEach(th => {
-    th.addEventListener('click', () => {
-      const k = th.dataset.key;
-      if (ts.sortKey === k) {
-        ts.sortDir = ts.sortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        ts.sortKey = k;
-        ts.sortDir = 'desc';
-      }
-      renderTable(containerId, cols, rows, opts);
-    });
-  });
-
-  container.querySelector('[data-role="tsearch"]').addEventListener('input', e => {
-    ts.search = e.target.value;
-    ts.page = 1;
-    renderTable(containerId, cols, rows, opts);
-  });
-
-  container.querySelectorAll('[data-chk-rowid]').forEach(chk => {
-    chk.addEventListener('click', e => {
-      e.stopPropagation();
-      toggleRowSelection(chk.dataset.chkRowid);
-    });
-  });
-
-  container.querySelectorAll('tbody tr').forEach(tr => {
-    tr.addEventListener('click', () => {
-      if (opts.onRowClick) {
-        opts.onRowClick(tr.dataset.rowid);
-      } else {
-        toggleRowSelection(tr.dataset.rowid);
-      }
-    });
-  });
-
-  const chkAll = container.querySelector(`#chk-all-${containerId}`);
-  if (chkAll) {
-    chkAll.addEventListener('click', e => {
-      e.stopPropagation();
-      const allPageIds = data.map((r, idx) => r.id || `row-${idx}`);
-      const isAllChecked = ts.selectedRows.size === data.length;
-      if (isAllChecked) {
-        ts.selectedRows.clear();
-      } else {
-        allPageIds.forEach(id => ts.selectedRows.add(id));
-      }
-      renderTable(containerId, cols, rows, opts);
-    });
-  }
-
-  const prevBtn = container.querySelector('[data-role="prev"]');
-  const nextBtn = container.querySelector('[data-role="next"]');
-  if (prevBtn) prevBtn.addEventListener('click', () => { ts.page--; renderTable(containerId, cols, rows, opts); });
-  if (nextBtn) nextBtn.addEventListener('click', () => { ts.page++; renderTable(containerId, cols, rows, opts); });
-}
-
-function drawChart(canvasId, config) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  if (typeof Chart === 'undefined') {
-    console.warn(`Chart.js is not loaded. Cannot render chart on canvas #${canvasId}`);
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      canvas.width = canvas.offsetWidth || 300;
-      canvas.height = canvas.offsetHeight || 200;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#71717a';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Chart.js CDN not reachable (Offline)', canvas.width / 2, canvas.height / 2);
-    }
-    return;
-  }
-  try {
-    if (State.charts[canvasId]) {
-      State.charts[canvasId].destroy();
-      delete State.charts[canvasId];
-    }
-    
-    if (config && config.data && Array.isArray(config.data.datasets)) {
-      config.data.datasets.forEach(ds => {
-        if (Array.isArray(ds.data)) {
-          ds.data = ds.data.map(val => {
-            if (val === null || val === undefined || isNaN(val) || !isFinite(val)) {
-              return 0;
-            }
-            return val;
-          });
-        }
-      });
-    }
-    
-    State.charts[canvasId] = new Chart(canvas.getContext('2d'), config);
-  } catch (err) {
-    console.error(`Failed to create chart on canvas #${canvasId}:`, err);
-  }
-}
-
-function applyFilters() {
-  const f = State.filters;
-  const user = State.currentUser;
-  
-  let allowedLeads = window.IntelAbroadData.leads;
-  
-  if (user.role === 'Counsellor') {
-    f.branch = user.branch;
-    f.counsellor = user.id;
-  } else if (user.role === 'TeamLead') {
-    f.branch = user.branch;
-    const teamMembers = window.IntelAbroadData.staff
-      .filter(s => s.reportsTo === user.id || s.id === user.id)
-      .map(s => s.id);
-    allowedLeads = allowedLeads.filter(l => teamMembers.includes(l.counsellorId));
-    
-    if (f.counsellor !== 'all' && !teamMembers.includes(f.counsellor)) {
-      f.counsellor = 'all';
-    }
-  } else if (user.role === 'BranchManager') {
-    f.branch = user.branch;
-    allowedLeads = allowedLeads.filter(l => l.branch === user.branch);
-  }
-
-  State.filtered = allowedLeads.filter(l => {
-    let targetDate = l.assignedDate;
-    if (f.dateType === 'updated') targetDate = l.lastActivityDate;
-    else if (f.dateType === 'followup') {
-      targetDate = l.followUps && l.followUps.length ? l.followUps[0].dueDate : null;
-    }
-
-    if (!targetDate && (f.from || f.to)) return false;
-
-    if (f.from && targetDate < f.from) return false;
-    if (f.to && targetDate > f.to) return false;
-
-    if (f.branch !== 'all' && l.branch !== f.branch) return false;
-    if (f.counsellor !== 'all' && l.counsellorId !== f.counsellor) return false;
-    if (f.source !== 'all' && l.source !== f.source) return false;
-    if (f.status !== 'all' && l.status !== f.status) return false;
-
-    if (f.search) {
-      const q = f.search.toLowerCase();
-      const matchesName = l.studentName.toLowerCase().includes(q);
-      const matchesCounsellor = l.counsellorName.toLowerCase().includes(q);
-      const matchesId = l.id.toLowerCase().includes(q);
-      if (!matchesName && !matchesCounsellor && !matchesId) return false;
-    }
-
-    return true;
-  });
-}
-
-function renderChips() {
-  const f = State.filters;
-  const user = State.currentUser;
-  const chips = [];
-  
-  if (f.from) chips.push([`From: ${fmt.date(f.from)}`, 'from']);
-  if (f.to) chips.push([`To: ${fmt.date(f.to)}`, 'to']);
-  
-  if (user.role !== 'Counsellor' && f.counsellor !== 'all') {
-    const s = window.IntelAbroadData.staff.find(s => s.id === f.counsellor);
-    chips.push([`Counsellor: ${s ? s.name : f.counsellor}`, 'counsellor']);
-  }
-  if (f.source !== 'all') chips.push([`Source: ${f.source}`, 'source']);
-  if (f.status !== 'all') chips.push([`Status: ${f.status}`, 'status']);
-  if (f.search) chips.push([`Search: "${f.search}"`, 'search']);
-
-  const row = document.getElementById('chipRow');
-  if (!row) return;
-
-  row.innerHTML = chips.map(pair => `
-    <span class="chip">
-      ${escapeHtml(pair[0])}
-      <button data-clear="${pair[1]}">✕</button>
-    </span>
-  `).join('');
-
-  row.querySelectorAll('button[data-clear]').forEach(b => {
-    b.addEventListener('click', () => {
-      const key = b.dataset.clear;
-      if (key === 'from') { f.from = null; document.getElementById('fDateFrom').value = ''; }
-      else if (key === 'to') { f.to = null; document.getElementById('fDateTo').value = ''; }
-      else if (key === 'counsellor') { f.counsellor = 'all'; document.getElementById('fCounsellor').value = 'all'; }
-      else if (key === 'source') { f.source = 'all'; document.getElementById('fSource').value = 'all'; }
-      else if (key === 'status') { f.status = 'all'; document.getElementById('fStatus').value = 'all'; }
-      else if (key === 'search') { f.search = ''; document.getElementById('fSearch').value = ''; }
-      runPipeline();
-    });
-  });
-}
-
-function kpiCardHtml(id, label, target, opts = {}) {
-  const icon = opts.icon || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>';
-  const color = opts.color || 'primary';
-  const sub = opts.sub || '';
-  const tooltip = opts.tooltipKey ? tooltipHtml(opts.tooltipKey) : '';
-  const trend = opts.trend;
-  
-  return `
-    <div class="kpi-card">
-      <div class="kpi-top">
-        <div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>
-        ${opts.badge ? `<span class="card-tag">${opts.badge}</span>` : ''}
-      </div>
-      <div class="kpi-label">${label}${tooltip}</div>
-      <div class="kpi-value">${fmt.int(target)}${opts.isPct ? '%' : ''}</div>
-      <div class="kpi-trend-row">
-        ${trend ? trendHtml(trend) : ''}
-        ${sub ? `<span class="kpi-sub">${sub}</span>` : ''}
-      </div>
-    </div>`;
-}
-
-function cardHtml(title, sub, bodyHtml, wide = false, tooltipKey = null) {
-  const tooltip = tooltipKey ? tooltipHtml(tooltipKey) : '';
-  return `
-    <div class="card" ${wide ? 'style="margin-bottom:12px"' : ''}>
-      <div class="card-head">
-        <div>
-          <div class="card-title">${title}${tooltip}</div>
-          <div class="card-sub">${sub}</div>
-        </div>
-      </div>
-      ${bodyHtml}
-    </div>`;
-}
-
-function summaryCardHtml(label, value, bg, sub, tooltipKey = null) {
-  const tooltip = tooltipKey ? tooltipHtml(tooltipKey) : '';
-  return `
-    <div class="summary-card" style="background:${bg}">
-      <h3>${label}${tooltip}</h3>
-      <div class="sv">${value}</div>
-      <div class="ss">${sub}</div>
-    </div>`;
-}
-
-function initials(name) {
-  return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
-}
-
-function statusBadge(status) {
-  return `<span class="badge ${CFG.statusClass[status] || ''}">${status}</span>`;
-}
-
-function callsBadge(count) {
-  return `<span class="calls-badge">${count}</span>`;
 }
 
 function trendHtml(trend) {
@@ -483,646 +159,62 @@ function trendHtml(trend) {
   return `<span class="trend-indicator" style="color:${color}">${arrow} ${trend.value}%</span>`;
 }
 
-function computeTrendForMetric(leads, metricFn, periodDays = 7) {
+function computeTrendForMetric(leads, metricFn, periodDays) {
+  const p = periodDays || 7;
   const today = CFG.today;
-  const currStart = addDays(today, -periodDays);
-  const prevStart = addDays(today, -periodDays * 2);
-
+  const currStart = addDays(today, -p);
+  const prevStart = addDays(today, -p * 2);
   const currLeads = leads.filter(l => l.assignedDate >= currStart);
   const prevLeads = leads.filter(l => l.assignedDate >= prevStart && l.assignedDate < currStart);
-
   if (!prevLeads.length) return null;
-
   const currVal = metricFn(currLeads);
   const prevVal = metricFn(prevLeads);
-
   const diff = currVal - prevVal;
   const pct = prevVal ? Math.round(Math.abs((diff / prevVal) * 100)) : 0;
-
-  return {
-    direction: diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat',
-    value: pct
-  };
+  return { direction: diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat', value: pct };
 }
 
-function drawFunnel(containerId, stages) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const max = stages.length ? stages[0].count : 1;
-  const html = stages.map((s, i) => {
-    const pct = max ? (s.count / max) * 100 : 0;
-    const color = CFG.palette[i % CFG.palette.length];
-    return `
-      <div class="funnel-row">
-        <div class="funnel-label">${s.stage}</div>
-        <div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct, 6)}%;background:${color}">${s.count}</div></div>
-        <div class="funnel-pct">${i === 0 ? '100%' : fmt.pct(stages[0].count ? (s.count / stages[0].count) * 100 : 0, 0)}</div>
-      </div>`;
-  }).join('');
-  container.innerHTML = `<div class="funnel">${html}</div>`;
+function kpiCardHtml(label, target, opts) {
+  const o = opts || {};
+  const icon = o.icon || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>';
+  const color = o.color || 'primary';
+  const tooltip = o.tooltipKey ? tooltipHtml(o.tooltipKey) : '';
+  const trend = o.trend;
+  const isPct = o.isPct;
+  const sub = o.sub || '';
+  const displayVal = isPct ? fmt.pct(target, 1) : (typeof target === 'string' ? escapeHtml(target) : fmt.int(target));
+  return `<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>${o.badge ? `<span class="card-tag">${o.badge}</span>` : ''}</div><div class="kpi-label">${label}${tooltip}</div><div class="kpi-value">${displayVal}</div><div class="kpi-trend-row">${trend ? trendHtml(trend) : ''}${sub ? `<span class="kpi-sub">${sub}</span>` : ''}</div></div>`;
 }
 
-// ============================================================
-// TAB RENDERING TRIGGERS
-// ============================================================
-
-function renderOverviewDashboard() {
-  const leads = State.filtered;
-  const panel = document.getElementById('panel-overview');
-  if (!panel) return;
-
-  const branchPerf = Calc.branchPerformance(leads, window.IntelAbroadData.branches);
-  const srcPerf = Calc.sourcePerformance(leads, window.IntelAbroadData.sources);
-  const perf = Calc.counsellorPerformance(leads, window.IntelAbroadData.staff.filter(s => s.role !== 'Founder')).sort((a,b) => b.converted - a.converted);
-  const todayContacted = Calc.leadsContactedToday(leads);
-
-  // Trends for executive KPIs
-  function invert(t) { return t ? { direction: t.direction === 'up' ? 'down' : t.direction === 'down' ? 'up' : 'flat', value: t.value } : null; }
-  const totalTrend = computeTrendForMetric(leads, l => Calc.totalAssigned(l));
-  const activeTrend = computeTrendForMetric(leads, l => Calc.activeLeads(l));
-  const convTrend = computeTrendForMetric(leads, l => Calc.conversionRate(l));
-  const pendingTrend = invert(computeTrendForMetric(leads, l => Calc.pendingFollowups(l)));
-  const slaTrend = computeTrendForMetric(leads, l => Calc.slaComplianceRate(l));
-  const respTrend = invert(computeTrendForMetric(leads, l => Calc.avgResponseTime(l)));
-  const agingTrend = invert(computeTrendForMetric(leads, l => Calc.avgLeadAging(l)));
-
-  // Row 1 — Volume & Conversion
-  const row1Kpis =
-    kpiCardHtml('k-ov-total', 'Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned', trend: totalTrend }) +
-    kpiCardHtml('k-ov-active', 'Active Leads', Calc.activeLeads(leads), { color: 'info', icon: iconTarget(), tooltipKey: 'total-assigned', trend: activeTrend }) +
-    kpiCardHtml('k-ov-convrate', 'Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate', trend: convTrend }) +
-    kpiCardHtml('k-ov-contacted', 'Leads Contacted Today', todayContacted, { color: 'teal', icon: iconPhone(), tooltipKey: 'leads-contacted-today' });
-
-  // Row 2 — Responsiveness & Quality
-  const row2Kpis =
-    kpiCardHtml('k-ov-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconAlert(), tooltipKey: 'pending-followups', trend: pendingTrend }) +
-    kpiCardHtml('k-ov-sla', 'SLA Compliance', Calc.slaComplianceRate(leads), { color: 'purple', icon: iconClock(), isPct: true, tooltipKey: 'sla-response-compliance', trend: slaTrend }) +
-    kpiCardHtml('k-ov-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconHourglass(), tooltipKey: 'avg-response', trend: respTrend }) +
-    kpiCardHtml('k-ov-aging', 'Average Lead Aging', Calc.avgLeadAging(leads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging', trend: agingTrend });
-
-  // Lead Re-engagement KPIs
-  const buckets = Calc.reEngagementBuckets(leads);
-  const totalDormant = buckets.reduce((sum, b) => sum + b.count, 0);
-  const totalLeads = leads.length;
-  const reKpis =
-    kpiCardHtml('k-re-30', '30-Day Inactive Leads', buckets[0].count, { color: 'warning', icon: iconClock(), sub: fmt.pct(buckets[0].pct) + ' of active', tooltipKey: 're-engagement' }) +
-    kpiCardHtml('k-re-60', '60-Day Inactive Leads', buckets[1].count, { color: 'danger', icon: iconHourglass(), sub: fmt.pct(buckets[1].pct) + ' of active', tooltipKey: 're-engagement' }) +
-    kpiCardHtml('k-re-90', '90+ Day Inactive Leads', buckets[2].count, { color: 'slate', icon: iconAlert(), sub: fmt.pct(buckets[2].pct) + ' of active', tooltipKey: 're-engagement' }) +
-    kpiCardHtml('k-re-total', 'Total Dormant Leads', totalDormant, { color: 'primary', icon: iconUsers(), sub: fmt.pct(totalLeads ? (totalDormant / totalLeads) * 100 : 0) + ' of total leads', tooltipKey: 're-engagement' });
-
-  // Lead Objection Analytics
-  const obj = Calc.objectionBreakdown(leads);
-  const objRows = obj.rows.map(r => {
-    const pctWidth = obj.total ? Math.max((r.count / obj.total) * 100, 2) : 0;
-    return `
-      <div style="margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
-          <span style="color:var(--text-2)">${escapeHtml(r.reason)}</span>
-          <span style="color:var(--text-muted)">${fmt.int(r.count)} (${fmt.pct(r.pct)})</span>
-        </div>
-        <div style="background:var(--surface-hover);border-radius:4px;height:6px;overflow:hidden">
-          <div style="height:100%;width:${pctWidth}%;background:var(--danger);border-radius:4px;transition:width .3s"></div>
-        </div>
-      </div>`;
-  }).join('');
-
-  // Call Outcome Analytics
-  const callOutcome = Calc.callOutcomeBreakdown(leads);
-
-  panel.innerHTML = `
-    <!-- ====== SECTION 1: EXECUTIVE KPIs ====== -->
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Executive KPIs</h2></div></div>
-    <div class="kpi-grid kpi-grid-4">${row1Kpis}</div>
-    <div class="kpi-grid kpi-grid-4">${row2Kpis}</div>
-
-    <!-- ====== SECTION 2: BUSINESS INSIGHTS ====== -->
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Business Insights</h2></div></div>
-
-    ${cardHtml('Lead Funnel', 'Stage-by-stage distribution through the conversion pipeline', '<div id="funnel-overview" style="padding-top:6px"></div>', false, 'chart-overall-funnel')}
-
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Lead Re-engagement Analytics${tooltipHtml('re-engagement-section')}</h2></div></div>
-    <div class="kpi-grid">${reKpis}</div>
-    ${cardHtml('Dormant Lead Distribution', 'Inactive lead breakdown by period', '<div class="chart-wrap h260"><canvas id="chart-re-dist"></canvas></div>', false, 're-engagement')}
-
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Lead Objection Analytics${tooltipHtml('objection-analytics')}</h2></div></div>
-    <div class="card">
-      <div class="card-head"><div><div class="card-sub">Reasons leads did not convert — most common: <strong>${escapeHtml(obj.mostCommon.reason)}</strong> (${fmt.int(obj.mostCommon.count)})</div></div></div>
-      <div style="margin-top:8px">${objRows}</div>
-    </div>
-
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Call Outcome Analytics${tooltipHtml('call-outcome-analytics')}</h2></div></div>
-    <div class="grid-2">
-      ${cardHtml('Outcome Distribution', 'Breakdown of call outcomes across all interactions', '<div class="chart-wrap h260"><canvas id="chart-call-outcome"></canvas></div>', false, 'call-outcome-analytics')}
-      <div class="card">
-        <div class="card-head"><div><div class="card-title">Outcome Summary</div><div class="card-sub">Count and percentage by outcome type</div></div></div>
-        <div id="call-outcome-table"></div>
-      </div>
-    </div>
-
-    <!-- ====== SECTION 3: PERFORMANCE ====== -->
-    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Performance</h2></div></div>
-    <div class="grid-2">
-      ${cardHtml('Branch Comparison', 'Assigned vs converted leads by branch office', '<div class="chart-wrap h260"><canvas id="chart-branch-overview"></canvas></div>', false, 'chart-branch-comparison')}
-      ${cardHtml('Lead Source Performance', 'Lead volume and conversion by source', '<div class="chart-wrap h260"><canvas id="chart-source-overview"></canvas></div>', false, 'chart-lead-source-performance')}
-    </div>
-    ${cardHtml('Counsellor Leaderboard', 'Top counsellors by conversions and productivity', '<div id="table-leader-overview"></div>', true, 'chart-counsellor-leaderboard')}`;
-
-  // Draw Funnel
-  drawFunnel('funnel-overview', Calc.funnelStages(leads));
-
-  // Dormant Lead Distribution chart
-  drawChart('chart-re-dist', {
-    type: 'bar',
-    data: {
-      labels: buckets.map(b => b.label),
-      datasets: [Charts.barDS('Inactive Leads', buckets.map(b => b.count), CFG.chartColors.warning)]
-    },
-    options: Charts.barOpts()
-  });
-
-  // Call Outcome Distribution chart
-  drawChart('chart-call-outcome', {
-    type: 'doughnut',
-    data: {
-      labels: callOutcome.rows.map(r => r.outcome),
-      datasets: [{
-        data: callOutcome.rows.map(r => r.count),
-        backgroundColor: [CFG.chartColors.success, CFG.chartColors.danger, CFG.chartColors.warning, CFG.chartColors.slate, CFG.chartColors.info, CFG.chartColors.pink],
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
-  });
-
-  renderTable('call-outcome-table', [
-    { key: 'outcome', label: 'Outcome' },
-    { key: 'count', label: 'Count', render: r => fmt.int(r.count) },
-    { key: 'pct', label: 'Percentage', render: r => fmt.pct(r.pct) }
-  ], callOutcome.rows, { defaultSort: 'count' });
-
-  // Branch Performance chart
-  drawChart('chart-branch-overview', {
-    type: 'bar',
-    data: {
-      labels: branchPerf.map(b => b.branch),
-      datasets: [
-        Charts.barDS('Assigned', branchPerf.map(b => b.assigned), CFG.chartColors.primary),
-        Charts.barDS('Converted', branchPerf.map(b => b.converted), CFG.chartColors.success)
-      ]
-    },
-    options: Charts.barOpts()
-  });
-
-  // Lead Source Performance chart
-  drawChart('chart-source-overview', {
-    type: 'bar',
-    data: {
-      labels: srcPerf.map(s => s.source),
-      datasets: [
-        Charts.barDS('Assigned', srcPerf.map(s => s.assigned), CFG.chartColors.primary),
-        Charts.barDS('Converted', srcPerf.map(s => s.converted), CFG.chartColors.success)
-      ]
-    },
-    options: Charts.barOpts()
-  });
-
-  // Counsellor Leaderboard table
-  renderTable('table-leader-overview', [
-    { key: 'rank', label: '#', render: (r, i) => `<span class="rank-cell">${i + 1}</span>` },
-    { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
-    { key: 'branch', label: 'Branch Office' },
-    { key: 'converted', label: 'Converted' },
-    { key: 'conversionRate', label: 'Conversion %', render: r => fmt.pct(r.conversionRate) },
-    { key: 'productivity', label: 'Productivity', render: r => r.productivity }
-  ], perf.slice(0, 8), {
-    defaultSort: 'converted',
-    pageSize: 8,
-    clickableRows: true,
-    onRowClick: (rowId) => {
-      const staffMember = window.IntelAbroadData.staff.find(s => s.id === rowId);
-      if (staffMember) showCounsellorProfile(staffMember.id);
-    }
-  });
+function cardHtml(title, sub, bodyHtml, tooltipKey) {
+  const tooltip = tooltipKey ? tooltipHtml(tooltipKey) : '';
+  return `<div class="card" style="margin-bottom:12px"><div class="card-head"><div><div class="card-title">${title}${tooltip}</div><div class="card-sub">${sub}</div></div></div>${bodyHtml}</div>`;
 }
 
-// ============================================================
-// INDIVIDUAL COUNSELLOR DRILL-DOWN DASHBOARD
-// ============================================================
-
-function showCounsellorProfile(counsellorId) {
-  const staff = window.IntelAbroadData.staff.find(s => s.id === counsellorId);
-  if (!staff) return;
-
-  const cLeads = window.IntelAbroadData.leads.filter(l => l.counsellorId === counsellorId);
-  const overdueList = Calc.overdueFollowups(cLeads);
-
-  const activeCount = Calc.activeLeads(cLeads);
-  const convertedCount = Calc.converted(cLeads);
-  const lostCount = Calc.lost(cLeads);
-
-  const manager = window.IntelAbroadData.staff.find(s => s.id === staff.reportsTo) || { name: 'Dr. Suhail (Founder)' };
-
-  const kpiSectionHtml = 
-    kpiCardHtml('k-ind-assigned', 'Total Leads Assigned', cLeads.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
-    kpiCardHtml('k-ind-contacted', 'Leads Contacted', Calc.contacted(cLeads), { color: 'info', icon: iconPhone(), sub: fmt.pct(Calc.contactRate(cLeads)) + ' contacted', tooltipKey: 'contacted' }) +
-    kpiCardHtml('k-ind-calls', 'Calls Completed', Calc.callsCompleted(cLeads), { color: 'purple', icon: iconPhone(), tooltipKey: 'calls' }) +
-    kpiCardHtml('k-ind-whatsapp', 'WhatsApp Conversations', cLeads.reduce((sum, l) => sum + (l.whatsAppCount || 0), 0), { color: 'pink', icon: iconMessage(), tooltipKey: 'whatsapp' }) +
-    kpiCardHtml('k-ind-fu', 'Follow-ups Completed', Calc.followupsCompleted(cLeads), { color: 'teal', icon: iconCheck(), tooltipKey: 'followups-completed' }) +
-    kpiCardHtml('k-ind-pending', 'Pending Follow-ups', Calc.pendingFollowups(cLeads), { color: 'warning', icon: iconAlert(), sub: `${overdueList.length} overdue`, tooltipKey: 'pending-followups' }) +
-    kpiCardHtml('k-ind-overdue', 'Overdue Follow-ups', overdueList.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' }) +
-    kpiCardHtml('k-ind-latency', 'Average Response Time', Calc.avgResponseTime(cLeads), { color: 'warning', icon: iconClock(), sub: fmt.pct(Calc.slaComplianceRate(cLeads)) + ' SLA', tooltipKey: 'avg-response' }) +
-    kpiCardHtml('k-ind-aging', 'Lead Aging', Calc.avgLeadAging(cLeads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging' }) +
-    kpiCardHtml('k-ind-conv', 'Conversion Rate', Calc.conversionRate(cLeads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' }) +
-    kpiCardHtml('k-ind-prod', 'Productivity Score', Calc.counsellorProductivity(cLeads), { color: 'primary', icon: iconTarget(), sub: 'Simplified score', tooltipKey: 'conversion-rate' });
-
-  document.getElementById('mainDashboard').style.display = 'none';
-  const cDashboard = document.getElementById('counsellorDashboard');
-  cDashboard.classList.add('active');
-
-  cDashboard.innerHTML = `
-    <div class="back-btn-row">
-      <button class="back-btn" id="exitProfileBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12"></line>
-          <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-        Back to Overview
-      </button>
-    </div>
-
-    <div class="counsellor-profile-header">
-      <div class="profile-meta-left">
-        <div class="profile-avatar-large">${initials(staff.name)}</div>
-        <div class="profile-details-text">
-          <h2>${staff.name}</h2>
-          <div class="profile-details-sub">
-            <span>Counsellor</span>
-            <span class="profile-bullet-dot"></span>
-            <span>${staff.branch}</span>
-            <span class="profile-bullet-dot"></span>
-            <span>Reports to: ${manager.name}</span>
-            <span class="profile-bullet-dot"></span>
-            <span>Productivity Score: <strong>${Calc.counsellorProductivity(cLeads)}/100</strong></span>
-          </div>
-        </div>
-      </div>
-      <div class="profile-meta-right">
-        <div class="profile-stat-box">
-          <div class="profile-stat-lbl">Active</div>
-          <div class="profile-stat-val" style="color:var(--primary)">${activeCount}</div>
-        </div>
-        <div class="profile-stat-box">
-          <div class="profile-stat-lbl">Converted</div>
-          <div class="profile-stat-val" style="color:var(--success)">${convertedCount}</div>
-        </div>
-        <div class="profile-stat-box">
-          <div class="profile-stat-lbl">Lost</div>
-          <div class="profile-stat-val" style="color:var(--danger)">${lostCount}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="kpi-grid">${kpiSectionHtml}</div>
-
-    <div class="grid-2">
-      ${cardHtml('Lead Status Distribution', 'Current lead status breakdown', '<div class="chart-wrap h260"><canvas id="chart-ind-status"></canvas></div>', false, 'chart-lead-status-dist')}
-      ${cardHtml('Lead Funnel', 'Stage-by-stage distribution through the conversion pipeline', '<div id="funnel-ind" style="padding-top:6px"></div>', false, 'chart-overall-funnel')}
-    </div>`;
-
-  document.getElementById('exitProfileBtn').addEventListener('click', () => {
-    State.counsellorViewId = null;
-    cDashboard.classList.remove('active');
-    document.getElementById('mainDashboard').style.display = 'flex';
-    runPipeline(false);
-  });
-
-  const dist = Calc.statusDistribution(cLeads);
-  drawChart('chart-ind-status', {
-    type: 'doughnut',
-    data: {
-      labels: dist.map(d => d.status),
-      datasets: [{
-        data: dist.map(d => d.count),
-        backgroundColor: CFG.palette,
-        borderWidth: 1,
-        borderColor: '#0c0c0e'
-      }]
-    },
-    options: Charts.donutOpts()
-  });
-
-  drawFunnel('funnel-ind', Calc.funnelStages(cLeads));
+function emptyStateHtml(message, subtitle) {
+  const sub = subtitle || 'Try adjusting or clearing the filters above.';
+  return `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><div class="et">${escapeHtml(message)}</div><div class="et-sub">${escapeHtml(sub)}</div></div>`;
 }
 
-// ============================================================
-// DYNAMIC VIEW LAYOUT SWITCHING
-// ============================================================
-
-function updateAssigneeDropdownOptions() {
-  const user = State.currentUser;
-  const select = document.getElementById('fCounsellor');
-  if (!select) return;
-
-  select.innerHTML = '<option value="all">Any Assignee</option>';
-
-  let allowedStaff = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
-
-  if (user.role === 'BranchManager') {
-    allowedStaff = allowedStaff.filter(s => s.branch === user.branch);
-  } else if (user.role === 'TeamLead') {
-    allowedStaff = allowedStaff.filter(s => s.reportsTo === user.id || s.id === user.id);
-  } else if (user.role === 'Counsellor') {
-    allowedStaff = allowedStaff.filter(s => s.id === user.id);
-  }
-
-  allowedStaff.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
-    select.appendChild(new Option(s.name, s.id));
-  });
-
-  if (user.role === 'Counsellor') {
-    select.disabled = true;
-    select.value = user.id;
-  } else {
-    select.disabled = false;
-    select.value = State.filters.counsellor;
-  }
+function comingSoonHtml(title, desc, requiredFields, importance) {
+  const fields = Array.isArray(requiredFields) ? requiredFields : [requiredFields];
+  return `<div class="coming-soon-card">
+    <div class="coming-soon-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+    <div class="coming-soon-title">${escapeHtml(title)}</div>
+    <div class="coming-soon-desc">${escapeHtml(desc)}</div>
+    <div class="coming-soon-field-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Requires: ${fields.map(escapeHtml).join(', ')}</div>
+    <div class="coming-soon-importance">${escapeHtml(importance)}</div>
+    <div class="coming-soon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Available in Future CRM Update</div>
+  </div>`;
 }
 
-function updateBranchDropdownOptions() {
-  const user = State.currentUser;
-  const pill = document.getElementById('branchPill');
-  const menu = document.getElementById('branchMenu');
-  if (!pill) return;
-
-  if (user.role === 'Founder') {
-    pill.style.pointerEvents = 'auto';
-    pill.querySelector('svg').style.display = 'block';
-    pill.querySelector('.branch-name-text').textContent = State.filters.branch === 'all' ? 'All Branches' : State.filters.branch;
-  } else {
-    pill.style.pointerEvents = 'none';
-    pill.querySelector('svg').style.display = 'none';
-    pill.querySelector('.branch-name-text').textContent = user.branch;
-    State.filters.branch = user.branch;
-  }
+function initials(name) {
+  return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-function renderCounsellorSelectorPill() {
-  const user = State.currentUser;
-  const pill = document.getElementById('counsellorPill');
-  const menu = document.getElementById('counsellorMenu');
-  if (!pill || !menu) return;
-
-  if (user.role === 'Counsellor') {
-    pill.style.display = 'none';
-    return;
-  }
-
-  pill.style.display = 'inline-flex';
-
-  let list = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
-  if (user.role === 'BranchManager') {
-    list = list.filter(s => s.branch === user.branch);
-  } else if (user.role === 'TeamLead') {
-    list = list.filter(s => s.reportsTo === user.id || s.id === user.id);
-  }
-
-  menu.innerHTML = list.map(s => `
-    <button class="dropdown-item" data-id="${s.id}">${escapeHtml(s.name)}</button>
-  `).join('');
-
-  menu.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-      showCounsellorProfile(item.dataset.id);
-    });
-  });
-}
-
-function runPipeline(showTransition = true) {
-  applyFilters();
-  renderChips();
-  
-  if (State.counsellorViewId) {
-    showCounsellorProfile(State.counsellorViewId);
-    updateLastUpdatedText();
-  } else {
-    if (showTransition) {
-      triggerLoadingTransition(() => {
-        renderOverviewDashboard();
-        updateLastUpdatedText();
-      });
-    } else {
-      renderOverviewDashboard();
-      updateLastUpdatedText();
-    }
-  }
-}
-
-function updateLastUpdatedText() {
-  const node = document.getElementById('lastUpdated');
-  if (node) {
-    node.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  }
-}
-
-function triggerLoadingTransition(callback) {
-  const panelId = 'panel-overview';
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
-  
-  const skeletonHtml = `
-    <div class="kpi-grid">
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-    </div>
-    <div class="grid-2">
-      <div class="skeleton skeleton-chart"></div>
-      <div class="skeleton skeleton-chart"></div>
-    </div>
-    <div class="skeleton skeleton-table"></div>`;
-    
-  panel.innerHTML = skeletonHtml;
-  
-  setTimeout(() => {
-    callback();
-  }, 220);
-}
-
-function populateFilterOptions() {
-  const sSel = document.getElementById('fSource');
-  const stSel = document.getElementById('fStatus');
-
-  if (sSel) {
-    window.IntelAbroadData.sources.forEach(s => sSel.appendChild(new Option(s, s)));
-  }
-
-  if (stSel) {
-    CFG.statuses.forEach(s => stSel.appendChild(new Option(s, s)));
-  }
-}
-
-function readFiltersFromForm() {
-  const f = State.filters;
-  f.from = document.getElementById('fDateFrom')?.value ? new Date(document.getElementById('fDateFrom').value) : null;
-  f.to = document.getElementById('fDateTo')?.value ? new Date(document.getElementById('fDateTo').value + 'T23:59:59') : null;
-  f.counsellor = document.getElementById('fCounsellor')?.value || 'all';
-  f.source = document.getElementById('fSource')?.value || 'all';
-  f.status = document.getElementById('fStatus')?.value || 'all';
-  f.search = document.getElementById('fSearch')?.value.trim() || '';
-}
-
-function wireEvents() {
-  const branchPill = document.getElementById('branchPill');
-  const branchMenu = document.getElementById('branchMenu');
-  if (branchPill && branchMenu) {
-    branchPill.addEventListener('click', e => {
-      e.stopPropagation();
-      branchMenu.classList.toggle('show');
-    });
-    branchMenu.querySelectorAll('.dropdown-item').forEach(item => {
-      item.addEventListener('click', () => {
-        State.filters.branch = item.dataset.val;
-        branchPill.querySelector('.branch-name-text').textContent = item.dataset.val === 'all' ? 'All Branches' : item.dataset.val;
-        runPipeline();
-      });
-    });
-  }
-
-  const counsellorPill = document.getElementById('counsellorPill');
-  const counsellorMenu = document.getElementById('counsellorMenu');
-  if (counsellorPill && counsellorMenu) {
-    counsellorPill.addEventListener('click', e => {
-      e.stopPropagation();
-      counsellorMenu.classList.toggle('show');
-    });
-  }
-
-  document.addEventListener('click', () => {
-    branchMenu?.classList.remove('show');
-    counsellorMenu?.classList.remove('show');
-  });
-
-  const roleSwitcher = document.getElementById('demoRoleSwitcher');
-  if (roleSwitcher) {
-    roleSwitcher.addEventListener('change', () => {
-      const val = roleSwitcher.value;
-      
-      State.counsellorViewId = null;
-      document.getElementById('counsellorDashboard').classList.remove('active');
-      document.getElementById('mainDashboard').style.display = 'flex';
-
-      if (val === 'Founder') {
-        State.currentUser = { role: 'Founder', name: 'Dr. Suhail', id: 'S001', branch: 'all' };
-      } else if (val === 'BranchManager') {
-        State.currentUser = { role: 'BranchManager', name: 'Vanshta Verma', id: 'S002', branch: 'Delhi Office' };
-      } else if (val === 'TeamLead') {
-        State.currentUser = { role: 'TeamLead', name: 'Hemant Vaidya', id: 'S006', branch: 'Delhi Office' };
-      } else if (val === 'Counsellor') {
-        State.currentUser = { role: 'Counsellor', name: 'Aditya Gangwani', id: 'S016', branch: 'Raipur Office' };
-      }
-
-      document.getElementById('sidebarProfileName').textContent = State.currentUser.name;
-      document.getElementById('sidebarProfileEmail').textContent = 
-        State.currentUser.role === 'Founder' ? 'founder@intelabroad.com' :
-        State.currentUser.role === 'BranchManager' ? 'delhi.manager@intelabroad.com' :
-        State.currentUser.role === 'TeamLead' ? 'delhi.lead@intelabroad.com' : 'aditya@intelabroad.com';
-
-      State.filters.branch = State.currentUser.branch;
-      State.filters.counsellor = 'all';
-
-      updateBranchDropdownOptions();
-      updateAssigneeDropdownOptions();
-      renderCounsellorSelectorPill();
-      
-      runPipeline(true);
-    });
-  }
-
-  document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
-    readFiltersFromForm();
-    runPipeline();
-  });
-
-  document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
-    if (document.getElementById('fDateFrom')) document.getElementById('fDateFrom').value = '';
-    if (document.getElementById('fDateTo')) document.getElementById('fDateTo').value = '';
-    if (document.getElementById('fCounsellor')) document.getElementById('fCounsellor').value = 'all';
-    if (document.getElementById('fSource')) document.getElementById('fSource').value = 'all';
-    if (document.getElementById('fStatus')) document.getElementById('fStatus').value = 'all';
-    if (document.getElementById('fSearch')) document.getElementById('fSearch').value = '';
-    
-    State.filters.from = null;
-    State.filters.to = null;
-    State.filters.counsellor = 'all';
-    State.filters.source = 'all';
-    State.filters.status = 'all';
-    State.filters.search = '';
-    
-    runPipeline();
-  });
-
-  document.getElementById('fSearch')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      readFiltersFromForm();
-      runPipeline();
-    }
-  });
-
-  document.querySelectorAll('.segment-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      State.filters.dateType = btn.dataset.type;
-      runPipeline();
-    });
-  });
-
-  document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-    const rows = State.filtered.map(l => ({
-      LeadID: l.id,
-      StudentName: l.studentName,
-      Branch: l.branch,
-      Counsellor: l.counsellorName,
-      Source: l.source,
-      Status: l.status,
-      AssignedDate: l.assignedDate.toISOString().slice(0, 10),
-      LastActivity: l.lastActivityDate.toISOString().slice(0, 10),
-      Converted: l.converted ? 'Yes' : 'No'
-    }));
-    exportCSV(rows, 'intelabroad_staff_panel_analytics_operational.csv');
-  });
-
-  document.getElementById('printBtn')?.addEventListener('click', () => {
-    window.print();
-  });
-
-  const sidebar = document.getElementById('sidebar');
-  const collapseBtn = document.getElementById('sidebarCollapseBtn');
-  if (collapseBtn && sidebar) {
-    collapseBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      sidebar.classList.toggle('open');
-    });
-    document.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-    });
-  }
-
-  document.addEventListener('click', e => {
-    const btn = e.target.closest('.info-btn');
-    if (btn) {
-      e.stopPropagation();
-      const isActive = btn.classList.contains('active');
-      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
-      if (!isActive) {
-        btn.classList.add('active');
-      }
-    } else {
-      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
-    }
-  });
+function statusBadge(status) {
+  const cls = CFG.statusClass[status] || 'st-default';
+  return `<span class="badge ${cls}">${status}</span>`;
 }
 
 function iconUsers() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>'; }
@@ -1132,19 +224,1031 @@ function iconTarget() { return '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 function iconClock() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'; }
 function iconAlert() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>'; }
 function iconHourglass() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2h14M5 22h14M18 2v4.5a5 5 0 01-2 4L12 13l-4-2.5a5 5 0 01-2-4V2M6 22v-4.5a5 5 0 012-4l4-2.5 4 2.5a5 5 0 012 4V22"/></svg>'; }
-function iconLayers() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg>'; }
-function iconMessage() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'; }
+function iconBarChart() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>'; }
+function iconMap() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'; }
+function iconClockHistory() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'; }
+function iconLayers() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'; }
+function iconRefreshCw() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'; }
+function iconShield() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'; }
 
-function initUI() {
+function drawChart(canvasId, config) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (typeof Chart === 'undefined') {
+    const parent = canvas.parentElement;
+    if (parent && !parent.querySelector('.empty-state')) {
+      parent.innerHTML = emptyStateHtml('Chart library not loaded.');
+    }
+    return;
+  }
+  const hasData = config && config.data && Array.isArray(config.data.datasets) &&
+    config.data.datasets.some(ds => Array.isArray(ds.data) && ds.data.some(v => v > 0));
+  if (!hasData) {
+    const parent = canvas.parentElement;
+    if (parent) {
+      parent.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    }
+    return;
+  }
+  try {
+    if (State.charts[canvasId]) { State.charts[canvasId].destroy(); delete State.charts[canvasId]; }
+    config.data.datasets.forEach(ds => {
+      if (Array.isArray(ds.data)) ds.data = ds.data.map(v => (v === null || v === undefined || isNaN(v) || !isFinite(v)) ? 0 : v);
+    });
+    State.charts[canvasId] = new Chart(canvas.getContext('2d'), config);
+  } catch (err) {
+    console.error('Chart error:', err);
+  }
+}
+
+function drawFunnel(containerId, stages) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const max = stages.length ? stages[0].count : 1;
+  const hasData = stages.some(s => s.count > 0);
+  if (!hasData) {
+    container.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+  container.innerHTML = `<div class="funnel">${stages.map((s, i) => {
+    const pct = max ? (s.count / max) * 100 : 0;
+    return `<div class="funnel-row"><div class="funnel-label">${s.stage}</div><div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct, 6)}%;background:${CFG.palette[i % CFG.palette.length]}">${s.count}</div></div><div class="funnel-pct">${i === 0 ? '100%' : fmt.pct(stages[0].count ? (s.count / stages[0].count) * 100 : 0, 0)}</div></div>`;
+  }).join('')}</div>`;
+}
+
+// ============================================================
+// EXECUTIVE KPIs
+// ============================================================
+
+function renderExecutiveKpis(leads) {
+  const container = document.getElementById('executiveKpis');
+  if (!container) return;
+  if (!leads.length) {
+    container.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  container.innerHTML =
+    kpiCardHtml('Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-leads' }) +
+    kpiCardHtml('New Leads', Calc.newLeadsPeriod(leads, 7), { color: 'info', icon: iconBarChart(), tooltipKey: 'new-leads' }) +
+    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget(), tooltipKey: 'active-leads' }) +
+    kpiCardHtml('Lost Leads', Calc.lost(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'lost-leads' }) +
+    kpiCardHtml('Applications Filed', Calc.applicationsFiled(leads), { color: 'purple', icon: iconCheck(), tooltipKey: 'applications-filed' }) +
+    kpiCardHtml('Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'pending-followups' }) +
+    kpiCardHtml('Avg Call Attempts', Calc.averageCallAttempts(leads), { color: 'slate', icon: iconPhone(), tooltipKey: 'avg-call-attempts', sub: fmt.dec(Calc.averageCallAttempts(leads), 1) + ' per lead' }) +
+    kpiCardHtml('Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), tooltipKey: 'conversion-rate', isPct: true });
+}
+
+// ============================================================
+// 1. LEAD ANALYTICS
+// ============================================================
+
+function renderLeadAnalytics(leads) {
+  const panel = document.getElementById('panel-lead');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const statusDist = Calc.statusDistribution(leads);
+  const funnel = Calc.funnelStages(leads);
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Analytics${sectionTooltipHtml('lead')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-leads' })}
+      ${kpiCardHtml('New Leads', Calc.newLeadsPeriod(leads, 7), { color: 'info', icon: iconBarChart(), tooltipKey: 'new-leads' })}
+      ${kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget(), tooltipKey: 'active-leads' })}
+      ${kpiCardHtml('Applications Filed', Calc.applicationsFiled(leads), { color: 'purple', icon: iconCheck(), tooltipKey: 'applications-filed' })}
+      ${kpiCardHtml('Lost Leads', Calc.lost(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'lost-leads' })}
+      ${kpiCardHtml('Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), tooltipKey: 'conversion-rate', isPct: true })}
+    </div>
+    <div class="grid-2b">
+      ${cardHtml('Lead Status Distribution', 'Current breakdown by pipeline status', '<div class="chart-wrap h260"><canvas id="chart-lead-status"></canvas></div>', 'chart-status-dist')}
+      ${cardHtml('Lead Conversion Funnel', 'Stage-by-stage distribution', '<div id="funnel-lead" style="padding-top:6px"></div>', 'chart-funnel')}
+    </div>`;
+
+  drawChart('chart-lead-status', {
+    type: 'doughnut',
+    data: {
+      labels: statusDist.map(d => d.status),
+      datasets: [{ data: statusDist.map(d => d.count), backgroundColor: CFG.palette, borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+
+  drawFunnel('funnel-lead', funnel);
+}
+
+// ============================================================
+// 2. COUNSELLOR ANALYTICS
+// ============================================================
+
+function renderCounsellorAnalytics(leads) {
+  const panel = document.getElementById('panel-counsellor');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const councillors = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
+  const perf = Calc.counsellorPerformance(leads, councillors).sort((a, b) => b.assigned - a.assigned);
+
+  const totalCounsellors = councillors.length;
+  const assignedLeads = Calc.totalAssigned(leads);
+  const unassignedLeads = leads.filter(l => !l.counsellorId || l.counsellorName === 'Unassigned').length;
+  const avgLeadsPerCounsellor = totalCounsellors ? assignedLeads / totalCounsellors : 0;
+
+  const showComparison = perf.length > 1;
+
+  const stackStatuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified', 'Lost'];
+  const stackColors = {
+    'New': CFG.chartColors.primary,
+    'Contacted': CFG.chartColors.purple,
+    'Follow-up': CFG.chartColors.warning,
+    'Interested': CFG.chartColors.info,
+    'Qualified': CFG.chartColors.teal,
+    'Lost': CFG.chartColors.danger
+  };
+
+  const statusData = perf.map(p => {
+    const cl = leads.filter(l => l.counsellorId === p.id);
+    const counts = {};
+    stackStatuses.forEach(s => { counts[s] = 0; });
+    cl.forEach(l => { if (stackStatuses.includes(l.status)) counts[l.status]++; });
+    return { name: p.name, assigned: p.assigned, avgCallAttempts: p.avgCallAttempts, statusCounts: counts };
+  });
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Counsellor Analytics${sectionTooltipHtml('counsellor')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Total Counsellors', totalCounsellors, { color: 'primary', icon: iconUsers() })}
+      ${kpiCardHtml('Assigned Leads', assignedLeads, { color: 'teal', icon: iconTarget() })}
+      ${kpiCardHtml('Unassigned Leads', unassignedLeads, { color: 'warning', icon: iconAlert() })}
+      ${kpiCardHtml('Average Leads per Counsellor', avgLeadsPerCounsellor, { color: 'purple', icon: iconBarChart(), sub: fmt.dec(avgLeadsPerCounsellor, 1) + ' per counsellor' })}
+    </div>
+    ${showComparison ? `
+    <div class="grid-3">
+      ${cardHtml('Leads per Counsellor', 'Total assigned leads by counsellor', '<div class="chart-wrap h260"><canvas id="chart-leads-per-counsellor"></canvas></div>')}
+      ${cardHtml('Lead Status Distribution by Counsellor', 'Status breakdown per counsellor', '<div class="chart-wrap h260"><canvas id="chart-counsellor-status-dist"></canvas></div>')}
+      ${cardHtml('Average Call Attempts by Counsellor', 'Call effort per counsellor', '<div class="chart-wrap h260"><canvas id="chart-counsellor-calls"></canvas></div>', 'chart-call-attempts-counsellor')}
+    </div>` : `
+    <div class="empty-state" style="margin-bottom:12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <div class="et">Insufficient counsellors for comparison</div>
+      <div class="et-sub">Counsellor comparison charts require more than one counsellor with assigned leads.</div>
+    </div>`}`;
+
+  if (showComparison) {
+    drawChart('chart-leads-per-counsellor', {
+      type: 'bar',
+      data: {
+        labels: perf.map(p => p.name),
+        datasets: [Charts.barDS('Assigned Leads', perf.map(p => p.assigned), CFG.chartColors.primary)]
+      },
+      options: Charts.barOpts()
+    });
+
+    drawChart('chart-counsellor-status-dist', {
+      type: 'bar',
+      data: {
+        labels: statusData.map(d => d.name),
+        datasets: stackStatuses.map(s => ({
+          label: s,
+          data: statusData.map(d => d.statusCounts[s]),
+          backgroundColor: stackColors[s],
+          borderRadius: 0,
+          maxBarThickness: 24
+        }))
+      },
+      options: Charts.stackOpts()
+    });
+  }
+
+  drawChart('chart-counsellor-calls', {
+    type: 'bar',
+    data: {
+      labels: perf.map(p => p.name),
+      datasets: [Charts.barDS('Avg Call Attempts', perf.map(p => p.avgCallAttempts), CFG.chartColors.warning)]
+    },
+    options: Charts.barOpts()
+  });
+}
+
+// ============================================================
+// 3. FOLLOW-UP ANALYTICS
+// ============================================================
+
+function renderFollowupAnalytics(leads) {
+  const panel = document.getElementById('panel-followup');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const dueToday = Calc.followupsDueToday(leads);
+  const dueTomorrow = Calc.followupsDueTomorrow(leads);
+  const overdue = Calc.overdueFollowups(leads);
+  const avgCalls = Calc.averageCallAttempts(leads);
+  const timeline = Calc.followupTimeline(leads);
+
+  const callDist = Calc.callAttemptsDistribution(leads);
+
+  const upcomingByCounsellor = Calc.groupBy(leads.filter(l => l.nextFollowUp && l.nextFollowUp >= CFG.today && !l.converted && !l.lost), l => l.counsellorName);
+  const upcomingDist = [];
+  upcomingByCounsellor.forEach((group, name) => { upcomingDist.push({ counsellor: name, count: group.length }); });
+  upcomingDist.sort((a, b) => b.count - a.count);
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Follow-up Analytics${sectionTooltipHtml('followup')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Follow-ups Due Today', dueToday, { color: 'warning', icon: iconClock(), tooltipKey: 'followups-due-today' })}
+      ${kpiCardHtml('Follow-ups Due Tomorrow', dueTomorrow, { color: 'info', icon: iconClock(), tooltipKey: 'followups-due-tomorrow' })}
+      ${kpiCardHtml('Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' })}
+      ${kpiCardHtml('Average Call Attempts', avgCalls, { color: 'slate', icon: iconPhone(), tooltipKey: 'avg-call-attempts' })}
+    </div>
+    <div class="grid-3">
+      ${cardHtml('Upcoming Follow-up Timeline', 'Next 7 days schedule', '<div class="chart-wrap h260"><canvas id="chart-followup-timeline"></canvas></div>', 'chart-followup-timeline')}
+      ${cardHtml('Upcoming Follow-up Distribution', 'By counsellor', '<div class="chart-wrap h260"><canvas id="chart-upcoming-dist"></canvas></div>')}
+      ${cardHtml('Call Attempts Distribution', 'Breakdown across leads', '<div class="chart-wrap h260"><canvas id="chart-call-dist"></canvas></div>', 'chart-call-attempts-dist')}
+    </div>`;
+
+  drawChart('chart-followup-timeline', {
+    type: 'bar',
+    data: {
+      labels: timeline.labels,
+      datasets: [Charts.barDS('Follow-ups', timeline.counts, CFG.chartColors.warning)]
+    },
+    options: Charts.barOpts()
+  });
+
+  drawChart('chart-upcoming-dist', {
+    type: 'bar',
+    data: {
+      labels: upcomingDist.map(d => d.counsellor),
+      datasets: [Charts.barDS('Upcoming', upcomingDist.map(d => d.count), CFG.chartColors.info)]
+    },
+    options: Charts.barOpts()
+  });
+
+  drawChart('chart-call-dist', {
+    type: 'doughnut',
+    data: {
+      labels: callDist.map(d => d.label + ' calls'),
+      datasets: [{ data: callDist.map(d => d.count), backgroundColor: [CFG.chartColors.slate, CFG.chartColors.info, CFG.chartColors.warning, CFG.chartColors.danger, CFG.chartColors.purple], borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+}
+
+// ============================================================
+// 4. LEAD SOURCE ANALYTICS
+// ============================================================
+
+function renderSourceAnalytics(leads) {
+  const panel = document.getElementById('panel-source');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const sources = window.IntelAbroadData.sources;
+  const srcPerf = Calc.sourcePerformance(leads, sources);
+  const centres = window.IntelAbroadData.sourceCentres;
+  const centrePerf = Calc.sourceCentrePerformance(leads, centres);
+
+  const totalBySource = srcPerf.reduce((s, r) => s + r.assigned, 0);
+  const topSource = srcPerf.reduce((best, s) => s.assigned > best.assigned ? s : best, srcPerf[0] || { source: '—', assigned: 0 });
+  const sortedSources = [...srcPerf].sort((a, b) => b.assigned - a.assigned);
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Source Analytics${sectionTooltipHtml('source')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Total Leads by Source', totalBySource, { color: 'primary', icon: iconUsers(), tooltipKey: 'total-by-source' })}
+      ${kpiCardHtml('Applications by Source', srcPerf.reduce((s, r) => s + r.applications, 0), { color: 'purple', icon: iconCheck(), tooltipKey: 'apps-by-source' })}
+      ${kpiCardHtml('Conversion Rate by Source', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), tooltipKey: 'conv-rate-by-source', isPct: true })}
+      ${kpiCardHtml('Top Lead Source', topSource.source, { color: 'warning', icon: iconTarget(), sub: fmt.int(topSource.assigned) + ' leads' })}
+    </div>
+    <div class="grid-3">
+      ${cardHtml('Lead Source Distribution', 'Volume by acquisition source', '<div class="chart-wrap h260"><canvas id="chart-source-dist"></canvas></div>', 'chart-source-dist')}
+      ${cardHtml('Top Lead Sources', 'Ranked by lead volume', '<div class="chart-wrap h260"><canvas id="chart-top-sources"></canvas></div>')}
+      ${cardHtml('Source Centre Comparison', 'Lead & application performance', '<div class="chart-wrap h260"><canvas id="chart-centre-compare"></canvas></div>', 'chart-source-centre-comp')}
+    </div>`;
+
+  drawChart('chart-source-dist', {
+    type: 'doughnut',
+    data: {
+      labels: srcPerf.map(s => s.source),
+      datasets: [{ data: srcPerf.map(s => s.assigned), backgroundColor: CFG.palette, borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+
+  drawChart('chart-top-sources', {
+    type: 'bar',
+    data: {
+      labels: sortedSources.map(s => s.source),
+      datasets: [Charts.barDS('Leads', sortedSources.map(s => s.assigned), CFG.chartColors.primary)]
+    },
+    options: Charts.barOpts()
+  });
+
+  drawChart('chart-centre-compare', {
+    type: 'bar',
+    data: {
+      labels: centrePerf.map(c => c.centre),
+      datasets: [
+        Charts.barDS('Leads', centrePerf.map(c => c.assigned), CFG.chartColors.primary),
+        Charts.barDS('Applications', centrePerf.map(c => c.applications), CFG.chartColors.success)
+      ]
+    },
+    options: Charts.barOpts()
+  });
+}
+
+// ============================================================
+// 5. GEOGRAPHY ANALYTICS
+// ============================================================
+
+function renderGeographyAnalytics(leads) {
+  const panel = document.getElementById('panel-geography');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const statesDist = Calc.stateDistribution(leads);
+  const citiesDist = Calc.cityDistribution(leads);
+  const examCitiesDist = Calc.examCityDistribution(leads);
+  const catDist = Calc.categoryDistribution(leads);
+  const topStates = Calc.topValues(statesDist, 5);
+  const topCities = Calc.topValues(citiesDist, 5);
+  const topExamCities = Calc.topValues(examCitiesDist, 5);
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Geography Analytics${sectionTooltipHtml('geography')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Top State', topStates.length ? topStates[0].dimension : '—', { color: 'primary', icon: iconMap(), tooltipKey: 'top-states', sub: topStates.length ? fmt.int(topStates[0].count) + ' Leads' : '' })}
+      ${kpiCardHtml('Top City', topCities.length ? topCities[0].dimension : '—', { color: 'info', icon: iconMap(), tooltipKey: 'top-cities', sub: topCities.length ? fmt.int(topCities[0].count) + ' Leads' : '' })}
+      ${kpiCardHtml('Top Exam City', topExamCities.length ? topExamCities[0].dimension : '—', { color: 'teal', icon: iconMap(), tooltipKey: 'top-exam-cities', sub: topExamCities.length ? fmt.int(topExamCities[0].count) + ' Leads' : '' })}
+      ${kpiCardHtml('Category Distribution', catDist.reduce((s, r) => s + r.count, 0) + ' leads', { color: 'purple', icon: iconUsers(), tooltipKey: 'category-distribution' })}
+    </div>
+    <div class="grid-3">
+      ${cardHtml('State-wise Lead Distribution', 'Top states by lead volume', '<div class="chart-wrap h260"><canvas id="chart-state-dist"></canvas></div>', 'chart-state-dist')}
+      ${cardHtml('City-wise Lead Distribution', 'Top cities by lead volume', '<div class="chart-wrap h260"><canvas id="chart-city-dist"></canvas></div>', 'chart-city-dist')}
+      ${cardHtml('Category Distribution', 'Breakdown by category', '<div class="chart-wrap h260"><canvas id="chart-category-dist"></canvas></div>', 'chart-category-dist')}
+    </div>`;
+
+  drawChart('chart-state-dist', {
+    type: 'bar',
+    data: {
+      labels: topStates.map(r => r.dimension),
+      datasets: [
+        Charts.barDS('Leads', topStates.map(r => r.count), CFG.chartColors.primary),
+        Charts.barDS('Applications', topStates.map(r => r.applications), CFG.chartColors.success)
+      ]
+    },
+    options: Charts.barOpts()
+  });
+
+  drawChart('chart-city-dist', {
+    type: 'bar',
+    data: {
+      labels: topCities.map(r => r.dimension),
+      datasets: [Charts.barDS('Leads', topCities.map(r => r.count), CFG.chartColors.info)]
+    },
+    options: Charts.barOpts()
+  });
+
+  drawChart('chart-category-dist', {
+    type: 'doughnut',
+    data: {
+      labels: catDist.map(r => r.dimension),
+      datasets: [{ data: catDist.map(r => r.count), backgroundColor: CFG.palette, borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+}
+
+// ============================================================
+// 6. APPLICATION ANALYTICS
+// ============================================================
+
+function renderApplicationAnalytics(leads) {
+  const panel = document.getElementById('panel-application');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+
+  const filed = Calc.applicationsFiled(leads);
+  if (filed === 0) {
+    panel.innerHTML = `
+      <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Application Analytics${sectionTooltipHtml('application')}</h2></div>
+      ${emptyStateHtml('No application data available.', 'Application Analytics will appear here once leads start filing applications.')}`;
+    return;
+  }
+
+  const pending = Calc.applicationsPending(leads);
+  const appConvRate = Calc.applicationConversionRate(leads);
+  const monthlyAppTrend = Calc.monthlyApplicationTrend(leads);
+
+  panel.innerHTML = `
+    <div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Application Analytics${sectionTooltipHtml('application')}</h2></div>
+    <div class="kpi-grid kpi-grid-4">
+      ${kpiCardHtml('Applications Filed', filed, { color: 'success', icon: iconCheck(), tooltipKey: 'applications-filed' })}
+      ${kpiCardHtml('Applications Pending', pending, { color: 'warning', icon: iconClock(), tooltipKey: 'applications-pending' })}
+      ${kpiCardHtml('Application Conversion Rate', appConvRate, { color: 'purple', icon: iconTarget(), tooltipKey: 'application-conversion-rate', isPct: true })}
+    </div>
+    <div class="grid-2">
+      ${cardHtml('Filed vs Pending Applications', 'Comparison overview', '<div class="chart-wrap h260"><canvas id="chart-filed-vs-pending"></canvas></div>', 'chart-filed-vs-pending')}
+      ${cardHtml('Monthly Application Trend', 'Application submissions over time', '<div class="chart-wrap h260"><canvas id="chart-monthly-app-trend"></canvas></div>', 'chart-monthly-app-trend')}
+    </div>`;
+
+  drawChart('chart-filed-vs-pending', {
+    type: 'doughnut',
+    data: {
+      labels: ['Filed', 'Pending'],
+      datasets: [{ data: [filed, pending], backgroundColor: [CFG.chartColors.success, CFG.chartColors.warning], borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+
+  drawChart('chart-monthly-app-trend', {
+    type: 'bar',
+    data: {
+      labels: monthlyAppTrend.labels,
+      datasets: [
+        Charts.barDS('Filed', monthlyAppTrend.filed, CFG.chartColors.success),
+        Charts.barDS('Pending', monthlyAppTrend.pending, CFG.chartColors.warning)
+      ]
+    },
+    options: Charts.stackOpts()
+  });
+}
+
+// ============================================================
+// 7. CALL OUTCOME ANALYTICS (FUTURE)
+// ============================================================
+
+function renderCallOutcomeAnalytics(leads) {
+  const panel = document.getElementById('panel-call-outcome');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+  if (!Calc.hasColumn('Call Outcome')) {
+    panel.innerHTML =
+      '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Call Outcome Analytics' + sectionTooltipHtml('call-outcome') + '</h2></div>' +
+      comingSoonHtml(
+        'Call Outcome Analytics',
+        'Analyse the results of every outbound call — understand how many leads are interested, not reachable, or need a follow-up. This module will automatically populate with call disposition data once the Call Outcome column is added to your lead records.',
+        'Call Outcome',
+        'Tracking call outcomes helps you measure counsellor outreach effectiveness, identify contactability issues, and optimise calling scripts based on real response patterns.'
+      );
+    return;
+  }
+
+  panel.innerHTML = '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Call Outcome Analytics' + sectionTooltipHtml('call-outcome') + '</h2></div>' +
+    '<div class="coming-soon-card"><div class="coming-soon-icon">' + iconBarChart() + '</div><div class="coming-soon-title">Call Outcome Data Loaded</div><div class="coming-soon-desc">The Call Outcome column is detected. Full analytics will render once the data is processed.</div></div>';
+}
+
+// ============================================================
+// 8. LEAD OBJECTION ANALYTICS (FUTURE)
+// ============================================================
+
+function renderObjectionAnalytics(leads) {
+  const panel = document.getElementById('panel-objection');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+  if (!Calc.hasColumn('Objection Reason')) {
+    panel.innerHTML =
+      '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Objection Analytics' + sectionTooltipHtml('objection') + '</h2></div>' +
+      comingSoonHtml(
+        'Lead Objection Analytics',
+        'Identify the most common reasons leads don\'t convert — from budget constraints to country preference changes. This module activates automatically once your CRM captures objection reasons during follow-up calls.',
+        'Objection Reason',
+        'Understanding objection patterns helps you refine your sales pitch, create targeted rebuttals, and identify systemic barriers in your lead qualification process.'
+      );
+    return;
+  }
+
+  panel.innerHTML = '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Objection Analytics' + sectionTooltipHtml('objection') + '</h2></div>' +
+    '<div class="coming-soon-card"><div class="coming-soon-icon">' + iconLayers() + '</div><div class="coming-soon-title">Objection Data Loaded</div><div class="coming-soon-desc">The Objection Reason column is detected. Full analytics will render once the data is processed.</div></div>';
+}
+
+// ============================================================
+// 9. LEAD RE-ENGAGEMENT ANALYTICS (FUTURE)
+// ============================================================
+
+function renderReengagementAnalytics(leads) {
+  const panel = document.getElementById('panel-reengagement');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+  if (!Calc.hasColumn('Last Activity DateTime')) {
+    panel.innerHTML =
+      '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Re-engagement Analytics' + sectionTooltipHtml('reengagement') + '</h2></div>' +
+      comingSoonHtml(
+        'Lead Re-engagement Analytics',
+        'Segment leads by inactivity duration and identify those ready for re-contact. This module will become available when the Last Activity DateTime field is enabled — letting you recover leads that have gone cold.',
+        'Last Activity DateTime',
+        'Re-engaging dormant leads is one of the highest-ROI activities in CRM. This module helps you systematically identify and recover lost opportunities before they churn completely.'
+      );
+    return;
+  }
+
+  panel.innerHTML = '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">Lead Re-engagement Analytics' + sectionTooltipHtml('reengagement') + '</h2></div>' +
+    '<div class="coming-soon-card"><div class="coming-soon-icon">' + iconRefreshCw() + '</div><div class="coming-soon-title">Re-engagement Data Loaded</div><div class="coming-soon-desc">The Last Activity DateTime column is detected. Full analytics will render once the data is processed.</div></div>';
+}
+
+// ============================================================
+// 10. SLA & RESPONSE ANALYTICS (FUTURE)
+// ============================================================
+
+function renderSLAAnalytics(leads) {
+  const panel = document.getElementById('panel-sla');
+  if (!panel) return;
+  if (!leads.length) {
+    panel.innerHTML = emptyStateHtml('No analytics available for the selected filters.');
+    return;
+  }
+  if (!Calc.hasColumn('First Contact DateTime')) {
+    panel.innerHTML =
+      '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">SLA & Response Analytics' + sectionTooltipHtml('sla') + '</h2></div>' +
+      comingSoonHtml(
+        'SLA & Response Analytics',
+        'Measure how quickly your team responds to new leads and track compliance with service-level agreements. This module activates once the First Contact DateTime column is added to your CRM lead records.',
+        'First Contact DateTime',
+        'Response time is a critical predictor of lead conversion. Monitoring SLA compliance helps you maintain service quality, identify slow responders, and improve your overall contact rate.'
+      );
+    return;
+  }
+
+  panel.innerHTML = '<div class="section-title-row" style="margin-bottom:12px"><h2 class="section-title">SLA & Response Analytics' + sectionTooltipHtml('sla') + '</h2></div>' +
+    '<div class="coming-soon-card"><div class="coming-soon-icon">' + iconShield() + '</div><div class="coming-soon-title">SLA Data Loaded</div><div class="coming-soon-desc">The First Contact DateTime column is detected. Full analytics will render once the data is processed.</div></div>';
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+
+function switchTab(tabName) {
+  const visible = getVisibleTabs(State.currentUser.role);
+  if (!visible.includes(tabName)) tabName = visible[0];
+  const panels = document.querySelectorAll('.tab-panel');
+  panels.forEach(p => p.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  const activePanel = document.getElementById('panel-' + tabName);
+  if (activePanel) activePanel.classList.add('active');
+  const activeTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  if (activeTab) activeTab.classList.add('active');
+  State.activeTab = tabName;
+  renderActiveTab(State.filtered);
+}
+
+function renderActiveTab(leads) {
+  switch (State.activeTab) {
+    case 'lead': renderLeadAnalytics(leads); break;
+    case 'counsellor': renderCounsellorAnalytics(leads); break;
+    case 'followup': renderFollowupAnalytics(leads); break;
+    case 'source': renderSourceAnalytics(leads); break;
+    case 'geography': renderGeographyAnalytics(leads); break;
+    case 'application': renderApplicationAnalytics(leads); break;
+    case 'call-outcome': renderCallOutcomeAnalytics(leads); break;
+    case 'objection': renderObjectionAnalytics(leads); break;
+    case 'reengagement': renderReengagementAnalytics(leads); break;
+    case 'sla': renderSLAAnalytics(leads); break;
+  }
+}
+
+// ============================================================
+// SECTION-SPECIFIC EXPORT
+// ============================================================
+
+function exportCurrentSection() {
+  const leads = State.filtered;
+  if (!leads.length) { alert('No data to export for the current section.'); return; }
+
+  const tab = State.activeTab;
+  let rows, filename;
+
+  switch (tab) {
+    case 'lead':
+      rows = leads.map(l => ({
+        LeadID: l.id, StudentName: l.studentName, Phone: l.phone, Source: l.source,
+        Status: l.status, AssignedDate: fmt.dateFull(l.assignedDate),
+        CallAttempts: l.callAttempts, Application: l.applicationFiled, Converted: l.converted ? 'Yes' : 'No'
+      }));
+      filename = 'lead_analytics.csv';
+      break;
+
+    case 'counsellor':
+      const councillors = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
+      const perf = Calc.counsellorPerformance(leads, councillors);
+      rows = perf.filter(p => p.assigned > 0).map(p => ({
+        Counsellor: p.name, Centre: p.centre, LeadsAssigned: p.assigned,
+        ActiveLeads: p.active, ApplicationsFiled: p.applications, Converted: p.converted,
+        ConversionRate: fmt.pct(p.conversionRate), AvgCallAttempts: fmt.dec(p.avgCallAttempts)
+      }));
+      filename = 'counsellor_analytics.csv';
+      break;
+
+    case 'followup':
+      const today = CFG.today;
+      rows = leads.filter(l => l.nextFollowUp).map(l => ({
+        LeadID: l.id, StudentName: l.studentName, Counsellor: l.counsellorName,
+        NextFollowUp: fmt.dateFull(l.nextFollowUp), Status: l.status,
+        CallAttempts: l.callAttempts,
+        Overdue: l.nextFollowUp < today && !l.converted && !l.lost ? 'Yes' : 'No'
+      }));
+      filename = 'followup_analytics.csv';
+      break;
+
+    case 'source':
+      const sources = window.IntelAbroadData.sources;
+      const srcPerf = Calc.sourcePerformance(leads, sources);
+      rows = srcPerf.map(s => ({
+        Source: s.source, Leads: s.assigned, Applications: s.applications,
+        Converted: s.converted, ConversionRate: fmt.pct(s.conversionRate)
+      }));
+      filename = 'source_analytics.csv';
+      break;
+
+    case 'geography':
+      rows = leads.map(l => ({
+        LeadID: l.id, StudentName: l.studentName, State: l.state,
+        City: l.city, ExamCity: l.examCity, Category: l.category,
+        Status: l.status
+      }));
+      filename = 'geography_analytics.csv';
+      break;
+
+    case 'application':
+      rows = leads.map(l => ({
+        LeadID: l.id, StudentName: l.studentName, Status: l.status,
+        ApplicationFiled: l.applicationFiled, CallAttempts: l.callAttempts,
+        Counsellor: l.counsellorName, Source: l.source
+      }));
+      filename = 'application_analytics.csv';
+      break;
+
+    case 'call-outcome':
+    case 'objection':
+    case 'reengagement':
+    case 'sla':
+      alert('Export for this section is not yet available. This module will support export once the required CRM fields are enabled.');
+      return;
+
+    default:
+      rows = leads.map(l => ({
+        LeadID: l.id, StudentName: l.studentName, Phone: l.phone, Source: l.source,
+        Status: l.status, AssignedDate: fmt.dateFull(l.assignedDate)
+      }));
+      filename = 'insights_export.csv';
+  }
+
+  exportCSV(rows, filename);
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+function applyFilters() {
+  const f = State.filters;
+  const user = State.currentUser;
+
+  let allowedLeads = window.IntelAbroadData.leads;
+
+  if (user.role === 'Counsellor') {
+    f.sourceCentre = user.sourceCentre;
+    f.counsellor = user.id;
+  } else if (user.role === 'TeamLead') {
+    f.sourceCentre = user.sourceCentre;
+    const teamMembers = window.IntelAbroadData.staff.filter(s => s.reportsTo === user.id || s.id === user.id).map(s => s.id);
+    allowedLeads = allowedLeads.filter(l => teamMembers.includes(l.counsellorId));
+    if (f.counsellor !== 'all' && !teamMembers.includes(f.counsellor)) f.counsellor = 'all';
+  } else if (user.role === 'BranchManager') {
+    f.sourceCentre = user.sourceCentre;
+    allowedLeads = allowedLeads.filter(l => l.sourceCentre === user.sourceCentre);
+  }
+
+  State.filtered = allowedLeads.filter(l => {
+    const targetDate = l.assignedDate;
+    if (!targetDate && (f.from || f.to)) return false;
+    if (f.from && targetDate < f.from) return false;
+    if (f.to && targetDate > f.to) return false;
+    if (f.sourceCentre !== 'all' && l.sourceCentre !== f.sourceCentre) return false;
+    if (f.counsellor !== 'all' && l.counsellorId !== f.counsellor) return false;
+    if (f.source !== 'all' && l.source !== f.source) return false;
+    if (f.status !== 'all' && l.status !== f.status) return false;
+    return true;
+  });
+}
+
+function renderChips() {
+  const f = State.filters;
+  const user = State.currentUser;
+  const chips = [];
+  if (f.from) chips.push(['From: ' + fmt.date(f.from), 'from']);
+  if (f.to) chips.push(['To: ' + fmt.date(f.to), 'to']);
+  if (user.role !== 'Counsellor' && f.counsellor !== 'all') {
+    const s = window.IntelAbroadData.staff.find(s => s.id === f.counsellor);
+    chips.push(['Counsellor: ' + (s ? s.name : f.counsellor), 'counsellor']);
+  }
+  if (f.source !== 'all') chips.push(['Source: ' + f.source, 'source']);
+  if (f.status !== 'all') chips.push(['Status: ' + f.status, 'status']);
+
+  const row = document.getElementById('chipRow');
+  if (!row) return;
+  row.innerHTML = chips.map(pair => '<span class="chip">' + escapeHtml(pair[0]) + '<button data-clear="' + pair[1] + '">✕</button></span>').join('');
+  row.querySelectorAll('button[data-clear]').forEach(b => {
+    b.addEventListener('click', () => {
+      const key = b.dataset.clear;
+      if (key === 'from') { f.from = null; document.getElementById('fDateFrom').value = ''; }
+      else if (key === 'to') { f.to = null; document.getElementById('fDateTo').value = ''; }
+      else if (key === 'counsellor') { f.counsellor = 'all'; document.getElementById('fCounsellor').value = 'all'; }
+      else if (key === 'source') { f.source = 'all'; document.getElementById('fSource').value = 'all'; }
+      else if (key === 'status') { f.status = 'all'; document.getElementById('fStatus').value = 'all'; }
+      runPipeline();
+    });
+  });
+}
+
+function refreshDynamicFilters() {
+  const leads = window.IntelAbroadData.leads;
+  const unique = (field) => { const s = new Set(leads.map(l => l[field]).filter(Boolean)); return Array.from(s).sort(); };
+
+  const statusSel = document.getElementById('fStatus');
+  const sourceSel = document.getElementById('fSource');
+  const counsellorSel = document.getElementById('fCounsellor');
+
+  if (statusSel) {
+    const current = statusSel.value;
+    statusSel.innerHTML = '<option value="all">All Statuses</option>';
+    unique('status').forEach(v => statusSel.appendChild(new Option(v, v)));
+    statusSel.value = current !== 'all' && unique('status').includes(current) ? current : 'all';
+  }
+  if (sourceSel) {
+    const current = sourceSel.value;
+    sourceSel.innerHTML = '<option value="all">Any Source</option>';
+    unique('source').forEach(v => sourceSel.appendChild(new Option(v, v)));
+    sourceSel.value = current !== 'all' && unique('source').includes(current) ? current : 'all';
+  }
+  if (counsellorSel) {
+    const current = counsellorSel.value;
+    counsellorSel.innerHTML = '<option value="all">Any Assignee</option>';
+    unique('counsellorName').forEach(v => counsellorSel.appendChild(new Option(v, 'CS-' + v.replace(/\s+/g, '').substring(0, 8))));
+    counsellorSel.value = current;
+  }
+
+  updateSourcePillMenu();
+}
+
+function updateSourcePillMenu() {
+  const menu = document.getElementById('sourceMenu');
+  if (!menu) return;
+  const centres = window.IntelAbroadData.sourceCentres || [];
+  const current = menu.querySelector('.dropdown-item.active');
+  const currentVal = current ? current.dataset.val : 'all';
+  menu.innerHTML = '<button class="dropdown-item" data-val="all">All Centres</button>';
+  centres.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'dropdown-item';
+    btn.dataset.val = c;
+    btn.textContent = c;
+    if (c === currentVal) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      State.filters.sourceCentre = c;
+      document.querySelector('.branch-name-text').textContent = c;
+      document.querySelectorAll('#sourceMenu .dropdown-item').forEach(i => i.classList.remove('active'));
+      btn.classList.add('active');
+      runPipeline();
+    });
+    menu.appendChild(btn);
+  });
+}
+
+function runPipeline() {
+  applyFilters();
+  renderChips();
+  const leads = State.filtered;
+  renderExecutiveKpis(leads);
+  renderActiveTab(leads);
+  updateLastUpdatedText();
+}
+
+function updateLastUpdatedText() {
+  const node = document.getElementById('lastUpdated');
+  if (node) node.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function updateDataSourceBadge() {
+  const badge = document.getElementById('dataSourceBadge');
+  if (!badge) return;
+  if (DataLoader.source === 'excel') {
+    badge.textContent = 'Real Data' + (DataLoader.fileName ? ' — ' + DataLoader.fileName : '');
+    badge.className = 'data-source-badge real';
+  } else {
+    badge.textContent = 'Demo Data';
+    badge.className = 'data-source-badge';
+  }
+}
+
+// ============================================================
+// DROPDOWNS
+// ============================================================
+
+function populateFilterOptions() {
+  refreshDynamicFilters();
+}
+
+function readFiltersFromForm() {
+  const f = State.filters;
+  f.from = document.getElementById('fDateFrom')?.value ? new Date(document.getElementById('fDateFrom').value) : null;
+  f.to = document.getElementById('fDateTo')?.value ? new Date(document.getElementById('fDateTo').value + 'T23:59:59') : null;
+  f.counsellor = document.getElementById('fCounsellor')?.value || 'all';
+  f.source = document.getElementById('fSource')?.value || 'all';
+  f.status = document.getElementById('fStatus')?.value || 'all';
+}
+
+function updateAssigneeDropdownOptions() {
+  const user = State.currentUser;
+  const select = document.getElementById('fCounsellor');
+  if (!select) return;
+  select.innerHTML = '<option value="all">Any Assignee</option>';
+  let allowedStaff = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
+  if (user.role === 'BranchManager') allowedStaff = allowedStaff.filter(s => s.sourceCentre === user.sourceCentre);
+  else if (user.role === 'TeamLead') allowedStaff = allowedStaff.filter(s => s.reportsTo === user.id || s.id === user.id);
+  else if (user.role === 'Counsellor') allowedStaff = allowedStaff.filter(s => s.id === user.id);
+  allowedStaff.sort((a, b) => a.name.localeCompare(b.name)).forEach(s => select.appendChild(new Option(s.name, s.id)));
+  if (user.role === 'Counsellor') { select.disabled = true; select.value = user.id; }
+  else { select.disabled = false; select.value = State.filters.counsellor; }
+}
+
+function updateSourceDropdownOptions() {
+  const user = State.currentUser;
+  const pill = document.getElementById('sourcePill');
+  const menu = document.getElementById('sourceMenu');
+  if (!pill) return;
+  if (user.role === 'Founder') {
+    pill.style.pointerEvents = 'auto';
+    pill.querySelector('svg').style.display = 'block';
+    pill.querySelector('.branch-name-text').textContent = State.filters.sourceCentre === 'all' ? 'All Centres' : State.filters.sourceCentre;
+  } else {
+    pill.style.pointerEvents = 'none';
+    pill.querySelector('svg').style.display = 'none';
+    pill.querySelector('.branch-name-text').textContent = user.sourceCentre;
+    State.filters.sourceCentre = user.sourceCentre;
+  }
+}
+
+// ============================================================
+// EXCEL UPLOAD HANDLING
+// ============================================================
+
+function handleExcelUpload(file) {
+  DataLoader.parseExcelFile(file).then(result => {
+    DataLoader.applyDataset(result.leads, result.meta);
+    DataLoader.fileName = file.name;
+    refreshDynamicFilters();
+    updateDataSourceBadge();
+    updateAssigneeDropdownOptions();
+    runPipeline();
+  }).catch(err => {
+    alert('Failed to parse file: ' + err.message);
+  });
+}
+
+function handleReloadDemo() {
+  DataLoader.resetToDemo();
+  refreshDynamicFilters();
+  updateDataSourceBadge();
+  updateAssigneeDropdownOptions();
+  runPipeline();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+function wireEvents() {
+  const sourcePill = document.getElementById('sourcePill');
+  const sourceMenu = document.getElementById('sourceMenu');
+  if (sourcePill && sourceMenu) {
+    sourcePill.addEventListener('click', e => { e.stopPropagation(); sourceMenu.classList.toggle('show'); });
+    sourceMenu.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        State.filters.sourceCentre = item.dataset.val;
+        sourcePill.querySelector('.branch-name-text').textContent = item.dataset.val === 'all' ? 'All Centres' : item.dataset.val;
+        sourceMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        runPipeline();
+      });
+    });
+  }
+
+  document.addEventListener('click', () => { sourceMenu?.classList.remove('show'); });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => { const tn = tab.dataset.tab; if (tn) switchTab(tn); });
+  });
+
+  const roleSwitcher = document.getElementById('demoRoleSwitcher');
+  if (roleSwitcher) {
+    roleSwitcher.addEventListener('change', () => {
+      const val = roleSwitcher.value;
+      const staffList = window.IntelAbroadData.staff || [];
+      let user;
+      if (val === 'Founder') {
+        user = { role: 'Founder', name: 'Dr. Suhail', id: 'S001', sourceCentre: 'all' };
+      } else {
+        const candidate = staffList.find(s => s.role === val);
+        if (candidate) {
+          user = { role: val, name: candidate.name, id: candidate.id, sourceCentre: candidate.sourceCentre || 'all' };
+        } else {
+          user = { role: val, name: val, id: 'X-' + val, sourceCentre: 'all' };
+        }
+      }
+      State.currentUser = user;
+      document.getElementById('sidebarProfileName').textContent = user.name;
+      document.getElementById('sidebarProfileEmail').textContent =
+        user.role === 'Founder' ? 'founder@intelabroad.com' : user.name.toLowerCase().replace(/\s+/g, '.') + '@intelabroad.com';
+      State.filters.sourceCentre = user.sourceCentre;
+      State.filters.counsellor = 'all';
+      updateTabVisibility();
+      updateSourceDropdownOptions();
+      updateAssigneeDropdownOptions();
+      runPipeline();
+    });
+  }
+
+  document.getElementById('applyFiltersBtn')?.addEventListener('click', () => { readFiltersFromForm(); runPipeline(); });
+  document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
+    ['fDateFrom', 'fDateTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['fCounsellor', 'fSource', 'fStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
+    State.filters.from = null; State.filters.to = null; State.filters.counsellor = 'all';
+    State.filters.source = 'all'; State.filters.status = 'all';
+    runPipeline();
+  });
+
+  document.getElementById('exportCsvBtn')?.addEventListener('click', exportCurrentSection);
+  document.getElementById('printBtn')?.addEventListener('click', () => { window.print(); });
+
+  document.getElementById('excelUpload')?.addEventListener('change', e => {
+    if (e.target.files && e.target.files[0]) handleExcelUpload(e.target.files[0]);
+  });
+
+  document.getElementById('reloadDemoBtn')?.addEventListener('click', handleReloadDemo);
+
+  const sidebar = document.getElementById('sidebar');
+  const collapseBtn = document.getElementById('sidebarCollapseBtn');
+  if (collapseBtn && sidebar) {
+    collapseBtn.addEventListener('click', e => { e.stopPropagation(); sidebar.classList.toggle('open'); });
+    document.addEventListener('click', () => { sidebar.classList.remove('open'); });
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.info-btn');
+    if (btn) {
+      e.stopPropagation();
+      const isActive = btn.classList.contains('active');
+      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+      if (!isActive) btn.classList.add('active');
+    } else {
+      document.querySelectorAll('.info-btn.active').forEach(b => b.classList.remove('active'));
+    }
+  });
+}
+
+async function initUI() {
+  try {
+    await DataLoader.loadFromDefaultUrl();
+  } catch (e) {
+    // CSV not available, demo data already loaded by demo-data.js
+  }
+  updateDataSourceBadge();
   populateFilterOptions();
   readFiltersFromForm();
   wireEvents();
-  
-  updateBranchDropdownOptions();
+  updateTabVisibility();
+  updateSourceDropdownOptions();
   updateAssigneeDropdownOptions();
-  renderCounsellorSelectorPill();
-  
-  runPipeline(true);
+  runPipeline();
 }
 
 document.addEventListener('DOMContentLoaded', initUI);

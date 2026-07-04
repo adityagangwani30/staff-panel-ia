@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Overview — IntelAbroad Staff Panel</title>
-  
-  <!-- Custom Stylesheet -->
+  <title>Insights — IntelAbroad Staff Panel</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body data-theme="dark">
@@ -22,9 +20,7 @@
         </div>
       </div>
       <button class="brand-collapse" id="sidebarCollapseBtn" title="Collapse sidebar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </button>
     </div>
 
@@ -33,7 +29,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       Overview
     </a>
-    <a href="#" class="nav-item">
+    <a href="leads.html" class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       Leads
     </a>
@@ -47,11 +43,10 @@
     </a>
     <a href="#" class="nav-item active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-      Overview
+      Insights
     </a>
 
     <div class="sidebar-footer">
-      <!-- Profile details -->
       <div class="profile-card">
         <div class="profile-info">
           <div class="profile-name" id="sidebarProfileName">Dr. Suhail</div>
@@ -73,38 +68,25 @@
     <div class="topbar">
       <div class="topbar-left">
         <div class="topbar-title-row">
-          <h1 id="topbarTitle">Overview</h1>
-          <div class="branch-pill" id="branchPill">
-            <span class="branch-name-text">All Branches</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-            
-            <div class="dropdown-menu" id="branchMenu">
-              <button class="dropdown-item" data-val="all">All Branches</button>
+          <h1 id="topbarTitle">Insights</h1>
+          <div class="branch-pill" id="sourcePill">
+            <span class="branch-name-text">All Centres</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <div class="dropdown-menu" id="sourceMenu">
+              <button class="dropdown-item" data-val="all">All Centres</button>
               <button class="dropdown-item" data-val="Delhi Office">Delhi Office</button>
               <button class="dropdown-item" data-val="Delhi 2026">Delhi 2026</button>
               <button class="dropdown-item" data-val="Nagpur 2026">Nagpur 2026</button>
               <button class="dropdown-item" data-val="Raipur Office">Raipur Office</button>
             </div>
           </div>
-          
-          <!-- View Counsellor Profile Pill (Visible to management) -->
-          <div class="view-profile-pill" id="counsellorPill" style="display:none">
-            <span class="counsellor-pill-text">View Counsellor</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-            <div class="dropdown-menu" id="counsellorMenu">
-              <!-- Dynamically populated -->
-            </div>
-          </div>
+          <span class="data-source-badge" id="dataSourceBadge">Demo Data</span>
+          <button class="reload-demo-link" id="reloadDemoBtn">Reload Demo Data</button>
         </div>
-        <div class="topbar-subtitle" id="topbarSubtitle">Executive overview dashboard</div>
+        <div class="topbar-subtitle" id="topbarSubtitle">Business insights for better lead management.</div>
       </div>
-      
+
       <div class="topbar-right">
-        <!-- Demo Role Switcher Dropdown -->
         <div class="demo-role-container">
           <span>Viewing As:</span>
           <select id="demoRoleSwitcher" class="demo-role-select" title="Simulate different role permissions">
@@ -114,9 +96,13 @@
             <option value="Counsellor">Counsellor (Aditya Gangwani)</option>
           </select>
         </div>
-        
-        <span class="last-updated" id="lastUpdated">Updated just now</span>
-        <button class="btn" id="exportCsvBtn" title="Export current dataset to CSV">
+        <span class="toolbar-divider"></span>
+        <label class="btn btn-primary import-btn" id="importCsvLabel" title="Import leads from Excel or CSV file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          Import CSV
+          <input type="file" id="excelUpload" accept=".xlsx,.xls,.csv" hidden>
+        </label>
+        <button class="btn" id="exportCsvBtn" title="Export current section data">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
           Export
         </button>
@@ -124,13 +110,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Print
         </button>
-
+        <span class="toolbar-divider"></span>
+        <span class="last-updated" id="lastUpdated">Updated just now</span>
       </div>
     </div>
 
-    <!-- MAIN DASHBOARD VIEW -->
+    <!-- MAIN DASHBOARD -->
     <div class="content" id="mainDashboard">
-      <!-- ===================== FILTER BAR ===================== -->
+      <!-- FILTER BAR -->
       <div class="filterbar" id="filterBarRow">
         <div class="f-group">
           <select id="fStatus">
@@ -153,40 +140,49 @@
         <div class="f-group">
           <input type="date" id="fDateTo" title="End Date">
         </div>
-
-        <div class="segment-control">
-          <button class="segment-btn active" data-type="entry">Entry Date</button>
-          <button class="segment-btn" data-type="updated">Last Updated</button>
-          <button class="segment-btn" data-type="followup">Follow-up</button>
-        </div>
-
-        <div class="f-search-wrapper">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input type="text" id="fSearch" placeholder="Search name, phone, ID…">
-        </div>
-
         <div class="f-actions">
           <button class="btn" id="resetFiltersBtn">Clear all</button>
           <button class="btn btn-primary" id="applyFiltersBtn">Apply</button>
         </div>
-        
         <div class="filter-chip-row" id="chipRow"></div>
       </div>
 
-      <!-- Overview Dashboard Panel -->
-      <div id="panel-overview"></div>
-    </div>
+      <!-- Executive KPIs -->
+      <div class="kpi-grid kpi-grid-4" id="executiveKpis"></div>
 
-    <!-- SINGLE COUNSELLOR VIEW CONTAINER -->
-    <div class="content counsellor-dashboard-container" id="counsellorDashboard">
-      <!-- Dynamic View Injected by UI.js -->
+      <!-- Tabs -->
+      <div class="tabs" id="insightsTabs">
+        <div class="tab active" data-tab="lead">Lead Analytics</div>
+        <div class="tab" data-tab="counsellor">Counsellor Analytics</div>
+        <div class="tab" data-tab="followup">Follow-up Analytics</div>
+        <div class="tab" data-tab="source">Lead Source Analytics</div>
+        <div class="tab" data-tab="geography">Geography Analytics</div>
+        <div class="tab" data-tab="application">Application Analytics</div>
+        <div class="tab" data-tab="call-outcome">Call Outcome</div>
+        <div class="tab" data-tab="objection">Lead Objection</div>
+        <div class="tab" data-tab="reengagement">Re-engagement</div>
+        <div class="tab" data-tab="sla">SLA & Response</div>
+      </div>
+
+      <!-- Tab Panels -->
+      <div id="panel-lead" class="tab-panel active"></div>
+      <div id="panel-counsellor" class="tab-panel"></div>
+      <div id="panel-followup" class="tab-panel"></div>
+      <div id="panel-source" class="tab-panel"></div>
+      <div id="panel-geography" class="tab-panel"></div>
+      <div id="panel-application" class="tab-panel"></div>
+      <div id="panel-call-outcome" class="tab-panel"></div>
+      <div id="panel-objection" class="tab-panel"></div>
+      <div id="panel-reengagement" class="tab-panel"></div>
+      <div id="panel-sla" class="tab-panel"></div>
     </div>
   </main>
 </div>
 
-<!-- Scripts Loader -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/chart.umd.min.js"></script>
 <script src="js/demo-data.js"></script>
+<script src="js/data-loader.js"></script>
 <script src="js/analytics-engine.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/ui.js"></script>

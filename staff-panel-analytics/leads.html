@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leads — IntelAbroad Staff Panel</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .leads-toolbar { display: flex; align-items: center; gap: 12px; }
+    .leads-toolbar .search-wrap { position: relative; flex: 1; max-width: 320px; }
+    .leads-toolbar .search-wrap input { width: 100%; padding: 7px 32px 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-hover); font-size: 12.5px; color: var(--text-1); outline: none; }
+    .leads-toolbar .search-wrap input::placeholder { color: var(--text-muted); }
+    .leads-toolbar .search-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary-tint); }
+    .leads-toolbar .search-wrap svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none; }
+
+    .lead-count { font-size: 12.5px; color: var(--text-3); margin-bottom: 12px; }
+    .lead-count strong { color: var(--text-1); }
+
+    .leads-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .leads-table thead th { padding: 10px 12px; font-size: 10.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--bg); text-align: left; cursor: default; user-select: none; }
+    .leads-table tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); color: var(--text-3); vertical-align: middle; }
+    .leads-table tbody tr { transition: background 0.1s ease; }
+    .leads-table tbody tr:hover { background: var(--surface-hover); }
+    .leads-table .name-cell { font-weight: 600; color: var(--text-1); }
+    .leads-table .phone-cell { font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
+    .leads-table .actions-cell { text-align: right; white-space: nowrap; }
+    .leads-table .unassigned { color: var(--text-muted); font-style: italic; }
+
+    .call-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-hover); color: var(--text-2); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.12s ease; }
+    .call-btn:hover { border-color: var(--primary); background: var(--primary-tint); color: var(--primary); }
+    .call-btn svg { width: 13px; height: 13px; }
+    .call-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    .outcome-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .outcome-badge.interested { background: rgba(34, 197, 94, 0.12); color: #4ade80; }
+    .outcome-badge.not-interested { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+    .outcome-badge.busy { background: rgba(234, 179, 8, 0.12); color: #facc15; }
+    .outcome-badge.didnt-answer { background: rgba(100, 116, 139, 0.12); color: #94a3b8; }
+    .outcome-badge.call-back { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+    .outcome-badge.wrong-number { background: rgba(236, 72, 153, 0.12); color: #f472b6; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: 480px; max-width: 94vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: fadein 0.15s ease-out; }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+    .modal-sub { font-size: 12.5px; color: var(--text-3); margin-bottom: 20px; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    .modal-field select, .modal-field textarea, .modal-field input { width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-hover); color: var(--text-1); font-size: 13px; outline: none; }
+    .modal-field select:focus, .modal-field textarea:focus, .modal-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary-tint); }
+    .modal-field textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+    .modal-field .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .modal-actions .btn { min-width: 100px; justify-content: center; }
+    .modal-field.conditional { display: none; }
+    .modal-field.conditional.show { display: block; }
+
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+
+    .activity-log { margin-top: 16px; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+    .activity-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+    .activity-item { padding: 6px 0; display: flex; gap: 8px; font-size: 12px; color: var(--text-3); border-bottom: 1px solid var(--border-soft); }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-time { color: var(--text-muted); font-size: 11px; white-space: nowrap; flex-shrink: 0; width: 60px; }
+    .activity-desc { flex: 1; }
+    .activity-desc strong { color: var(--text-2); }
+
+    .no-leads { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .no-leads svg { width: 40px; height: 40px; opacity: 0.3; margin-bottom: 12px; }
+    .no-leads .nl-title { font-weight: 600; color: var(--text-3); font-size: 14px; }
+    .no-leads .nl-sub { font-size: 12px; margin-top: 4px; }
+
+    @media(max-width: 768px) {
+      .leads-toolbar { flex-direction: column; align-items: stretch; }
+      .leads-toolbar .search-wrap { max-width: none; }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-mark">IA</div>
+        <div>
+          <div class="brand-name">IntelAbroad</div>
+          <div class="brand-sub">Staff panel</div>
+        </div>
+      </div>
+      <button class="brand-collapse" id="sidebarCollapseBtn" title="Collapse sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+    </div>
+
+    <div class="nav-group-label">Workspace</div>
+    <a href="#" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Overview
+    </a>
+    <a href="leads.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Leads
+    </a>
+    <a href="#" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      WhatsApp
+    </a>
+    <a href="#" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Activity
+    </a>
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      Insights
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="profile-name" id="sidebarProfileName">Dr. Suhail</div>
+          <div class="profile-email" id="sidebarProfileEmail">founder@intelabroad.com</div>
+        </div>
+        <button class="signout-btn" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title-row">
+          <h1>Leads</h1>
+          <div class="branch-pill" id="sourcePill">
+            <span class="branch-name-text">All Centres</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <div class="dropdown-menu" id="sourceMenu"></div>
+          </div>
+          <span class="data-source-badge" id="dataSourceBadge">Demo Data</span>
+          <button class="reload-demo-link" id="reloadDemoBtn">Reload Demo Data</button>
+        </div>
+        <div class="topbar-subtitle">Manage leads, complete calls, and track interactions.</div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="demo-role-container">
+          <span>Viewing As:</span>
+          <select id="demoRoleSwitcher" class="demo-role-select">
+            <option value="Founder">Founder (Dr. Suhail)</option>
+            <option value="BranchManager">Branch Manager (Vanshta Verma)</option>
+            <option value="TeamLead">Team Lead (Hemant Vaidya)</option>
+            <option value="Counsellor">Counsellor (Aditya Gangwani)</option>
+          </select>
+        </div>
+        <span class="toolbar-divider"></span>
+        <button class="btn" id="exportCsvBtn" title="Export leads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          Export
+        </button>
+        <span class="toolbar-divider"></span>
+        <span class="last-updated" id="lastUpdated">Updated just now</span>
+      </div>
+    </div>
+
+    <!-- LEADS CONTENT -->
+    <div class="content">
+
+      <!-- Toolbar -->
+      <div class="leads-toolbar" style="margin-bottom:16px">
+        <div class="search-wrap">
+          <input type="text" id="leadsSearch" placeholder="Search leads by name or phone..." autocomplete="off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        </div>
+        <select id="statusFilter">
+          <option value="all">All Statuses</option>
+        </select>
+        <select id="outcomeFilter">
+          <option value="all">Call Outcome</option>
+          <option value="none">No Outcome</option>
+          <option value="Interested">Interested</option>
+          <option value="Not Interested">Not Interested</option>
+          <option value="Busy">Busy</option>
+          <option value="Didn't Answer">Didn't Answer</option>
+          <option value="Call Back Later">Call Back Later</option>
+          <option value="Wrong Number">Wrong Number</option>
+        </select>
+        <button class="btn" id="clearFiltersBtn">Clear</button>
+      </div>
+
+      <!-- Lead count -->
+      <div class="lead-count">Showing <strong id="visibleCount">0</strong> of <strong id="totalCount">0</strong> leads</div>
+
+      <!-- Table -->
+      <div class="table-scroll">
+        <table class="leads-table" id="leadsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>Call Outcome</th>
+              <th>Attempts</th>
+              <th>Last Activity</th>
+              <th class="actions-cell">Action</th>
+            </tr>
+          </thead>
+          <tbody id="leadsBody"></tbody>
+        </table>
+      </div>
+      <div class="no-leads" id="noLeads" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <div class="nl-title">No leads found</div>
+        <div class="nl-sub">Try adjusting your search or filter criteria.</div>
+      </div>
+
+      <!-- Activity log -->
+      <div class="activity-log" id="activityLog">
+        <div class="activity-title">Recent Activity</div>
+        <div id="activityItems"><div class="activity-item"><span class="activity-desc" style="color:var(--text-muted)">No recent activity.</span></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== CALL COMPLETION MODAL ===================== -->
+<div class="modal-overlay" id="callModal">
+  <div class="modal">
+    <div class="modal-title">Complete Call</div>
+    <div class="modal-sub" id="callModalLead">Recording call outcome for <strong>—</strong></div>
+
+    <div class="modal-field">
+      <label>Call Outcome</label>
+      <select id="callOutcomeSelect">
+        <option value="">Select outcome...</option>
+        <option value="Interested">Interested</option>
+        <option value="Not Interested">Not Interested</option>
+        <option value="Busy">Busy</option>
+        <option value="Didn't Answer">Didn't Answer</option>
+        <option value="Call Back Later">Call Back Later</option>
+        <option value="Wrong Number">Wrong Number</option>
+      </select>
+    </div>
+
+    <div class="modal-field conditional" id="objectionField">
+      <label>Objection Reason</label>
+      <select id="objectionReasonSelect">
+        <option value="">Select reason...</option>
+        <option value="Budget Constraints">Budget Constraints</option>
+        <option value="Parents Not Convinced">Parents Not Convinced</option>
+        <option value="Government College Preference">Government College Preference</option>
+        <option value="Joined Another Consultancy">Joined Another Consultancy</option>
+        <option value="Different Country Preference">Different Country Preference</option>
+        <option value="Did Not Qualify NEET">Did Not Qualify NEET</option>
+        <option value="Not Interested Anymore">Not Interested Anymore</option>
+        <option value="No Response">No Response</option>
+        <option value="Wants to Apply Next Year">Wants to Apply Next Year</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="modal-field conditional" id="remarksField">
+      <label>Objection Remarks</label>
+      <textarea id="objectionRemarksInput" placeholder="Optional remarks..." rows="2"></textarea>
+      <div class="field-hint">Provide additional context for this objection.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="cancelCallBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveCallBtn" disabled>Save Call</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/demo-data.js"></script>
+<script src="js/data-loader.js"></script>
+<script src="js/leads.js"></script>
+</body>
+</html>
