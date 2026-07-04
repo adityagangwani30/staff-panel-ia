@@ -684,6 +684,28 @@ body {
 /* ============================================================
    KPI CARDS GRID
    ============================================================ */
+.kpi-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media(max-width: 1100px) {
+  .kpi-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media(max-width: 480px) {
+  .kpi-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trend-indicator {
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

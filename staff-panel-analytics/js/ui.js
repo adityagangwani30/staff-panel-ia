@@ -49,18 +49,18 @@ const METRIC_DEFS = {
   'calls': 'Total number of telephone calls completed with leads.',
   'whatsapp': 'Total number of WhatsApp messages exchanged with leads.',
   'followups-completed': 'Total number of scheduled follow-ups successfully marked as completed.',
-  'pending-followups': 'Number of follow-ups that are yet to be completed.',
-  'avg-response': 'Average time taken by a counsellor to make the first contact with a lead.',
+  'pending-followups': 'Number of follow-ups that are due or overdue and still require action from counsellors.',
+  'avg-response': 'Average time taken by counsellors to make the first contact after a lead is assigned.',
   'conversion-rate': 'Percentage of assigned leads that have been successfully converted.',
   'overdue-followups': 'Number of follow-ups that have passed their scheduled date without completion.',
-  'avg-lead-aging': 'Average number of days a lead has remained active since it was assigned.',
+  'avg-lead-aging': 'Average number of days active leads have remained in the pipeline without being converted or closed.',
   'team-members': 'Number of active counselors in the team.',
   'avg-workload': 'Average number of leads assigned per counselor.',
   'followup-compliance': 'Percentage of follow-ups completed on time.',
   'team-avg-response': 'Average time taken by team members to contact leads.',
   'total-leads-managed': 'Total number of leads managed at the organizational level.',
   'converted-leads': 'Total number of leads successfully converted.',
-  'sla-response-compliance': 'Percentage of leads contacted within the 24-hour SLA window.',
+  'sla-response-compliance': 'Percentage of leads contacted within the defined SLA window. This metric helps monitor responsiveness and service quality.',
   'chart-daily-activity': 'Daily volume of assigned vs converted leads over the last 14 days.',
   'chart-lead-status-dist': 'Distribution of leads across current funnel statuses.',
   'chart-monthly-trend': 'Monthly trend of assigned vs converted leads over the last 6 months.',
@@ -423,6 +423,7 @@ function kpiCardHtml(id, label, target, opts = {}) {
   const color = opts.color || 'primary';
   const sub = opts.sub || '';
   const tooltip = opts.tooltipKey ? tooltipHtml(opts.tooltipKey) : '';
+  const trend = opts.trend;
   
   return `
     <div class="kpi-card">
@@ -433,6 +434,7 @@ function kpiCardHtml(id, label, target, opts = {}) {
       <div class="kpi-label">${label}${tooltip}</div>
       <div class="kpi-value">${fmt.int(target)}${opts.isPct ? '%' : ''}</div>
       <div class="kpi-trend-row">
+        ${trend ? trendHtml(trend) : ''}
         ${sub ? `<span class="kpi-sub">${sub}</span>` : ''}
       </div>
     </div>`;
@@ -474,6 +476,35 @@ function callsBadge(count) {
   return `<span class="calls-badge">${count}</span>`;
 }
 
+function trendHtml(trend) {
+  if (!trend) return '';
+  const arrow = trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→';
+  const color = trend.direction === 'up' ? 'var(--success)' : trend.direction === 'down' ? 'var(--danger)' : 'var(--text-muted)';
+  return `<span class="trend-indicator" style="color:${color}">${arrow} ${trend.value}%</span>`;
+}
+
+function computeTrendForMetric(leads, metricFn, periodDays = 7) {
+  const today = CFG.today;
+  const currStart = addDays(today, -periodDays);
+  const prevStart = addDays(today, -periodDays * 2);
+
+  const currLeads = leads.filter(l => l.assignedDate >= currStart);
+  const prevLeads = leads.filter(l => l.assignedDate >= prevStart && l.assignedDate < currStart);
+
+  if (!prevLeads.length) return null;
+
+  const currVal = metricFn(currLeads);
+  const prevVal = metricFn(prevLeads);
+
+  const diff = currVal - prevVal;
+  const pct = prevVal ? Math.round(Math.abs((diff / prevVal) * 100)) : 0;
+
+  return {
+    direction: diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat',
+    value: pct
+  };
+}
+
 function drawFunnel(containerId, stages) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -505,16 +536,31 @@ function renderOverviewDashboard() {
   const perf = Calc.counsellorPerformance(leads, window.IntelAbroadData.staff.filter(s => s.role !== 'Founder')).sort((a,b) => b.converted - a.converted);
   const todayContacted = Calc.leadsContactedToday(leads);
 
-  // 1. Executive KPI Cards
-  const kpis =
-    kpiCardHtml('k-ov-total', 'Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned' }) +
-    kpiCardHtml('k-ov-active', 'Active Leads', Calc.activeLeads(leads), { color: 'info', icon: iconTarget(), tooltipKey: 'total-assigned' }) +
-    kpiCardHtml('k-ov-convrate', 'Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate' }) +
-    kpiCardHtml('k-ov-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconAlert(), tooltipKey: 'pending-followups' }) +
-    kpiCardHtml('k-ov-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'avg-response' }) +
+  // Trends for executive KPIs
+  function invert(t) { return t ? { direction: t.direction === 'up' ? 'down' : t.direction === 'down' ? 'up' : 'flat', value: t.value } : null; }
+  const totalTrend = computeTrendForMetric(leads, l => Calc.totalAssigned(l));
+  const activeTrend = computeTrendForMetric(leads, l => Calc.activeLeads(l));
+  const convTrend = computeTrendForMetric(leads, l => Calc.conversionRate(l));
+  const pendingTrend = invert(computeTrendForMetric(leads, l => Calc.pendingFollowups(l)));
+  const slaTrend = computeTrendForMetric(leads, l => Calc.slaComplianceRate(l));
+  const respTrend = invert(computeTrendForMetric(leads, l => Calc.avgResponseTime(l)));
+  const agingTrend = invert(computeTrendForMetric(leads, l => Calc.avgLeadAging(l)));
+
+  // Row 1 — Volume & Conversion
+  const row1Kpis =
+    kpiCardHtml('k-ov-total', 'Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'total-assigned', trend: totalTrend }) +
+    kpiCardHtml('k-ov-active', 'Active Leads', Calc.activeLeads(leads), { color: 'info', icon: iconTarget(), tooltipKey: 'total-assigned', trend: activeTrend }) +
+    kpiCardHtml('k-ov-convrate', 'Conversion Rate', Calc.conversionRate(leads), { color: 'success', icon: iconTarget(), isPct: true, tooltipKey: 'conversion-rate', trend: convTrend }) +
     kpiCardHtml('k-ov-contacted', 'Leads Contacted Today', todayContacted, { color: 'teal', icon: iconPhone(), tooltipKey: 'leads-contacted-today' });
 
-  // 3. Lead Re-engagement KPIs
+  // Row 2 — Responsiveness & Quality
+  const row2Kpis =
+    kpiCardHtml('k-ov-pending', 'Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconAlert(), tooltipKey: 'pending-followups', trend: pendingTrend }) +
+    kpiCardHtml('k-ov-sla', 'SLA Compliance', Calc.slaComplianceRate(leads), { color: 'purple', icon: iconClock(), isPct: true, tooltipKey: 'sla-response-compliance', trend: slaTrend }) +
+    kpiCardHtml('k-ov-resp', 'Average Response Time', Calc.avgResponseTime(leads), { color: 'warning', icon: iconHourglass(), tooltipKey: 'avg-response', trend: respTrend }) +
+    kpiCardHtml('k-ov-aging', 'Average Lead Aging', Calc.avgLeadAging(leads), { color: 'slate', icon: iconHourglass(), tooltipKey: 'avg-lead-aging', trend: agingTrend });
+
+  // Lead Re-engagement KPIs
   const buckets = Calc.reEngagementBuckets(leads);
   const totalDormant = buckets.reduce((sum, b) => sum + b.count, 0);
   const totalLeads = leads.length;
@@ -524,7 +570,7 @@ function renderOverviewDashboard() {
     kpiCardHtml('k-re-90', '90+ Day Inactive Leads', buckets[2].count, { color: 'slate', icon: iconAlert(), sub: fmt.pct(buckets[2].pct) + ' of active', tooltipKey: 're-engagement' }) +
     kpiCardHtml('k-re-total', 'Total Dormant Leads', totalDormant, { color: 'primary', icon: iconUsers(), sub: fmt.pct(totalLeads ? (totalDormant / totalLeads) * 100 : 0) + ' of total leads', tooltipKey: 're-engagement' });
 
-  // 4. Lead Objection Analytics
+  // Lead Objection Analytics
   const obj = Calc.objectionBreakdown(leads);
   const objRows = obj.rows.map(r => {
     const pctWidth = obj.total ? Math.max((r.count / obj.total) * 100, 2) : 0;
@@ -540,70 +586,51 @@ function renderOverviewDashboard() {
       </div>`;
   }).join('');
 
-  // 5. Call Outcome Analytics
+  // Call Outcome Analytics
   const callOutcome = Calc.callOutcomeBreakdown(leads);
 
   panel.innerHTML = `
-    <div class="kpi-grid">${kpis}</div>
+    <!-- ====== SECTION 1: EXECUTIVE KPIs ====== -->
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Executive KPIs</h2></div></div>
+    <div class="kpi-grid kpi-grid-4">${row1Kpis}</div>
+    <div class="kpi-grid kpi-grid-4">${row2Kpis}</div>
+
+    <!-- ====== SECTION 2: BUSINESS INSIGHTS ====== -->
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Business Insights</h2></div></div>
 
     ${cardHtml('Lead Funnel', 'Stage-by-stage distribution through the conversion pipeline', '<div id="funnel-overview" style="padding-top:6px"></div>', false, 'chart-overall-funnel')}
 
-    <div class="section-divider">
-      <div class="section-title-row">
-        <h2 class="section-title">Lead Re-engagement Analytics${tooltipHtml('re-engagement-section')}</h2>
-      </div>
-    </div>
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Lead Re-engagement Analytics${tooltipHtml('re-engagement-section')}</h2></div></div>
     <div class="kpi-grid">${reKpis}</div>
     ${cardHtml('Dormant Lead Distribution', 'Inactive lead breakdown by period', '<div class="chart-wrap h260"><canvas id="chart-re-dist"></canvas></div>', false, 're-engagement')}
 
-    <div class="section-divider">
-      <div class="section-title-row">
-        <h2 class="section-title">Lead Objection Analytics${tooltipHtml('objection-analytics')}</h2>
-      </div>
-    </div>
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Lead Objection Analytics${tooltipHtml('objection-analytics')}</h2></div></div>
     <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="card-sub">Reasons leads did not convert — most common: <strong>${escapeHtml(obj.mostCommon.reason)}</strong> (${fmt.int(obj.mostCommon.count)})</div>
-        </div>
-      </div>
+      <div class="card-head"><div><div class="card-sub">Reasons leads did not convert — most common: <strong>${escapeHtml(obj.mostCommon.reason)}</strong> (${fmt.int(obj.mostCommon.count)})</div></div></div>
       <div style="margin-top:8px">${objRows}</div>
     </div>
 
-    <div class="section-divider">
-      <div class="section-title-row">
-        <h2 class="section-title">Call Outcome Analytics${tooltipHtml('call-outcome-analytics')}</h2>
-      </div>
-    </div>
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Call Outcome Analytics${tooltipHtml('call-outcome-analytics')}</h2></div></div>
     <div class="grid-2">
       ${cardHtml('Outcome Distribution', 'Breakdown of call outcomes across all interactions', '<div class="chart-wrap h260"><canvas id="chart-call-outcome"></canvas></div>', false, 'call-outcome-analytics')}
       <div class="card">
-        <div class="card-head">
-          <div>
-            <div class="card-title">Outcome Summary</div>
-            <div class="card-sub">Count and percentage by outcome type</div>
-          </div>
-        </div>
+        <div class="card-head"><div><div class="card-title">Outcome Summary</div><div class="card-sub">Count and percentage by outcome type</div></div></div>
         <div id="call-outcome-table"></div>
       </div>
     </div>
 
-    <div class="section-divider">
-      <div class="section-title-row">
-        <h2 class="section-title">Branch Performance</h2>
-      </div>
-    </div>
+    <!-- ====== SECTION 3: PERFORMANCE ====== -->
+    <div class="section-divider"><div class="section-title-row"><h2 class="section-title">Performance</h2></div></div>
     <div class="grid-2">
       ${cardHtml('Branch Comparison', 'Assigned vs converted leads by branch office', '<div class="chart-wrap h260"><canvas id="chart-branch-overview"></canvas></div>', false, 'chart-branch-comparison')}
       ${cardHtml('Lead Source Performance', 'Lead volume and conversion by source', '<div class="chart-wrap h260"><canvas id="chart-source-overview"></canvas></div>', false, 'chart-lead-source-performance')}
     </div>
-
     ${cardHtml('Counsellor Leaderboard', 'Top counsellors by conversions and productivity', '<div id="table-leader-overview"></div>', true, 'chart-counsellor-leaderboard')}`;
 
-  // 2. Draw Funnel
+  // Draw Funnel
   drawFunnel('funnel-overview', Calc.funnelStages(leads));
 
-  // 3. Draw Dormant Lead Distribution chart
+  // Dormant Lead Distribution chart
   drawChart('chart-re-dist', {
     type: 'bar',
     data: {
@@ -613,15 +640,13 @@ function renderOverviewDashboard() {
     options: Charts.barOpts()
   });
 
-  // 5. Draw Call Outcome Distribution chart
-  const outcomeLabels = callOutcome.rows.map(r => r.outcome);
-  const outcomeData = callOutcome.rows.map(r => r.count);
+  // Call Outcome Distribution chart
   drawChart('chart-call-outcome', {
     type: 'doughnut',
     data: {
-      labels: outcomeLabels,
+      labels: callOutcome.rows.map(r => r.outcome),
       datasets: [{
-        data: outcomeData,
+        data: callOutcome.rows.map(r => r.count),
         backgroundColor: [CFG.chartColors.success, CFG.chartColors.danger, CFG.chartColors.warning, CFG.chartColors.slate, CFG.chartColors.info, CFG.chartColors.pink],
         borderWidth: 1,
         borderColor: '#0c0c0e'
@@ -630,14 +655,13 @@ function renderOverviewDashboard() {
     options: Charts.donutOpts()
   });
 
-  // Call Outcome table
   renderTable('call-outcome-table', [
     { key: 'outcome', label: 'Outcome' },
     { key: 'count', label: 'Count', render: r => fmt.int(r.count) },
     { key: 'pct', label: 'Percentage', render: r => fmt.pct(r.pct) }
   ], callOutcome.rows, { defaultSort: 'count' });
 
-  // 6. Branch Performance chart
+  // Branch Performance chart
   drawChart('chart-branch-overview', {
     type: 'bar',
     data: {
@@ -650,7 +674,7 @@ function renderOverviewDashboard() {
     options: Charts.barOpts()
   });
 
-  // 7. Lead Source Performance chart
+  // Lead Source Performance chart
   drawChart('chart-source-overview', {
     type: 'bar',
     data: {
@@ -663,7 +687,7 @@ function renderOverviewDashboard() {
     options: Charts.barOpts()
   });
 
-  // 8. Counsellor Leaderboard table
+  // Counsellor Leaderboard table
   renderTable('table-leader-overview', [
     { key: 'rank', label: '#', render: (r, i) => `<span class="rank-cell">${i + 1}</span>` },
     { key: 'name', label: 'Counsellor', render: r => `<span class="avatar">${initials(r.name)}</span><span class="name-cell">${escapeHtml(r.name)}</span>` },
