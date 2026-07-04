@@ -16,6 +16,7 @@ const CFG = {
     'Converted': 'st-converted',
     'Lost': 'st-lost'
   },
+  objections: ['Budget', 'Parents', 'Government College', 'Another Consultancy', 'Another Country', 'NEET', 'Not Interested', 'No Response', 'Next Year', 'Other'],
   chartColors: {
     primary: '#3b82f6',
     primaryLight: '#60a5fa',
@@ -278,7 +279,8 @@ function generateLeadsData(staff, count) {
         followUps: followUps,
         calls: calls,
         whatsAppCount: whatsAppCount,
-        activityLog: activityLog
+        activityLog: activityLog,
+        objection: status === 'Lost' || seededRandom() < 0.25 ? pick(CFG.objections) : null
       });
     }
   });

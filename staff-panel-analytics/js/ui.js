@@ -80,7 +80,9 @@ const METRIC_DEFS = {
   'chart-counsellor-leaderboard': 'Leaderboard of top performing counselors.',
   'chart-lead-source-performance': 'Lead source performance comparison.',
   'chart-chronological-activity-log': 'Recent updates and events logged on assigned cases.',
-  'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.'
+  'chart-assigned-lead-records': 'Operational details of leads assigned to this counselor.',
+  're-engagement': 'Leads with no activity for the specified period — opportunities for re-engagement.',
+  'objection-tracking': 'Breakdown of stated reasons why leads did not convert, helping identify patterns.'
 };
 
 function tooltipHtml(key) {
@@ -835,6 +837,10 @@ function renderManagementTab() {
     </div>
     <div class="grid-2">
       ${cardHtml('Lead Source Performance', 'Lead volume and conversion by source', '<div class="chart-wrap h260"><canvas id="chart-m-source"></canvas></div>', false, 'chart-lead-source-performance')}
+    </div>
+    <div class="grid-2">
+      ${renderReEngagementCard(leads)}
+      ${renderObjectionCard(leads)}
     </div>`;
 
   drawFunnel('funnel-m', Calc.funnelStages(leads));
@@ -896,6 +902,66 @@ function renderManagementTab() {
     },
     options: Charts.barOpts()
   });
+}
+
+function renderReEngagementCard(leads) {
+  const buckets = Calc.reEngagementBuckets(leads);
+  const rows = buckets.map(b => {
+    const trendIcon = b.trend > 0 ? '↑' : b.trend < 0 ? '↓' : '→';
+    const trendColor = b.trend > 0 ? 'var(--danger)' : b.trend < 0 ? 'var(--success)' : 'var(--text-muted)';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft)">
+        <div>
+          <div style="font-weight:600;color:var(--text-2);font-size:13px">${b.label}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${fmt.pct(b.pct)} of active leads</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:700;color:var(--text-1)">${fmt.int(b.count)}</div>
+          <div style="font-size:11px;color:${trendColor}">${trendIcon} ${fmt.int(Math.abs(b.trend))} vs prev.</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Lead Re-engagement${tooltipHtml('re-engagement')}</div>
+          <div class="card-sub">Active leads inactive for extended periods</div>
+        </div>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+function renderObjectionCard(leads) {
+  const obj = Calc.objectionBreakdown(leads);
+  const total = obj.total;
+
+  const rows = obj.rows.map(r => {
+    const pctWidth = total ? Math.max((r.count / total) * 100, 2) : 0;
+    return `
+      <div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
+          <span style="color:var(--text-2)">${escapeHtml(r.reason)}</span>
+          <span style="color:var(--text-muted)">${fmt.int(r.count)} (${fmt.pct(r.pct)})</span>
+        </div>
+        <div style="background:var(--surface-hover);border-radius:4px;height:6px;overflow:hidden">
+          <div style="height:100%;width:${pctWidth}%;background:var(--danger);border-radius:4px;transition:width .3s"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Lead Objection Tracking${tooltipHtml('objection-tracking')}</div>
+          <div class="card-sub">Reasons leads did not convert — most common: <strong>${escapeHtml(obj.mostCommon.reason)}</strong> (${fmt.int(obj.mostCommon.count)})</div>
+        </div>
+      </div>
+      <div style="margin-top:8px">${rows}</div>
+    </div>`;
 }
 
 // ============================================================

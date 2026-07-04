@@ -256,6 +256,51 @@ const Calc = {
     const aDate = new Date(a.getFullYear(), a.getMonth(), a.getDate());
     const bDate = new Date(b.getFullYear(), b.getMonth(), b.getDate());
     return Math.round((bDate - aDate) / (1000 * 60 * 60 * 24));
+  },
+
+  // Lead Re-engagement: inactivity buckets
+  inactiveLeads(leads, days, today = CFG.today) {
+    return leads.filter(l => {
+      if (l.converted || l.lost) return false;
+      const lastAct = l.lastActivityDate || l.assignedDate;
+      return this.daysBetween(lastAct, today) >= days;
+    });
+  },
+
+  reEngagementBuckets(leads, today = CFG.today) {
+    const active = leads.filter(l => !l.converted && !l.lost);
+    const total = active.length;
+    const buckets = [30, 60, 90];
+    const prevPeriodMultiplier = 1.5; // compare to (days * 1.5) ago
+    return buckets.map(days => {
+      const count = this.inactiveLeads(leads, days, today).length;
+      const prevCount = this.inactiveLeads(leads, Math.round(days * prevPeriodMultiplier), today).length;
+      return {
+        label: days + '+ days',
+        days,
+        count,
+        pct: total ? (count / total) * 100 : 0,
+        trend: prevCount ? count - prevCount : 0
+      };
+    });
+  },
+
+  // Lead Objection Analytics
+  objectionBreakdown(leads) {
+    const withObj = leads.filter(l => l.objection);
+    const map = new Map();
+    CFG.objections.forEach(o => map.set(o, 0));
+    withObj.forEach(l => {
+      map.set(l.objection, (map.get(l.objection) || 0) + 1);
+    });
+    let total = withObj.length;
+    let mostCommon = { reason: '', count: 0 };
+    const rows = CFG.objections.map(o => {
+      const c = map.get(o) || 0;
+      if (c > mostCommon.count) { mostCommon = { reason: o, count: c }; }
+      return { reason: o, count: c, pct: total ? (c / total) * 100 : 0 };
+    });
+    return { rows, total, mostCommon };
   }
 };
 
