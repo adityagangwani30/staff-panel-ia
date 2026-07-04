@@ -58,7 +58,7 @@ const CFG = {
   statusOrder: { 'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Interested': 3, 'Qualified': 4, 'Converted': 5, 'Lost': -1 },
 
   callOutcomes: ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'],
-  objectionReasons: ['Budget Constraints', 'Parents Not Convinced', 'Government College Preference', 'Joined Another Consultancy', 'Different Country Preference', 'Did Not Qualify NEET', 'Not Interested Anymore', 'No Response', 'Wants to Apply Next Year', 'Other']
+  objectionReasons: ['Budget Constraints', 'Parents Not Convinced', 'Government College Preference', 'Joined Another Consultancy', 'Different Country Preference', 'Did Not Qualify NEET', 'No Response', 'Wants to Apply Next Year', 'Other']
 };
 
 let _seed = 98765;

@@ -6,7 +6,8 @@ const LeadsUI = {
     statusFilter: 'all',
     outcomeFilter: 'all',
     editingLeadId: null,
-    activityLog: []
+    activityLog: [],
+    currentUser: { name: 'Dr. Suhail', role: 'Founder' }
   },
 
   init() {
@@ -15,6 +16,7 @@ const LeadsUI = {
     this.render();
     this.updateBadge();
     this.loadActivityLog();
+    this.loadCurrentUser();
   },
 
   loadData() {
@@ -118,19 +120,27 @@ const LeadsUI = {
     if (!outcome) return;
 
     const now = new Date();
+    const isFirstContact = !lead.firstContactDateTime;
 
     lead.callOutcome = outcome;
     lead.callAttempts = (lead.callAttempts || 0) + 1;
     lead.lastActivityDate = now;
 
-    if (!lead.firstContactDateTime) {
+    if (isFirstContact) {
       lead.firstContactDateTime = now;
     }
 
     if (outcome === 'Not Interested') {
       lead.objectionReason = document.getElementById('objectionReasonSelect').value || null;
-      const remarks = document.getElementById('objectionRemarksInput').value.trim();
-      lead.objectionRemarks = remarks || null;
+      if (lead.objectionReason === 'Other') {
+        const remarks = document.getElementById('objectionRemarksInput').value.trim();
+        lead.objectionRemarks = remarks || null;
+      } else {
+        lead.objectionRemarks = null;
+      }
+    } else {
+      lead.objectionReason = null;
+      lead.objectionRemarks = null;
     }
 
     if (DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'call outcome')) {
@@ -146,24 +156,28 @@ const LeadsUI = {
       DataLoader.rawHeaders.push('Last Activity Date Time');
     }
 
-    this.addActivity(lead, outcome);
+    if (isFirstContact) {
+      this.addActivity(lead, 'first_contact', 'First contact established', { outcome });
+    }
+    this.addActivity(lead, 'call', 'Call completed — ' + outcome, { outcome, objectionReason: lead.objectionReason });
     window.IntelAbroadData.leads = this.state.leads;
     this.persistState();
     this.closeCallModal();
     this.render();
   },
 
-  addActivity(lead, outcome) {
+  addActivity(lead, type, action, details) {
     const now = new Date();
+    const user = this.getCurrentUser();
     const entry = {
       time: now,
-      leadName: lead.studentName,
       leadId: lead.id,
-      action: 'Call completed — ' + outcome
+      leadName: lead.studentName,
+      type: type,
+      action: action,
+      user: { name: user.name, role: user.role },
+      details: details || null
     };
-    if (outcome === 'Not Interested' && lead.objectionReason) {
-      entry.action += ' (Objection: ' + lead.objectionReason + ')';
-    }
     this.state.activityLog.unshift(entry);
     this.renderActivityLog();
     this.persistActivityLog();
@@ -176,9 +190,15 @@ const LeadsUI = {
       container.innerHTML = '<div class="activity-item"><span class="activity-desc" style="color:var(--text-muted)">No recent activity.</span></div>';
       return;
     }
-    container.innerHTML = log.slice(0, 20).map(e =>
-      '<div class="activity-item"><span class="activity-time">' + this.fmtTime(e.time) + '</span><span class="activity-desc"><strong>' + this.escapeHtml(e.leadName) + '</strong> — ' + this.escapeHtml(e.action) + '</span></div>'
-    ).join('');
+    container.innerHTML = log.slice(0, 30).map(e => {
+      const type = e.type || 'call';
+      const userStr = e.user ? e.user.name : 'System';
+      return '<div class="activity-item">' +
+        '<span class="activity-time">' + this.fmtTime(e.time) + '</span>' +
+        '<span class="activity-icon ' + this.escapeHtml(type) + '"></span>' +
+        '<span class="activity-desc"><strong>' + this.escapeHtml(e.leadName) + '</strong> — ' + this.escapeHtml(e.action) + ' <span class="activity-user">by ' + this.escapeHtml(userStr) + '</span></span>' +
+        '</div>';
+    }).join('');
   },
 
   persistActivityLog() {
@@ -217,7 +237,10 @@ const LeadsUI = {
         const parsed = JSON.parse(raw);
         this.state.activityLog = parsed.map(e => ({
           ...e,
-          time: new Date(e.time)
+          time: new Date(e.time),
+          type: e.type || 'call',
+          user: e.user || { name: 'System', role: 'Unknown' },
+          details: e.details || null
         }));
         this.renderActivityLog();
       }
@@ -335,12 +358,27 @@ const LeadsUI = {
 
         if (val === 'Not Interested') {
           objField.classList.add('show');
-          remarksField.classList.add('show');
+          const objReason = document.getElementById('objectionReasonSelect');
+          if (objReason && objReason.value === 'Other') {
+            remarksField.classList.add('show');
+          }
         } else {
           objField.classList.remove('show');
           remarksField.classList.remove('show');
         }
         saveBtn.disabled = !val;
+      });
+    }
+
+    const objectionReasonSelect = document.getElementById('objectionReasonSelect');
+    if (objectionReasonSelect) {
+      objectionReasonSelect.addEventListener('change', () => {
+        const remarksField = document.getElementById('remarksField');
+        if (objectionReasonSelect.value === 'Other') {
+          remarksField.classList.add('show');
+        } else {
+          remarksField.classList.remove('show');
+        }
       });
     }
 
@@ -375,6 +413,7 @@ const LeadsUI = {
         }
         document.getElementById('sidebarProfileName').textContent = user.name;
         document.getElementById('sidebarProfileEmail').textContent = user.role === 'Founder' ? 'founder@intelabroad.com' : user.name.toLowerCase().replace(/\s+/g, '.') + '@intelabroad.com';
+        this.state.currentUser = { name: user.name, role: user.role };
       });
     }
 
@@ -432,6 +471,21 @@ const LeadsUI = {
   fmtTime(d) {
     if (!d) return '';
     return new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  },
+
+  loadCurrentUser() {
+    const switcher = document.getElementById('demoRoleSwitcher');
+    if (switcher) {
+      const nameEl = document.getElementById('sidebarProfileName');
+      this.state.currentUser = {
+        name: nameEl ? nameEl.textContent : switcher.value,
+        role: switcher.value
+      };
+    }
+  },
+
+  getCurrentUser() {
+    return this.state.currentUser || { name: 'System', role: 'Unknown' };
   }
 };
 
