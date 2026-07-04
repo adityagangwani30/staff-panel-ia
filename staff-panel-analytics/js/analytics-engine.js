@@ -89,12 +89,11 @@ const Calc = {
   },
 
   funnelStages(leads) {
-    const total = leads.length;
     const active = leads.filter(l => !l.lost);
     const order = { 'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Interested': 3, 'Qualified': 4, 'Converted': 5 };
 
-    const stageNew = total;
     function progress(s) { return order[s] !== undefined ? order[s] : 0; }
+    const stageNew = active.length;
     const stageContacted = Math.min(stageNew, active.filter(l => l.status !== 'New').length);
     const stageInterested = Math.min(stageContacted, active.filter(l => progress(l.status) >= 2).length);
     const stageApps = Math.min(stageInterested, active.filter(l => l.applicationFiled === 'Yes').length);
@@ -107,36 +106,6 @@ const Calc = {
       { stage: 'Application Filed', count: stageApps },
       { stage: 'Converted', count: stageConverted }
     ];
-  },
-
-  monthlySeries(leads, months, today) {
-    const t = today || CFG.today;
-    const m = months || 6;
-    const labels = [];
-    const assigned = [];
-    const converted = [];
-    for (let i = m - 1; i >= 0; i--) {
-      const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
-      const next = new Date(t.getFullYear(), t.getMonth() - i + 1, 1);
-      labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
-      assigned.push(leads.filter(l => l.assignedDate >= d && l.assignedDate < next).length);
-      converted.push(leads.filter(l => l.converted && l.lastActivityDate >= d && l.lastActivityDate < next).length);
-    }
-    return { labels, assigned, converted };
-  },
-
-  monthlyLeadGrowth(leads, months, today) {
-    const t = today || CFG.today;
-    const m = months || 6;
-    const labels = [];
-    const newLeads = [];
-    for (let i = m - 1; i >= 0; i--) {
-      const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
-      const next = new Date(t.getFullYear(), t.getMonth() - i + 1, 1);
-      labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
-      newLeads.push(leads.filter(l => l.assignedDate >= d && l.assignedDate < next).length);
-    }
-    return { labels, newLeads };
   },
 
   monthlyApplicationTrend(leads, months, today) {
@@ -221,14 +190,6 @@ const Calc = {
     });
   },
 
-  bestSource(sourcePerf) {
-    let best = sourcePerf[0] || { source: '—', conversionRate: 0 };
-    sourcePerf.forEach(s => {
-      if (s.assigned >= 5 && s.conversionRate > best.conversionRate) best = s;
-    });
-    return best;
-  },
-
   counsellorPerformance(leads, counsellors) {
     return counsellors.map(c => {
       const cl = leads.filter(l => l.counsellorId === c.id);
@@ -273,12 +234,6 @@ const Calc = {
       else buckets['10+']++;
     });
     return Object.entries(buckets).map(([label, count]) => ({ label, count }));
-  },
-
-  daysBetween(a, b) {
-    const aDate = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-    const bDate = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-    return Math.round((bDate - aDate) / (1000 * 60 * 60 * 24));
   },
 
   hasColumn(name) {

@@ -159,21 +159,6 @@ function trendHtml(trend) {
   return `<span class="trend-indicator" style="color:${color}">${arrow} ${trend.value}%</span>`;
 }
 
-function computeTrendForMetric(leads, metricFn, periodDays) {
-  const p = periodDays || 7;
-  const today = CFG.today;
-  const currStart = addDays(today, -p);
-  const prevStart = addDays(today, -p * 2);
-  const currLeads = leads.filter(l => l.assignedDate >= currStart);
-  const prevLeads = leads.filter(l => l.assignedDate >= prevStart && l.assignedDate < currStart);
-  if (!prevLeads.length) return null;
-  const currVal = metricFn(currLeads);
-  const prevVal = metricFn(prevLeads);
-  const diff = currVal - prevVal;
-  const pct = prevVal ? Math.round(Math.abs((diff / prevVal) * 100)) : 0;
-  return { direction: diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat', value: pct };
-}
-
 function kpiCardHtml(label, target, opts) {
   const o = opts || {};
   const icon = o.icon || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>';
@@ -425,16 +410,16 @@ function renderCounsellorAnalytics(leads) {
       },
       options: Charts.stackOpts()
     });
-  }
 
-  drawChart('chart-counsellor-calls', {
-    type: 'bar',
-    data: {
-      labels: perf.map(p => p.name),
-      datasets: [Charts.barDS('Avg Call Attempts', perf.map(p => p.avgCallAttempts), CFG.chartColors.warning)]
-    },
-    options: Charts.barOpts()
-  });
+    drawChart('chart-counsellor-calls', {
+      type: 'bar',
+      data: {
+        labels: perf.map(p => p.name),
+        datasets: [Charts.barDS('Avg Call Attempts', perf.map(p => p.avgCallAttempts), CFG.chartColors.warning)]
+      },
+      options: Charts.barOpts()
+    });
+  }
 }
 
 // ============================================================
@@ -467,7 +452,7 @@ function renderFollowupAnalytics(leads) {
     <div class="kpi-grid kpi-grid-4">
       ${kpiCardHtml('Follow-ups Due Today', dueToday, { color: 'warning', icon: iconClock(), tooltipKey: 'followups-due-today' })}
       ${kpiCardHtml('Follow-ups Due Tomorrow', dueTomorrow, { color: 'info', icon: iconClock(), tooltipKey: 'followups-due-tomorrow' })}
-      ${kpiCardHtml('Overdue Follow-ups', overdue.length, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' })}
+      ${kpiCardHtml('Overdue Follow-ups', overdue, { color: 'danger', icon: iconAlert(), tooltipKey: 'overdue-followups' })}
       ${kpiCardHtml('Average Call Attempts', avgCalls, { color: 'slate', icon: iconPhone(), tooltipKey: 'avg-call-attempts' })}
     </div>
     <div class="grid-3">
@@ -995,7 +980,6 @@ function refreshDynamicFilters() {
 
   const statusSel = document.getElementById('fStatus');
   const sourceSel = document.getElementById('fSource');
-  const counsellorSel = document.getElementById('fCounsellor');
 
   if (statusSel) {
     const current = statusSel.value;
@@ -1008,12 +992,6 @@ function refreshDynamicFilters() {
     sourceSel.innerHTML = '<option value="all">Any Source</option>';
     unique('source').forEach(v => sourceSel.appendChild(new Option(v, v)));
     sourceSel.value = current !== 'all' && unique('source').includes(current) ? current : 'all';
-  }
-  if (counsellorSel) {
-    const current = counsellorSel.value;
-    counsellorSel.innerHTML = '<option value="all">Any Assignee</option>';
-    unique('counsellorName').forEach(v => counsellorSel.appendChild(new Option(v, 'CS-' + v.replace(/\s+/g, '').substring(0, 8))));
-    counsellorSel.value = current;
   }
 
   updateSourcePillMenu();
