@@ -17,11 +17,13 @@ import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
 import { FilterState, Lead, StaffMember } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 // Components
 import { ExecutiveKpis } from '@/components/overview/ExecutiveKpis';
 import { ActionCentre } from '@/components/overview/ActionCentre';
 import { PipelineFunnel } from '@/components/overview/PipelineFunnel';
+import { StatusDist } from '@/components/overview/StatusDist';
 import { SourcePerf } from '@/components/overview/SourcePerf';
 import { CounsellorPerf } from '@/components/overview/CounsellorPerf';
 import { RecentLeads } from '@/components/overview/RecentLeads';
@@ -183,23 +185,23 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-blue-500/30">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-[#030712]/80 backdrop-blur-md border-b border-slate-900 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <header className="sticky top-0 z-40 bg-[#030712]/80 backdrop-blur-md border-b border-slate-900 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
         {/* Brand */}
         <div className="space-y-0.5 select-none">
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-md bg-blue-500/10 text-blue-400">
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-5 h-5 animate-pulse" />
             </span>
             <h1 className="text-lg font-bold tracking-tight text-slate-100">IntelAbroad Overview</h1>
           </div>
-          <p className="text-[10px] text-slate-500">Continuous CRM analytics and counseling telemetry</p>
+          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Continuous CRM Analytics Platform</p>
         </div>
 
         {/* Topbar Date Range Controls */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Custom start/end picker inputs */}
           {filters.dateRange === 'custom' && (
-            <div className="flex items-center gap-1.5 bg-slate-950/60 border border-slate-800 rounded-lg p-1">
+            <div className="flex items-center gap-1.5 bg-slate-950/60 border border-slate-800 rounded-lg p-1 animate-scale-in">
               <input 
                 type="date" 
                 value={filters.customFrom || ''} 
@@ -352,28 +354,39 @@ export default function DashboardPage() {
           <ActionCentre leads={filteredLeads} />
         </section>
 
-        {/* Section 4: Channel & Counselling Rankings */}
+        {/* Section 4: Status Distribution & Counsellor Rankings (Side-by-Side) */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none">
-              Source Performance Metrics
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none flex items-center gap-2">
+              Status Distribution
+              <Tooltip tooltipKey="activeLeads" />
             </h2>
-            <SourcePerf leads={filteredLeads} />
+            <StatusDist leads={filteredLeads} />
           </div>
           <div className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none flex items-center gap-2">
               Counsellor Performance Metrics
+              <Tooltip tooltipKey="assignedLeads" />
             </h2>
             <CounsellorPerf leads={filteredLeads} />
           </div>
         </section>
 
-        {/* Section 5: Recent Admissions */}
-        <section className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none">
-            Recent Admissions Registry
-          </h2>
-          <RecentLeads leads={filteredLeads} />
+        {/* Section 5: Marketing Channels & Recent Admissions (Side-by-Side) */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none flex items-center gap-2">
+              Source Performance Metrics
+              <Tooltip tooltipKey="sourceLeads" />
+            </h2>
+            <SourcePerf leads={filteredLeads} />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 select-none">
+              Recent Admissions Registry
+            </h2>
+            <RecentLeads leads={filteredLeads} />
+          </div>
         </section>
 
         {/* Section 6: Staff Analytics Panel */}

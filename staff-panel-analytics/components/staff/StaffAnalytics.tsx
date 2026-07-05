@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
   ResponsiveContainer, 
   PieChart, 
   Pie, 
   Cell, 
-  Tooltip as RechartsTooltip, 
-  Legend 
+  Tooltip as RechartsTooltip 
 } from 'recharts';
 import { 
   Users, 
@@ -79,7 +79,8 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
         name: d.status,
         value: d.count,
         color: CFG.statusColors[d.status] || '#64748b'
-      }));
+      }))
+      .sort((a, b) => b.value - a.value);
   }, [staffLeads]);
 
   // KPI Calculations
@@ -116,18 +117,31 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
   const personalFunnelStages = Calc.pipelineStages(staffLeads);
   const personalFunnelMax = personalFunnelStages[0]?.count || 0;
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.02 }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 8 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } }
+  };
+
   return (
     <div className="space-y-6">
       {/* Section Header with Select Dropdown */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-800/60">
-        <h2 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+        <h2 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2 select-none">
           Staff Performance Analytics
           <Tooltip tooltipKey="assignedLeads" />
         </h2>
         <Select
           value={selectedStaffId}
           onChange={(e) => setSelectedStaffId(e.target.value)}
-          className="min-width-[220px]"
+          className="min-w-[220px]"
         >
           <option value="all">All Staff (Organisation)</option>
           <optgroup label="Branch Managers">
@@ -148,40 +162,46 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
           No leads assigned under this staff member scope for the selected filters.
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="space-y-6">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+          >
             {kpiCards.map((card, idx) => {
               const Icon = card.icon;
               const colors = colorStyles[card.color] || colorStyles.slate;
               return (
-                <div 
+                <motion.div 
                   key={idx}
-                  className={`p-4 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm transition-all ${colors.border}`}
+                  variants={itemVariants}
+                  className={`p-4 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm hover:border-slate-800 transition-all duration-200 flex flex-col justify-between h-[120px]`}
                 >
                   <div className="flex justify-between items-start">
-                    <div className={`p-2 rounded-lg ${colors.bg} ${colors.text}`}>
-                      <Icon className="w-5 h-5" />
+                    <div className={`p-1.5 rounded-lg ${colors.bg} ${colors.text}`}>
+                      <Icon className="w-4 h-4" />
                     </div>
                     <Tooltip tooltipKey={card.tooltipKey} alignRight={card.alignRight} />
                   </div>
-                  <div className="mt-4 space-y-1">
-                    <div className="text-xs font-semibold text-slate-400 select-none">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none">
                       {card.label}
                     </div>
-                    <div className="text-xl font-bold tracking-tight text-slate-100 select-all">
+                    <div className="text-xl font-bold tracking-tight text-slate-100 select-all font-mono">
                       {card.value}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* Personal Funnel and Distribution charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Funnel (2/3 columns) */}
             <div className="lg:col-span-2 p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm space-y-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 select-none pb-2 border-b border-slate-800/40">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-2 border-b border-slate-800/40">
                 Personal Pipeline
               </div>
               {personalFunnelStages.map((stage, idx) => {
@@ -208,7 +228,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                         <span className="pl-3 font-mono text-xs text-slate-600 font-medium">0</span>
                       )}
                     </div>
-                    <div className="w-12 text-xs font-mono text-slate-400 font-semibold text-left">
+                    <div className="w-12 text-xs font-mono text-slate-400 font-bold text-left">
                       {idx === 0 ? '100%' : `${pctFromTotal.toFixed(0)}%`}
                     </div>
                   </div>
@@ -218,39 +238,49 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
 
             {/* Status Distribution (1/3 column) */}
             <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm flex flex-col">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 select-none pb-2 border-b border-slate-800/40">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-2 border-b border-slate-800/40">
                 Personal Status Distribution
               </div>
-              <div className="flex-1 min-h-[260px] flex items-center justify-center">
+              <div className="flex-1 min-h-[260px] flex items-center justify-center relative">
                 {chartData.length === 0 ? (
                   <div className="text-xs text-slate-500">No status data.</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#0f172a', 
-                          borderColor: '#334155', 
-                          borderRadius: '8px',
-                          fontSize: '11px',
-                          color: '#f8fafc'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#0f172a', 
+                            borderColor: '#334155', 
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            color: '#f8fafc'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                      <span className="text-2xl font-black text-slate-100 font-mono">
+                        {activeLeads}
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-1">
+                        Active Leads
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -258,7 +288,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
 
           {/* Performance Summary Table */}
           <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 select-none pb-3 border-b border-slate-800/60">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-3 border-b border-slate-800/60">
               Performance Summary
             </div>
             <div className="overflow-x-auto mt-2">
@@ -270,7 +300,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/30 text-slate-300">
-                  <tr className="hover:bg-slate-900/20 transition-colors">
+                  <tr className="hover:bg-slate-950/20 transition-colors">
                     <td className="py-2.5 font-medium text-slate-200">
                       Assigned Leads <Tooltip tooltipKey="assignedLeads" />
                     </td>
@@ -312,7 +342,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
               </table>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
