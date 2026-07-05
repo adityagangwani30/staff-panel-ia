@@ -1,6 +1,6 @@
 const CFG = {
   today: new Date('2026-07-03T09:00:00'),
-  sourceCentres: ['Delhi Office', 'Delhi 2026', 'Nagpur 2026', 'Raipur Office'],
+  sourceCentres: ['Delhi Office', 'Raipur Office'],
   sources: ['Facebook Ads', 'Google Ads', 'Instagram', 'Referral', 'Walk-in', 'Website', 'Education Fair', 'Agent Partner'],
   statuses: [
     'DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5',
@@ -60,17 +60,10 @@ const CFG = {
   staff: [
     { id: 'S001', name: 'Dr. Suhail', role: 'Founder', sourceCentre: 'all', reportsTo: null, profile: 'star-performer' },
     { id: 'S002', name: 'Vanshta Verma', role: 'BranchManager', sourceCentre: 'Delhi Office', reportsTo: 'S001', profile: 'high-performer' },
-    { id: 'S003', name: 'Raunaq', role: 'BranchManager', sourceCentre: 'Delhi 2026', reportsTo: 'S001', profile: 'medium-performer' },
-    { id: 'S004', name: 'Dr. Roshan', role: 'BranchManager', sourceCentre: 'Nagpur 2026', reportsTo: 'S001', profile: 'high-performer' },
     { id: 'S005', name: 'Kunal Taswala', role: 'BranchManager', sourceCentre: 'Raipur Office', reportsTo: 'S001', profile: 'medium-performer' },
     { id: 'S006', name: 'Hemant Vaidya', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'star-performer' },
     { id: 'S007', name: 'Firdauss', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
     { id: 'S008', name: 'Mehak Khan', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
-    { id: 'S009', name: 'Monty Sharma', role: 'TeamLead', sourceCentre: 'Delhi 2026', reportsTo: 'S003', profile: 'medium-performer' },
-    { id: 'S010', name: 'Adhira Saxena', role: 'Counsellor', sourceCentre: 'Delhi 2026', reportsTo: 'S009', profile: 'star-performer' },
-    { id: 'S011', name: 'Vimlesh Tiwari', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'low-performer' },
-    { id: 'S012', name: 'Gargi Raparia', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'high-performer' },
-    { id: 'S013', name: 'Brinder Singh', role: 'Counsellor', sourceCentre: 'Nagpur 2026', reportsTo: 'S004', profile: 'medium-performer' },
     { id: 'S014', name: 'Sofiya Khan', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'low-performer' },
     { id: 'S015', name: 'Payal Shankhwar', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'medium-performer' },
     { id: 'S016', name: 'Aditya Gangwani', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'star-performer' },
@@ -154,10 +147,8 @@ function generateLeadsData(staff, count) {
   }
 
   const centreLeadsCount = {
-    'Delhi Office': Math.floor(count * 0.44),
-    'Delhi 2026': Math.floor(count * 0.26),
-    'Nagpur 2026': Math.floor(count * 0.18),
-    'Raipur Office': Math.floor(count * 0.12)
+    'Delhi Office': Math.floor(count * 0.65),
+    'Raipur Office': Math.floor(count * 0.35)
   };
 
   const centreStaff = {};

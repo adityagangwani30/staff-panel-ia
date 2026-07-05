@@ -266,27 +266,6 @@ const DataLoader = {
     return { leads, meta, rowCount: json.length };
   },
 
-  resetToDemo() {
-    const demoData = getInitialDataset();
-    window.IntelAbroadData.leads = demoData.leads;
-    window.IntelAbroadData.staff = window.IntelAbroadData._demoStaff
-      ? JSON.parse(JSON.stringify(window.IntelAbroadData._demoStaff))
-      : demoData.staff;
-    window.IntelAbroadData.sources = demoData.sources;
-    window.IntelAbroadData.sourceCentres = demoData.sourceCentres;
-    CFG.statuses = [
-      'DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5',
-      'NATC', 'Cold Lead', 'Warm Lead', 'Hot Lead', 'Call Back',
-      'Interested', 'Consultation Booked', 'Consultation Done',
-      'Consultation Submitted', 'Documents Submitted', 'Applied',
-      'Enrolled', 'Lost/Dead'
-    ];
-    this.source = 'demo';
-    this.fileName = null;
-    this.rawHeaders = [];
-    try { localStorage.removeItem('intelabroad_leads'); } catch (e) {}
-  },
-
   parseDate(val) {
     if (!val) return null;
     if (val instanceof Date) return val;

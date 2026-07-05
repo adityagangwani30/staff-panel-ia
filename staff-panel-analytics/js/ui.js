@@ -1,14 +1,7 @@
 const State = {
-  currentUser: {
-    role: 'Founder',
-    name: 'Dr. Suhail',
-    id: 'S001',
-    sourceCentre: 'all'
-  },
   filters: {
     from: null,
     to: null,
-    sourceCentre: 'all',
     counsellor: 'all',
     source: 'all',
     status: 'all'
@@ -67,16 +60,12 @@ function kpiCardHtml(label, target, opts) {
 }
 
 function actionCardHtml(icon, color, label, count, desc) {
-  return `<div class="action-card"><div class="action-card-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div><div class="action-card-body"><div class="action-card-count">${fmt.int(count)}</div><div class="action-card-label">${label}</div></div><div class="action-card-desc">${desc}</div></div>`;
+  return `<div class="action-card" style="border-left:3px solid color-mix(in srgb, var(--${color}) 30%, transparent)"><div class="action-card-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div><div class="action-card-body"><div class="action-card-count">${fmt.int(count)}</div><div class="action-card-label">${label}</div></div><div class="action-card-desc">${desc}</div></div>`;
 }
 
 function statusBadge(status) {
   const cls = CFG.statusClass[status] || 'st-default';
   return `<span class="badge ${cls}">${status}</span>`;
-}
-
-function initials(name) {
-  return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
 function emptyStateHtml(message, subtitle) {
@@ -137,7 +126,8 @@ function drawFunnel(containerId, stages) {
   }
   container.innerHTML = `<div class="funnel">${stages.map((s, i) => {
     const pct = max ? (s.count / max) * 100 : 0;
-    return `<div class="funnel-row"><div class="funnel-label">${s.stage}</div><div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct, 6)}%;background:${CFG.palette[i % CFG.palette.length]}">${s.count}</div></div><div class="funnel-pct">${i === 0 ? '100%' : fmt.pct(stages[0].count ? (s.count / stages[0].count) * 100 : 0, 0)}</div></div>`;
+    const filterKey = i === 0 ? 'total' : s.stage.toLowerCase().replace(/\s+/g, '_');
+    return `<div class="funnel-row" data-filter="${filterKey}"><div class="funnel-label">${s.stage}</div><div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct, 6)}%;background:${CFG.palette[i % CFG.palette.length]}">${s.count}</div></div><div class="funnel-pct">${i === 0 ? '100%' : fmt.pct(stages[0].count ? (s.count / stages[0].count) * 100 : 0, 0)}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -159,7 +149,6 @@ function renderExecutiveKpis(leads) {
     kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget() }) +
     kpiCardHtml('Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconClock() }) +
     kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
-    kpiCardHtml('Avg Calls', Calc.averageCalls(leads), { color: 'slate', icon: iconPhone(), sub: fmt.dec(Calc.averageCalls(leads), 1) + ' per lead' }) +
     kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck() }) +
     kpiCardHtml('Enrollment Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true });
 }
@@ -304,29 +293,13 @@ function renderOverview(leads) {
 
 function applyFilters() {
   const f = State.filters;
-  const user = State.currentUser;
-
   let allowedLeads = window.IntelAbroadData.leads;
-
-  if (user.role === 'Counsellor') {
-    f.sourceCentre = user.sourceCentre;
-    f.counsellor = user.id;
-  } else if (user.role === 'TeamLead') {
-    f.sourceCentre = user.sourceCentre;
-    const teamMembers = window.IntelAbroadData.staff.filter(s => s.reportsTo === user.id || s.id === user.id).map(s => s.id);
-    allowedLeads = allowedLeads.filter(l => teamMembers.includes(l.counsellorId));
-    if (f.counsellor !== 'all' && !teamMembers.includes(f.counsellor)) f.counsellor = 'all';
-  } else if (user.role === 'BranchManager') {
-    f.sourceCentre = user.sourceCentre;
-    allowedLeads = allowedLeads.filter(l => l.sourceCentre === user.sourceCentre);
-  }
 
   State.filtered = allowedLeads.filter(l => {
     const targetDate = l.entryDate;
     if (!targetDate && (f.from || f.to)) return false;
     if (f.from && targetDate < f.from) return false;
     if (f.to && targetDate > f.to) return false;
-    if (f.sourceCentre !== 'all' && l.sourceCentre !== f.sourceCentre) return false;
     if (f.counsellor !== 'all' && l.counsellorId !== f.counsellor) return false;
     if (f.source !== 'all' && l.source !== f.source) return false;
     if (f.status !== 'all' && l.status !== f.status) return false;
@@ -336,11 +309,10 @@ function applyFilters() {
 
 function renderChips() {
   const f = State.filters;
-  const user = State.currentUser;
   const chips = [];
   if (f.from) chips.push(['From: ' + fmt.date(f.from), 'from']);
   if (f.to) chips.push(['To: ' + fmt.date(f.to), 'to']);
-  if (user.role !== 'Counsellor' && f.counsellor !== 'all') {
+  if (f.counsellor !== 'all') {
     const s = window.IntelAbroadData.staff.find(s => s.id === f.counsellor);
     chips.push(['Counsellor: ' + (s ? s.name : f.counsellor), 'counsellor']);
   }
@@ -382,32 +354,6 @@ function refreshDynamicFilters() {
     unique('source').forEach(v => sourceSel.appendChild(new Option(v, v)));
     sourceSel.value = current !== 'all' && unique('source').includes(current) ? current : 'all';
   }
-
-  updateSourcePillMenu();
-}
-
-function updateSourcePillMenu() {
-  const menu = document.getElementById('sourceMenu');
-  if (!menu) return;
-  const centres = window.IntelAbroadData.sourceCentres || [];
-  const current = menu.querySelector('.dropdown-item.active');
-  const currentVal = current ? current.dataset.val : 'all';
-  menu.innerHTML = '<button class="dropdown-item" data-val="all">All Centres</button>';
-  centres.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'dropdown-item';
-    btn.dataset.val = c;
-    btn.textContent = c;
-    if (c === currentVal) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      State.filters.sourceCentre = c;
-      document.querySelector('.branch-name-text').textContent = c;
-      document.querySelectorAll('#sourceMenu .dropdown-item').forEach(i => i.classList.remove('active'));
-      btn.classList.add('active');
-      runPipeline();
-    });
-    menu.appendChild(btn);
-  });
 }
 
 function runPipeline() {
@@ -420,18 +366,6 @@ function runPipeline() {
 function updateLastUpdatedText() {
   const node = document.getElementById('lastUpdated');
   if (node) node.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-function updateDataSourceBadge() {
-  const badge = document.getElementById('dataSourceBadge');
-  if (!badge) return;
-  if (DataLoader.source === 'excel') {
-    badge.textContent = 'Real Data' + (DataLoader.fileName ? ' — ' + DataLoader.fileName : '');
-    badge.className = 'data-source-badge real';
-  } else {
-    badge.textContent = 'Demo Data';
-    badge.className = 'data-source-badge';
-  }
 }
 
 // ============================================================
@@ -452,34 +386,13 @@ function readFiltersFromForm() {
 }
 
 function updateAssigneeDropdownOptions() {
-  const user = State.currentUser;
   const select = document.getElementById('fCounsellor');
   if (!select) return;
   select.innerHTML = '<option value="all">Any Assignee</option>';
   let allowedStaff = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
-  if (user.role === 'BranchManager') allowedStaff = allowedStaff.filter(s => s.sourceCentre === user.sourceCentre);
-  else if (user.role === 'TeamLead') allowedStaff = allowedStaff.filter(s => s.reportsTo === user.id || s.id === user.id);
-  else if (user.role === 'Counsellor') allowedStaff = allowedStaff.filter(s => s.id === user.id);
   allowedStaff.sort((a, b) => a.name.localeCompare(b.name)).forEach(s => select.appendChild(new Option(s.name, s.id)));
-  if (user.role === 'Counsellor') { select.disabled = true; select.value = user.id; }
-  else { select.disabled = false; select.value = State.filters.counsellor; }
-}
-
-function updateSourceDropdownOptions() {
-  const user = State.currentUser;
-  const pill = document.getElementById('sourcePill');
-  const menu = document.getElementById('sourceMenu');
-  if (!pill) return;
-  if (user.role === 'Founder') {
-    pill.style.pointerEvents = 'auto';
-    pill.querySelector('svg').style.display = 'block';
-    pill.querySelector('.branch-name-text').textContent = State.filters.sourceCentre === 'all' ? 'All Centres' : State.filters.sourceCentre;
-  } else {
-    pill.style.pointerEvents = 'none';
-    pill.querySelector('svg').style.display = 'none';
-    pill.querySelector('.branch-name-text').textContent = user.sourceCentre;
-    State.filters.sourceCentre = user.sourceCentre;
-  }
+  select.disabled = false;
+  select.value = State.filters.counsellor;
 }
 
 // ============================================================
@@ -491,7 +404,6 @@ function handleExcelUpload(file) {
     DataLoader.applyDataset(result.leads, result.meta);
     DataLoader.fileName = file.name;
     refreshDynamicFilters();
-    updateDataSourceBadge();
     updateAssigneeDropdownOptions();
     runPipeline();
   }).catch(err => {
@@ -499,64 +411,11 @@ function handleExcelUpload(file) {
   });
 }
 
-function handleReloadDemo() {
-  DataLoader.resetToDemo();
-  refreshDynamicFilters();
-  updateDataSourceBadge();
-  updateAssigneeDropdownOptions();
-  runPipeline();
-}
-
 // ============================================================
 // INIT
 // ============================================================
 
 function wireEvents() {
-  const sourcePill = document.getElementById('sourcePill');
-  const sourceMenu = document.getElementById('sourceMenu');
-  if (sourcePill && sourceMenu) {
-    sourcePill.addEventListener('click', e => { e.stopPropagation(); sourceMenu.classList.toggle('show'); });
-    sourceMenu.querySelectorAll('.dropdown-item').forEach(item => {
-      item.addEventListener('click', () => {
-        State.filters.sourceCentre = item.dataset.val;
-        sourcePill.querySelector('.branch-name-text').textContent = item.dataset.val === 'all' ? 'All Centres' : item.dataset.val;
-        sourceMenu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        runPipeline();
-      });
-    });
-  }
-
-  document.addEventListener('click', () => { sourceMenu?.classList.remove('show'); });
-
-  const roleSwitcher = document.getElementById('demoRoleSwitcher');
-  if (roleSwitcher) {
-    roleSwitcher.addEventListener('change', () => {
-      const val = roleSwitcher.value;
-      const staffList = window.IntelAbroadData.staff || [];
-      let user;
-      if (val === 'Founder') {
-        user = { role: 'Founder', name: 'Dr. Suhail', id: 'S001', sourceCentre: 'all' };
-      } else {
-        const candidate = staffList.find(s => s.role === val);
-        if (candidate) {
-          user = { role: val, name: candidate.name, id: candidate.id, sourceCentre: candidate.sourceCentre || 'all' };
-        } else {
-          user = { role: val, name: val, id: 'X-' + val, sourceCentre: 'all' };
-        }
-      }
-      State.currentUser = user;
-      document.getElementById('sidebarProfileName').textContent = user.name;
-      document.getElementById('sidebarProfileEmail').textContent =
-        user.role === 'Founder' ? 'founder@intelabroad.com' : user.name.toLowerCase().replace(/\s+/g, '.') + '@intelabroad.com';
-      State.filters.sourceCentre = user.sourceCentre;
-      State.filters.counsellor = 'all';
-      updateSourceDropdownOptions();
-      updateAssigneeDropdownOptions();
-      runPipeline();
-    });
-  }
-
   document.getElementById('applyFiltersBtn')?.addEventListener('click', () => { readFiltersFromForm(); runPipeline(); });
   document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
     ['fDateFrom', 'fDateTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -573,8 +432,6 @@ function wireEvents() {
     if (e.target.files && e.target.files[0]) handleExcelUpload(e.target.files[0]);
   });
 
-  document.getElementById('reloadDemoBtn')?.addEventListener('click', handleReloadDemo);
-
   const sidebar = document.getElementById('sidebar');
   const collapseBtn = document.getElementById('sidebarCollapseBtn');
   if (collapseBtn && sidebar) {
@@ -587,11 +444,9 @@ async function initUI() {
   try {
     await DataLoader.loadFromDefaultUrl();
   } catch (e) {}
-  updateDataSourceBadge();
   populateFilterOptions();
   readFiltersFromForm();
   wireEvents();
-  updateSourceDropdownOptions();
   updateAssigneeDropdownOptions();
   runPipeline();
 }
