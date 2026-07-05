@@ -130,6 +130,46 @@ const Calc = {
       return total + (diffMs / (1000 * 60 * 60 * 24));
     }, 0);
     return sum / overdueLeads.length;
+  },
+
+  getLastActivityDate(lead) {
+    if (lead.activityLog && lead.activityLog.length) {
+      const dates = lead.activityLog.map(a => new Date(a.date).getTime()).filter(t => !isNaN(t));
+      if (dates.length) {
+        return new Date(Math.max(...dates));
+      }
+    }
+    return lead.updatedDate || lead.entryDate || null;
+  },
+
+  inactiveLeads30(leads, today) {
+    const target = today || CFG.today;
+    const targetMidnight = new Date(target.toDateString());
+    const limit = new Date(targetMidnight.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return leads.filter(l => {
+      const act = this.getLastActivityDate(l);
+      return act && act <= limit && this._isActive(l);
+    }).length;
+  },
+
+  inactiveLeads60(leads, today) {
+    const target = today || CFG.today;
+    const targetMidnight = new Date(target.toDateString());
+    const limit = new Date(targetMidnight.getTime() - 60 * 24 * 60 * 60 * 1000);
+    return leads.filter(l => {
+      const act = this.getLastActivityDate(l);
+      return act && act <= limit && this._isActive(l);
+    }).length;
+  },
+
+  inactiveLeads90(leads, today) {
+    const target = today || CFG.today;
+    const targetMidnight = new Date(target.toDateString());
+    const limit = new Date(targetMidnight.getTime() - 90 * 24 * 60 * 60 * 1000);
+    return leads.filter(l => {
+      const act = this.getLastActivityDate(l);
+      return act && act <= limit && this._isActive(l);
+    }).length;
   }
 };
 

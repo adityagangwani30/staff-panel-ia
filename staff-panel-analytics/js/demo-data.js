@@ -122,6 +122,53 @@ function pickWeightedStatus() {
   return 'DNP 1';
 }
 
+function generateActivityLog(entryDate, updatedDate, status, calls, notes, followUpDate) {
+  const log = [];
+  log.push({ date: new Date(entryDate), type: 'Created', details: 'Lead created in CRM' });
+
+  const totalDays = Math.max(0, Math.floor((new Date(updatedDate) - new Date(entryDate)) / (1000 * 60 * 60 * 24)));
+
+  if (calls > 0) {
+    for (let c = 0; c < calls; c++) {
+      const callDays = totalDays > 0 ? Math.floor(seededRandom() * totalDays) : 0;
+      const callDate = addDays(entryDate, callDays);
+      log.push({ date: callDate, type: 'Call Completed', details: 'Outgoing call completed' });
+    }
+  }
+
+  if (notes) {
+    const noteDays = totalDays > 0 ? Math.floor(seededRandom() * totalDays) : 0;
+    log.push({ date: addDays(entryDate, noteDays), type: 'Notes Added', details: notes });
+  }
+
+  const order = CFG.statusOrder;
+  const statusVal = order[status] || 0;
+
+  if (statusVal >= order['Interested']) {
+    log.push({ date: addDays(entryDate, Math.min(totalDays, 2)), type: 'Status Changed', details: 'Status updated to Interested' });
+  }
+  if (statusVal >= order['Consultation Booked']) {
+    log.push({ date: addDays(entryDate, Math.min(totalDays, 4)), type: 'Consultation Booked', details: 'Consultation scheduled' });
+  }
+  if (statusVal >= order['Consultation Done']) {
+    log.push({ date: addDays(entryDate, Math.min(totalDays, 6)), type: 'Consultation Done', details: 'Consultation completed successfully' });
+  }
+  if (statusVal >= order['Documents Submitted']) {
+    log.push({ date: addDays(entryDate, Math.min(totalDays, 8)), type: 'Documents Submitted', details: 'Academic documents uploaded' });
+  }
+  if (statusVal >= order['Applied']) {
+    log.push({ date: addDays(entryDate, Math.min(totalDays, 10)), type: 'Applied', details: 'Application submitted to university' });
+  }
+  if (status === 'Enrolled') {
+    log.push({ date: new Date(updatedDate), type: 'Status Changed', details: 'Status updated to Enrolled' });
+  } else if (status === 'Lost/Dead') {
+    log.push({ date: new Date(updatedDate), type: 'Status Changed', details: 'Status updated to Lost/Dead' });
+  }
+
+  log.sort((a, b) => a.date - b.date);
+  return log;
+}
+
 function generateLeadsData(staff, count) {
   const leads = [];
 
@@ -259,6 +306,7 @@ function generateLeadsData(staff, count) {
         notes: notes,
         entryDate: entryDate,
         updatedDate: updatedDate,
+        activityLog: generateActivityLog(entryDate, updatedDate, status, calls, notes, followUpDate),
         city: city,
         state: state,
         neet: neet,
@@ -295,6 +343,9 @@ function getPersistedDataset() {
         if (l.entryDate) l.entryDate = new Date(l.entryDate);
         if (l.updatedDate) l.updatedDate = new Date(l.updatedDate);
         if (l.followUpDate) l.followUpDate = new Date(l.followUpDate);
+        if (l.activityLog) {
+          l.activityLog.forEach(a => a.date = new Date(a.date));
+        }
       });
       const demo = getInitialDataset();
       return { leads: leads, staff: demo.staff, sourceCentres: demo.sourceCentres, sources: demo.sources };

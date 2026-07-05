@@ -162,6 +162,24 @@ const MetricTooltipDefs = {
     def: 'Count of active leads in staff scope with follow-up date scheduled today or in future.',
     formula: 'COUNT(Follow-Up Date ≥ Today AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
     data: 'Follow-Up Date, Status, Counsellor ID'
+  },
+  inactiveLeads30: {
+    def: 'Number of active leads that have not had any recorded CRM activity during the last 30 days.',
+    formula: 'COUNT(Last Activity Date ≤ Today - 30 Days AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Activity Log, Status',
+    business: 'Identifies dormant leads that are ideal candidates for re-engagement campaigns such as WhatsApp broadcasts, follow-up calls, and email nurturing.'
+  },
+  inactiveLeads60: {
+    def: 'Number of active leads that have not had any recorded CRM activity during the last 60 days.',
+    formula: 'COUNT(Last Activity Date ≤ Today - 60 Days AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Activity Log, Status',
+    business: 'Highlights leads requiring standard manager reviews or team redistribution to prevent drop-off.'
+  },
+  inactiveLeads90: {
+    def: 'Number of active leads that have not had any recorded CRM activity during the last 90 days.',
+    formula: 'COUNT(Last Activity Date ≤ Today - 90 Days AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Activity Log, Status',
+    business: 'Flags long-term dormant leads that should be assigned to special re-engagement queues or archived if unresponsive.'
   }
 };
 
@@ -170,7 +188,8 @@ function tooltipHtml(key, alignRight) {
   if (!info) return '';
   const rightClass = alignRight ? ' tooltip-right' : '';
   const label = key.replace(/([A-Z])/g, ' $1').toLowerCase();
-  return `<span class="tooltip-wrap"><span class="info-btn" tabindex="0" role="button" aria-label="More information about ${escapeHtml(label)}" onclick="event.stopPropagation()"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble${rightClass}"><strong>Definition:</strong><br>${info.def}<br><strong style="display:block;margin-top:6px;">Formula:</strong><code>${info.formula}</code><br><strong style="display:block;margin-top:6px;">Data Used:</strong>${info.data}</span></span>`;
+  const bizHtml = info.business ? `<br><strong style="display:block;margin-top:6px;">Business Use:</strong>${info.business}` : '';
+  return `<span class="tooltip-wrap"><span class="info-btn" tabindex="0" role="button" aria-label="More information about ${escapeHtml(label)}" onclick="event.stopPropagation()"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble${rightClass}"><strong>Definition:</strong><br>${info.def}<br><strong style="display:block;margin-top:6px;">Formula:</strong><code>${info.formula}</code><br><strong style="display:block;margin-top:6px;">Data Used:</strong>${info.data}${bizHtml}</span></span>`;
 }
 
 const fmt = {
@@ -220,8 +239,9 @@ function kpiCardHtml(label, target, opts) {
   const sub = o.sub || '';
   const tooltipKey = o.tooltipKey || '';
   const tooltipAlignRight = o.tooltipAlignRight || false;
+  const clickAttr = o.onclick ? ` onclick="${o.onclick}" style="cursor:pointer;"` : '';
   const displayVal = isPct ? fmt.pct(target, 1) : (typeof target === 'string' ? escapeHtml(target) : fmt.int(target));
-  return `<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>${tooltipKey ? tooltipHtml(tooltipKey, tooltipAlignRight) : ''}</div><div class="kpi-label">${label}</div><div class="kpi-value">${displayVal}</div>${sub ? `<div class="kpi-trend-row"><span class="kpi-sub">${sub}</span></div>` : ''}</div>`;
+  return `<div class="kpi-card"${clickAttr}><div class="kpi-top"><div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>${tooltipKey ? tooltipHtml(tooltipKey, tooltipAlignRight) : ''}</div><div class="kpi-label">${label}</div><div class="kpi-value">${displayVal}</div>${sub ? `<div class="kpi-trend-row"><span class="kpi-sub">${sub}</span></div>` : ''}</div>`;
 }
 
 function actionCardHtml(icon, color, label, count, desc, tooltipKey, tooltipAlignRight) {
@@ -318,7 +338,10 @@ function renderExecutiveKpis(leads) {
     kpiCardHtml('Consultation Booked', Calc.consultationBooked(leads), { color: 'info', icon: iconBarChart(), tooltipKey: 'consultationBooked' }) +
     kpiCardHtml('Applications Submitted', Calc.applicationsSubmitted(leads), { color: 'info', icon: iconCheck(), tooltipKey: 'applicationsSubmitted' }) +
     kpiCardHtml('Unassigned Leads', Calc.unassignedLeads(leads), { color: 'slate', icon: iconUsers(), tooltipKey: 'unassignedLeads' }) +
-    kpiCardHtml('Lost / Dead Leads', Calc.lostLeads(leads), { color: 'slate', icon: iconAlert(), tooltipKey: 'lostLeads', tooltipAlignRight: true });
+    kpiCardHtml('Lost / Dead Leads', Calc.lostLeads(leads), { color: 'slate', icon: iconAlert(), tooltipKey: 'lostLeads', tooltipAlignRight: true }) +
+    kpiCardHtml('30-Day Inactive Leads', Calc.inactiveLeads30(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'inactiveLeads30', onclick: 'showInactiveLeads(30)' }) +
+    kpiCardHtml('60-Day Inactive Leads', Calc.inactiveLeads60(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'inactiveLeads60', onclick: 'showInactiveLeads(60)' }) +
+    kpiCardHtml('90-Day Inactive Leads', Calc.inactiveLeads90(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'inactiveLeads90', tooltipAlignRight: true, onclick: 'showInactiveLeads(90)' });
 }
 
 // ============================================================
@@ -817,7 +840,69 @@ function wireEvents() {
     collapseBtn.addEventListener('click', e => { e.stopPropagation(); sidebar.classList.toggle('open'); });
     document.addEventListener('click', () => { sidebar.classList.remove('open'); });
   }
+
+  // Modal events close
+  document.getElementById('closeModalBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('leadModal');
+    if (modal) modal.style.display = 'none';
+  });
+  document.getElementById('leadModal')?.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) {
+      e.target.style.display = 'none';
+    }
+  });
 }
+
+function openLeadsModal(title, leadsList) {
+  const modal = document.getElementById('leadModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  if (!modal || !modalTitle || !modalBody) return;
+
+  modalTitle.textContent = title + ` (${leadsList.length})`;
+
+  if (!leadsList.length) {
+    modalBody.innerHTML = emptyStateHtml('No inactive leads found.');
+  } else {
+    modalBody.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Name</th><th>Phone</th><th>Assigned To</th><th>Source</th><th>Last Activity</th><th>Status</th></tr></thead><tbody>${leadsList.map(l => {
+      const lastAct = Calc.getLastActivityDate(l);
+      const lastActStr = lastAct ? fmt.date(lastAct) : '—';
+      return `<tr><td class="name-cell">${escapeHtml(l.studentName || '—')}</td><td>${escapeHtml(l.phone || '—')}</td><td>${escapeHtml(l.counsellorName || 'Unassigned')}</td><td>${escapeHtml(l.source || '—')}</td><td>${lastActStr}</td><td>${statusBadge(l.status)}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  }
+
+  modal.style.display = 'flex';
+}
+
+window.showInactiveLeads = function(days) {
+  const leads = State.filtered;
+  let title = '';
+  let filtered = [];
+
+  if (days === 30) {
+    title = '30-Day Inactive Leads';
+    const limit = new Date(new Date(CFG.today.toDateString()).getTime() - 30 * 24 * 60 * 60 * 1000);
+    filtered = leads.filter(l => {
+      const act = Calc.getLastActivityDate(l);
+      return act && act <= limit && Calc._isActive(l);
+    });
+  } else if (days === 60) {
+    title = '60-Day Inactive Leads';
+    const limit = new Date(new Date(CFG.today.toDateString()).getTime() - 60 * 24 * 60 * 60 * 1000);
+    filtered = leads.filter(l => {
+      const act = Calc.getLastActivityDate(l);
+      return act && act <= limit && Calc._isActive(l);
+    });
+  } else if (days === 90) {
+    title = '90-Day Inactive Leads';
+    const limit = new Date(new Date(CFG.today.toDateString()).getTime() - 90 * 24 * 60 * 60 * 1000);
+    filtered = leads.filter(l => {
+      const act = Calc.getLastActivityDate(l);
+      return act && act <= limit && Calc._isActive(l);
+    });
+  }
+  openLeadsModal(title, filtered);
+};
 
 async function initUI() {
   try {
