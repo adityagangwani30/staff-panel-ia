@@ -14,17 +14,7 @@ const Calc = {
     return t ? (this.enrolled(leads) / t) * 100 : 0;
   },
 
-  newLeads(leads, today) {
-    const target = today || CFG.today;
-    const key = target.toDateString();
-    return leads.filter(l => l.entryDate && l.entryDate.toDateString() === key).length;
-  },
 
-  newLeadsPeriod(leads, days, today) {
-    const target = today || CFG.today;
-    const cutoff = addDays(target, -days);
-    return leads.filter(l => l.entryDate && l.entryDate >= cutoff).length;
-  },
 
   pendingFollowups(leads, today) {
     const target = today || CFG.today;
@@ -42,12 +32,7 @@ const Calc = {
     return leads.filter(l => l.followUpDate && l.followUpDate.toDateString() === key).length;
   },
 
-  followupsDueTomorrow(leads, today) {
-    const target = today || CFG.today;
-    const tomorrow = addDays(target, 1);
-    const key = tomorrow.toDateString();
-    return leads.filter(l => l.followUpDate && l.followUpDate.toDateString() === key).length;
-  },
+
 
   hotLeads(leads) {
     return leads.filter(l => l.status === 'Hot Lead' && this._isActive(l)).length;
