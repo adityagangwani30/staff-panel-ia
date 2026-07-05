@@ -1006,46 +1006,30 @@ tbody tr.clickable-row {
   display: inline-block;
   border: 1px solid transparent;
 }
-.badge.st-new {
-  background: rgba(59, 130, 246, 0.12);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.2);
-}
-.badge.st-contacted {
-  background: rgba(168, 85, 247, 0.12);
-  color: #c084fc;
-  border-color: rgba(168, 85, 247, 0.2);
-}
-.badge.st-followup {
-  background: rgba(234, 179, 8, 0.12);
-  color: #facc15;
-  border-color: rgba(234, 179, 8, 0.2);
-}
-.badge.st-qualified {
-  background: rgba(59, 130, 246, 0.12);
-  color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.2);
-}
-.badge.st-interested {
-  background: rgba(6, 182, 212, 0.12);
-  color: #22d3ee;
-  border-color: rgba(6, 182, 212, 0.2);
-}
-.badge.st-converted {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.2);
-}
-.badge.st-lost {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.2);
-}
+
 .badge.st-default {
   background: var(--surface-hover);
   color: var(--text-3);
   border-color: var(--border);
 }
+.badge.st-dnp1 { background: rgba(100, 116, 139, 0.12); color: #94a3b8; border-color: rgba(100, 116, 139, 0.2); }
+.badge.st-dnp2 { background: rgba(100, 116, 139, 0.18); color: #94a3b8; border-color: rgba(100, 116, 139, 0.25); }
+.badge.st-dnp3 { background: rgba(100, 116, 139, 0.24); color: #cbd5e1; border-color: rgba(100, 116, 139, 0.3); }
+.badge.st-dnp4 { background: rgba(100, 116, 139, 0.3); color: #cbd5e1; border-color: rgba(100, 116, 139, 0.35); }
+.badge.st-dnp5 { background: rgba(100, 116, 139, 0.36); color: #e2e8f0; border-color: rgba(100, 116, 139, 0.4); }
+.badge.st-natc { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.2); }
+.badge.st-cold { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }
+.badge.st-warm { background: rgba(52, 211, 153, 0.12); color: #34d399; border-color: rgba(52, 211, 153, 0.2); }
+.badge.st-hot { background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+.badge.st-callback { background: rgba(234, 179, 8, 0.12); color: #facc15; border-color: rgba(234, 179, 8, 0.2); }
+.badge.st-interested { background: rgba(6, 182, 212, 0.12); color: #22d3ee; border-color: rgba(6, 182, 212, 0.2); }
+.badge.st-cons-booked { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.25); }
+.badge.st-cons-done { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-color: rgba(139, 92, 246, 0.25); }
+.badge.st-cons-sub { background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.25); }
+.badge.st-docs-sub { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.25); }
+.badge.st-applied { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-color: rgba(59, 130, 246, 0.3); }
+.badge.st-enrolled { background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.25); }
+.badge.st-lost { background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
 
 .calls-badge {
   display: inline-flex;

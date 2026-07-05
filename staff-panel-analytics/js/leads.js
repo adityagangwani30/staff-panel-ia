@@ -42,8 +42,8 @@ const LeadsUI = {
         if (!name.includes(q) && !phone.includes(q)) return false;
       }
       if (s.statusFilter !== 'all' && l.status !== s.statusFilter) return false;
-      if (s.outcomeFilter === 'none' && l.callOutcome) return false;
-      if (s.outcomeFilter !== 'all' && s.outcomeFilter !== 'none' && l.callOutcome !== s.outcomeFilter) return false;
+      if (s.outcomeFilter === 'none' && l.lastCallStatus) return false;
+      if (s.outcomeFilter !== 'all' && s.outcomeFilter !== 'none' && l.lastCallStatus !== s.outcomeFilter) return false;
       return true;
     });
   },
@@ -70,10 +70,10 @@ const LeadsUI = {
     noLeads.style.display = 'none';
 
     tbody.innerHTML = leads.map(l => {
-      const lastAct = l.lastActivityDate ? this.fmtDateTime(l.lastActivityDate) : '—';
-      const outcomeHtml = l.callOutcome ? `<span class="outcome-badge ${this.outcomeClass(l.callOutcome)}">${this.escapeHtml(l.callOutcome)}</span>` : '<span style="color:var(--text-muted);font-size:11px">Pending</span>';
+      const lastAct = l.updatedDate ? this.fmtDateTime(l.updatedDate) : '—';
+      const outcomeHtml = l.lastCallStatus ? `<span class="outcome-badge ${this.outcomeClass(l.lastCallStatus)}">${this.escapeHtml(l.lastCallStatus)}</span>` : '<span style="color:var(--text-muted);font-size:11px">Pending</span>';
       const assignee = l.counsellorName && l.counsellorName !== 'Unassigned' ? this.escapeHtml(l.counsellorName) : '<span class="unassigned">Unassigned</span>';
-      const convertedOrLost = l.converted || l.lost;
+      const isClosed = l.status === 'Enrolled' || l.status === 'Lost/Dead';
       return `<tr>
         <td class="name-cell">${this.escapeHtml(l.studentName || '—')}</td>
         <td class="phone-cell">${this.escapeHtml(l.phone || '—')}</td>
@@ -81,9 +81,9 @@ const LeadsUI = {
         <td>${this.statusBadge(l.status)}</td>
         <td>${assignee}</td>
         <td>${outcomeHtml}</td>
-        <td>${l.callAttempts != null ? l.callAttempts : 0}</td>
+        <td>${l.calls != null ? l.calls : 0}</td>
         <td style="font-size:11px;color:var(--text-muted)">${lastAct}</td>
-        <td class="actions-cell">${convertedOrLost ? '<span style="color:var(--text-muted);font-size:11px">Closed</span>' : '<button class="call-btn" data-lead-id="' + l.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Complete Call</button>'}</td>
+        <td class="actions-cell">${isClosed ? '<span style="color:var(--text-muted);font-size:11px">Closed</span>' : '<button class="call-btn" data-lead-id="' + l.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Complete Call</button>'}</td>
       </tr>`;
     }).join('');
 
@@ -98,10 +98,6 @@ const LeadsUI = {
     this.state.editingLeadId = leadId;
     document.getElementById('callModalLead').innerHTML = 'Recording call outcome for <strong>' + this.escapeHtml(lead.studentName) + '</strong>';
     document.getElementById('callOutcomeSelect').value = '';
-    document.getElementById('objectionReasonSelect').value = '';
-    document.getElementById('objectionRemarksInput').value = '';
-    document.getElementById('objectionField').classList.remove('show');
-    document.getElementById('remarksField').classList.remove('show');
     document.getElementById('saveCallBtn').disabled = true;
     document.getElementById('callModal').classList.add('active');
   },
@@ -120,46 +116,16 @@ const LeadsUI = {
     if (!outcome) return;
 
     const now = new Date();
-    const isFirstContact = !lead.firstContactDateTime;
 
-    lead.callOutcome = outcome;
-    lead.callAttempts = (lead.callAttempts || 0) + 1;
-    lead.lastActivityDate = now;
+    lead.lastCallStatus = outcome;
+    lead.calls = (lead.calls || 0) + 1;
+    lead.updatedDate = now;
 
-    if (isFirstContact) {
-      lead.firstContactDateTime = now;
-    }
-
-    if (outcome === 'Not Interested') {
-      lead.objectionReason = document.getElementById('objectionReasonSelect').value || null;
-      if (lead.objectionReason === 'Other') {
-        const remarks = document.getElementById('objectionRemarksInput').value.trim();
-        lead.objectionRemarks = remarks || null;
-      } else {
-        lead.objectionRemarks = null;
-      }
-    } else {
-      lead.objectionReason = null;
-      lead.objectionRemarks = null;
+    if (DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'last call status')) {
+      DataLoader.rawHeaders.push('Last Call Status');
     }
 
-    if (DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'call outcome')) {
-      DataLoader.rawHeaders.push('Call Outcome');
-    }
-    if (lead.objectionReason && DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'objection reason')) {
-      DataLoader.rawHeaders.push('Objection Reason');
-    }
-    if (lead.firstContactDateTime && DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'first contact date time')) {
-      DataLoader.rawHeaders.push('First Contact Date Time');
-    }
-    if (DataLoader.rawHeaders && !DataLoader.rawHeaders.some(h => h.toLowerCase() === 'last activity date time')) {
-      DataLoader.rawHeaders.push('Last Activity Date Time');
-    }
-
-    if (isFirstContact) {
-      this.addActivity(lead, 'first_contact', 'First contact established', { outcome });
-    }
-    this.addActivity(lead, 'call', 'Call completed — ' + outcome, { outcome, objectionReason: lead.objectionReason });
+    this.addActivity(lead, 'call', 'Call completed — ' + outcome, { outcome });
     window.IntelAbroadData.leads = this.state.leads;
     this.persistState();
     this.closeCallModal();
@@ -219,10 +185,9 @@ const LeadsUI = {
       if (raw) {
         const leads = JSON.parse(raw);
         leads.forEach(l => {
-          if (l.assignedDate) l.assignedDate = new Date(l.assignedDate);
-          if (l.nextFollowUp) l.nextFollowUp = new Date(l.nextFollowUp);
-          if (l.lastActivityDate) l.lastActivityDate = new Date(l.lastActivityDate);
-          if (l.firstContactDateTime) l.firstContactDateTime = new Date(l.firstContactDateTime);
+          if (l.entryDate) l.entryDate = new Date(l.entryDate);
+          if (l.updatedDate) l.updatedDate = new Date(l.updatedDate);
+          if (l.followUpDate) l.followUpDate = new Date(l.followUpDate);
         });
         return leads;
       }
@@ -257,13 +222,11 @@ const LeadsUI = {
       Source: l.source,
       Status: l.status,
       AssignedTo: l.counsellorName || '',
-      CallOutcome: l.callOutcome || '',
-      ObjectionReason: l.objectionReason || '',
-      ObjectionRemarks: l.objectionRemarks || '',
-      CallAttempts: l.callAttempts || 0,
-      FirstContactDateTime: l.firstContactDateTime ? this.fmtDateTimeFull(l.firstContactDateTime) : '',
-      LastActivityDateTime: l.lastActivityDate ? this.fmtDateTimeFull(l.lastActivityDate) : '',
-      ApplicationFiled: l.applicationFiled || 'No'
+      LastCallStatus: l.lastCallStatus || '',
+      Calls: l.calls || 0,
+      EntryDate: l.entryDate ? this.fmtDateTimeFull(l.entryDate) : '',
+      FollowUpDate: l.followUpDate ? this.fmtDateTimeFull(l.followUpDate) : '',
+      Notes: l.notes || ''
     }));
     const headers = Object.keys(rows[0]);
     const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => '"' + String(r[h] || '').replace(/"/g, '""') + '"').join(','))).join('\n');
@@ -352,33 +315,8 @@ const LeadsUI = {
     if (callOutcomeSelect) {
       callOutcomeSelect.addEventListener('change', () => {
         const val = callOutcomeSelect.value;
-        const objField = document.getElementById('objectionField');
-        const remarksField = document.getElementById('remarksField');
         const saveBtn = document.getElementById('saveCallBtn');
-
-        if (val === 'Not Interested') {
-          objField.classList.add('show');
-          const objReason = document.getElementById('objectionReasonSelect');
-          if (objReason && objReason.value === 'Other') {
-            remarksField.classList.add('show');
-          }
-        } else {
-          objField.classList.remove('show');
-          remarksField.classList.remove('show');
-        }
         saveBtn.disabled = !val;
-      });
-    }
-
-    const objectionReasonSelect = document.getElementById('objectionReasonSelect');
-    if (objectionReasonSelect) {
-      objectionReasonSelect.addEventListener('change', () => {
-        const remarksField = document.getElementById('remarksField');
-        if (objectionReasonSelect.value === 'Other') {
-          remarksField.classList.add('show');
-        } else {
-          remarksField.classList.remove('show');
-        }
       });
     }
 

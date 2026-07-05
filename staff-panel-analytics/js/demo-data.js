@@ -2,20 +2,46 @@ const CFG = {
   today: new Date('2026-07-03T09:00:00'),
   sourceCentres: ['Delhi Office', 'Delhi 2026', 'Nagpur 2026', 'Raipur Office'],
   sources: ['Facebook Ads', 'Google Ads', 'Instagram', 'Referral', 'Walk-in', 'Website', 'Education Fair', 'Agent Partner'],
-  statuses: ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified', 'Converted', 'Lost'],
-  funnelStages: ['New', 'Contacted', 'Interested', 'Application Filed', 'Converted'],
-  categories: ['General', 'OBC', 'SC', 'ST', 'EWS'],
+  statuses: [
+    'DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5',
+    'NATC', 'Cold Lead', 'Warm Lead', 'Hot Lead', 'Call Back',
+    'Interested', 'Consultation Booked', 'Consultation Done',
+    'Consultation Submitted', 'Documents Submitted', 'Applied',
+    'Enrolled', 'Lost/Dead'
+  ],
+  countries: ['USA', 'UK', 'Canada', 'Australia', 'Germany', 'New Zealand', 'Ireland', 'France'],
+  universities: [
+    'Harvard University', 'MIT', 'Stanford University', 'University of Oxford',
+    'University of Cambridge', 'University of Toronto', 'University of Melbourne',
+    'University of Sydney', 'TU Munich', 'University of Auckland',
+    'Trinity College Dublin', 'Sorbonne University', 'University of British Columbia',
+    'Imperial College London', 'University of California Berkeley',
+    'New York University', 'University of Chicago', 'University of Edinburgh',
+    'McGill University', 'Australian National University'
+  ],
+  visaStatuses: ['Yes', 'No', 'In Progress'],
+  callLastStatuses: ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number', null],
   states: ['Delhi', 'Uttar Pradesh', 'Maharashtra', 'Madhya Pradesh', 'Rajasthan', 'Bihar', 'Haryana', 'Punjab', 'Gujarat', 'West Bengal'],
   cities: ['Delhi', 'Mumbai', 'Nagpur', 'Raipur', 'Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Jaipur', 'Jodhpur', 'Ahmedabad', 'Indore', 'Bhopal', 'Patna', 'Chandigarh', 'Ludhiana', 'Kolkata', 'Pune', 'Surat', 'Noida'],
-  examCities: ['Delhi', 'Mumbai', 'Nagpur', 'Raipur', 'Lucknow', 'Jaipur', 'Ahmedabad', 'Bhopal', 'Patna', 'Chandigarh', 'Kolkata', 'Pune'],
   statusClass: {
-    'New': 'st-new',
-    'Contacted': 'st-contacted',
-    'Follow-up': 'st-followup',
+    'DNP 1': 'st-dnp1',
+    'DNP 2': 'st-dnp2',
+    'DNP 3': 'st-dnp3',
+    'DNP 4': 'st-dnp4',
+    'DNP 5': 'st-dnp5',
+    'NATC': 'st-natc',
+    'Cold Lead': 'st-cold',
+    'Warm Lead': 'st-warm',
+    'Hot Lead': 'st-hot',
+    'Call Back': 'st-callback',
     'Interested': 'st-interested',
-    'Qualified': 'st-qualified',
-    'Converted': 'st-converted',
-    'Lost': 'st-lost'
+    'Consultation Booked': 'st-cons-booked',
+    'Consultation Done': 'st-cons-done',
+    'Consultation Submitted': 'st-cons-sub',
+    'Documents Submitted': 'st-docs-sub',
+    'Applied': 'st-applied',
+    'Enrolled': 'st-enrolled',
+    'Lost/Dead': 'st-lost'
   },
   chartColors: {
     primary: '#3b82f6',
@@ -29,7 +55,7 @@ const CFG = {
     pink: '#ec4899',
     slate: '#64748b'
   },
-  palette: ['#3b82f6', '#22c55e', '#eab308', '#a855f7', '#06b6d4', '#ec4899', '#14b8a6', '#ef4444', '#64748b', '#f97316'],
+  palette: ['#3b82f6', '#22c55e', '#eab308', '#a855f7', '#06b6d4', '#ec4899', '#14b8a6', '#ef4444', '#64748b', '#f97316', '#8b5cf6', '#f43f5e', '#0ea5e9', '#84cc16', '#d946ef', '#10b981', '#f59e0b', '#78716c'],
 
   staff: [
     { id: 'S001', name: 'Dr. Suhail', role: 'Founder', sourceCentre: 'all', reportsTo: null, profile: 'star-performer' },
@@ -55,10 +81,13 @@ const CFG = {
   lastNames: ['Sharma','Verma','Iyer','Nair','Reddy','Gupta','Malhotra','Kapoor','Chatterjee','Menon','Joshi','Bhat','Rao','Singh','Patel','Mehta','Chawla','Bose','Pillai','Kulkarni'],
   guardianSuffixes: ['Father', 'Mother'],
   emailProviders: ['gmail.com', 'yahoo.com', 'outlook.com', 'rediffmail.com', 'hotmail.com'],
-  statusOrder: { 'New': 0, 'Contacted': 1, 'Follow-up': 2, 'Interested': 3, 'Qualified': 4, 'Converted': 5, 'Lost': -1 },
-
-  callOutcomes: ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number'],
-  objectionReasons: ['Budget Constraints', 'Parents Not Convinced', 'Government College Preference', 'Joined Another Consultancy', 'Different Country Preference', 'Did Not Qualify NEET', 'No Response', 'Wants to Apply Next Year', 'Other']
+  statusOrder: {
+    'DNP 1': 0, 'DNP 2': 1, 'DNP 3': 2, 'DNP 4': 3, 'DNP 5': 4,
+    'NATC': 5, 'Cold Lead': 6, 'Warm Lead': 7, 'Hot Lead': 8, 'Call Back': 9,
+    'Interested': 10, 'Consultation Booked': 11, 'Consultation Done': 12,
+    'Consultation Submitted': 13, 'Documents Submitted': 14, 'Applied': 15,
+    'Enrolled': 16, 'Lost/Dead': -1
+  }
 };
 
 let _seed = 98765;
@@ -80,18 +109,38 @@ function addDays(date, days) {
   return d;
 }
 
+const _STATUS_GROUPS = [
+  { statuses: ['DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5', 'NATC', 'Cold Lead'], weight: 0.40 },
+  { statuses: ['Warm Lead', 'Hot Lead', 'Call Back'], weight: 0.18 },
+  { statuses: ['Interested', 'Consultation Booked'], weight: 0.14 },
+  { statuses: ['Consultation Done', 'Consultation Submitted', 'Documents Submitted'], weight: 0.08 },
+  { statuses: ['Applied'], weight: 0.04 },
+  { statuses: ['Enrolled'], weight: 0.06 },
+  { statuses: ['Lost/Dead'], weight: 0.10 }
+];
+
+function pickWeightedStatus() {
+  let r = seededRandom();
+  let cum = 0;
+  for (const g of _STATUS_GROUPS) {
+    cum += g.weight;
+    if (r <= cum) return pick(g.statuses);
+  }
+  return 'DNP 1';
+}
+
 function generateLeadsData(staff, count) {
   const leads = [];
 
   const sourceWeights = [
-    { source: 'Facebook Ads', volumeWeight: 0.38, baseConv: 0.05 },
-    { source: 'Google Ads', volumeWeight: 0.18, baseConv: 0.12 },
-    { source: 'Instagram', volumeWeight: 0.15, baseConv: 0.08 },
-    { source: 'Website', volumeWeight: 0.10, baseConv: 0.24 },
-    { source: 'Referral', volumeWeight: 0.06, baseConv: 0.35 },
-    { source: 'Walk-in', volumeWeight: 0.05, baseConv: 0.20 },
-    { source: 'Agent Partner', volumeWeight: 0.05, baseConv: 0.15 },
-    { source: 'Education Fair', volumeWeight: 0.03, baseConv: 0.10 }
+    { source: 'Facebook Ads', volumeWeight: 0.38, baseEnroll: 0.02 },
+    { source: 'Google Ads', volumeWeight: 0.18, baseEnroll: 0.06 },
+    { source: 'Instagram', volumeWeight: 0.15, baseEnroll: 0.04 },
+    { source: 'Website', volumeWeight: 0.10, baseEnroll: 0.12 },
+    { source: 'Referral', volumeWeight: 0.06, baseEnroll: 0.20 },
+    { source: 'Walk-in', volumeWeight: 0.05, baseEnroll: 0.10 },
+    { source: 'Agent Partner', volumeWeight: 0.05, baseEnroll: 0.08 },
+    { source: 'Education Fair', volumeWeight: 0.03, baseEnroll: 0.05 }
   ];
 
   function getWeightedSource() {
@@ -141,33 +190,27 @@ function generateLeadsData(staff, count) {
         assignee = centreSList.find(s => s.profile === 'low-performer') || centreSList[0];
       }
 
-      let convProb = sw.baseConv;
-      const profileBonus = { 'star-performer': 0.20, 'high-performer': 0.10, 'medium-performer': 0.04, 'low-performer': -0.04 };
-      convProb += (profileBonus[assignee.profile] || 0);
-      if (centre === 'Delhi Office') convProb += 0.04;
-      if (centre === 'Raipur Office') convProb -= 0.02;
-      convProb = Math.max(0.02, Math.min(0.85, convProb));
+      let enrollProb = sw.baseEnroll;
+      const profileBonus = { 'star-performer': 0.12, 'high-performer': 0.06, 'medium-performer': 0.02, 'low-performer': -0.02 };
+      enrollProb += (profileBonus[assignee.profile] || 0);
+      if (centre === 'Delhi Office') enrollProb += 0.03;
+      if (centre === 'Raipur Office') enrollProb -= 0.01;
+      enrollProb = Math.max(0.01, Math.min(0.60, enrollProb));
 
-      let status = 'New';
+      let status;
       let rStatus = seededRandom();
-      if (rStatus < convProb) {
-        status = 'Converted';
-      } else if (rStatus > 0.86) {
-        status = 'Lost';
+      if (rStatus < enrollProb) {
+        status = 'Enrolled';
+      } else if (rStatus > 0.88) {
+        status = 'Lost/Dead';
       } else {
-        const openStatuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified'];
-        const weights = [0.10, 0.20, 0.25, 0.25, 0.20];
-        let w = seededRandom();
-        let cum = 0;
-        for (let s = 0; s < openStatuses.length; s++) {
-          cum += weights[s];
-          if (w <= cum) { status = openStatuses[s]; break; }
-        }
+        status = pickWeightedStatus();
       }
 
       const isTodayLead = seededRandom() < 0.04;
       const daysAgo = isTodayLead ? randInt(0, 1) : randInt(2, 120);
-      const assignedDate = addDays(CFG.today, -daysAgo);
+      const entryDate = addDays(CFG.today, -daysAgo);
+      const updatedDate = addDays(entryDate, randInt(0, Math.min(daysAgo, 14)));
 
       const firstName = pick(CFG.firstNames);
       const lastName = pick(CFG.lastNames);
@@ -175,26 +218,40 @@ function generateLeadsData(staff, count) {
 
       const state = pick(CFG.states);
       const city = randInt(0, 3) === 0 ? state : pick(CFG.cities);
-      const examCity = pick(CFG.examCities);
-      const category = pick(CFG.categories);
-      const neetAppeared = seededRandom() < 0.7 ? 'Yes' : 'No';
       const guardianName = pick(CFG.guardianSuffixes) + ' of ' + studentName;
       const guardianPhone = '99' + String(randInt(10000000, 99999999));
-      const email = firstName.toLowerCase() + '.' + lastName.toLowerCase() + randInt(10, 99) + '@' + pick(CFG.emailProviders);
 
-      const nextFollowUp = (status !== 'Converted' && status !== 'Lost' && seededRandom() < 0.6)
-        ? addDays(assignedDate, randInt(3, 30))
+      const followUpDate = (status !== 'Enrolled' && status !== 'Lost/Dead' && seededRandom() < 0.55)
+        ? addDays(entryDate, randInt(3, 30))
         : null;
 
-      const callAttempts = (status === 'Converted') ? randInt(5, 15) :
-                           (status === 'Lost') ? randInt(3, 10) :
-                           (status === 'New') ? randInt(0, 2) : randInt(2, 8);
+      const calls = (status === 'Enrolled') ? randInt(5, 18) :
+                    (status === 'Lost/Dead') ? randInt(3, 12) :
+                    (status === 'DNP 1' || status === 'DNP 2') ? randInt(0, 2) : randInt(2, 10);
 
-      const progressed = status !== 'New' && status !== 'Lost';
-      const applicationFiled = status === 'Converted' ? 'Yes' :
-                                (progressed && seededRandom() < 0.30 ? 'Yes' : 'No');
+      const lastCallStatus = calls > 0 ? pick(CFG.callLastStatuses.filter(Boolean)) : null;
 
-      const lastActivityDate = addDays(assignedDate, randInt(0, Math.min(daysAgo, 5)));
+      let neet;
+      if (seededRandom() < 0.7) {
+        neet = String(randInt(120, 720));
+      } else {
+        neet = 'No';
+      }
+
+      const pcbPercentage = parseFloat((randRange(40, 98)).toFixed(1));
+
+      const country = pick(CFG.countries);
+      const university = pick(CFG.universities);
+      const fee = randInt(500000, 3500000);
+      const visa = status === 'Enrolled' ? 'Yes' : (seededRandom() < 0.15 ? 'Yes' : (seededRandom() < 0.3 ? 'In Progress' : 'No'));
+
+      const notes = seededRandom() < 0.2
+        ? (['Interested in STEM programs', 'Looking for scholarships', 'Prefers city campus',
+            'Needs accommodation assistance', 'Following up on application status',
+            'Parents requested call back in evening', 'Concerned about visa processing time',
+            'Wants to discuss course details', 'Asked about part-time work options',
+            'Inquired about IELTS preparation support'][randInt(0, 9)])
+        : '';
 
       leads.push({
         id: 'LD-' + leadIdCounter++,
@@ -202,29 +259,25 @@ function generateLeadsData(staff, count) {
         phone: '98' + String(randInt(10000000, 99999999)),
         guardianName: guardianName,
         guardianPhone: guardianPhone,
-        email: email,
-        city: city,
-        state: state,
-        examCity: examCity,
-        category: category,
-        neetAppeared: neetAppeared,
-        source: source,
-        sourceCentre: centre,
-        operator: assignee.name,
         status: status,
         counsellorId: assignee.id,
         counsellorName: assignee.name,
-        assignedDate: assignedDate,
-        lastActivityDate: lastActivityDate,
-        nextFollowUp: nextFollowUp,
-        callAttempts: callAttempts,
-        applicationFiled: applicationFiled,
-        converted: status === 'Converted',
-        lost: status === 'Lost',
-        callOutcome: null,
-        objectionReason: null,
-        objectionRemarks: null,
-        firstContactDateTime: null
+        followUpDate: followUpDate,
+        calls: calls,
+        lastCallStatus: lastCallStatus,
+        notes: notes,
+        entryDate: entryDate,
+        updatedDate: updatedDate,
+        city: city,
+        state: state,
+        neet: neet,
+        pcbPercentage: pcbPercentage,
+        preferredCountry: country,
+        preferredUniversity: university,
+        source: source,
+        sourceCentre: centre,
+        fee: fee,
+        visa: visa
       });
     }
   });
@@ -248,10 +301,9 @@ function getPersistedDataset() {
     if (raw) {
       const leads = JSON.parse(raw);
       leads.forEach(l => {
-        if (l.assignedDate) l.assignedDate = new Date(l.assignedDate);
-        if (l.nextFollowUp) l.nextFollowUp = new Date(l.nextFollowUp);
-        if (l.lastActivityDate) l.lastActivityDate = new Date(l.lastActivityDate);
-        if (l.firstContactDateTime) l.firstContactDateTime = new Date(l.firstContactDateTime);
+        if (l.entryDate) l.entryDate = new Date(l.entryDate);
+        if (l.updatedDate) l.updatedDate = new Date(l.updatedDate);
+        if (l.followUpDate) l.followUpDate = new Date(l.followUpDate);
       });
       const demo = getInitialDataset();
       return { leads: leads, staff: demo.staff, sourceCentres: demo.sourceCentres, sources: demo.sources };

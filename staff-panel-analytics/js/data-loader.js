@@ -4,41 +4,54 @@ const DataLoader = {
   rawHeaders: [],
 
   COLUMN_MAP: {
-    'Date': 'assignedDate',
+    'Entry Date': 'entryDate',
     'Name': 'studentName',
     'Phone': 'phone',
     'Guardian Name': 'guardianName',
     'Guardian Phone': 'guardianPhone',
-    'Email': 'email',
-    'City': 'city',
-    'State': 'state',
-    'Exam City': 'examCity',
-    'Category': 'category',
-    'NEET Appeared': 'neetAppeared',
-    'Source': 'source',
-    'Source Centre': 'sourceCentre',
-    'Operator': 'operator',
     'Status': 'status',
     'Assigned To': 'counsellorName',
-    'Next Follow-up': 'nextFollowUpRaw',
-    'Call Attempts': 'callAttempts',
-    'Application Filed': 'applicationFiled',
-    'Call Outcome': 'callOutcome',
-    'Objection Reason': 'objectionReason',
-    'Objection Remarks': 'objectionRemarks',
-    'First Contact Date Time': 'firstContactDateTime',
-    'Last Activity Date Time': 'lastActivityDateTime'
+    'Follow-up Date': 'followUpDate',
+    'Calls': 'calls',
+    'Last Call Status': 'lastCallStatus',
+    'Notes': 'notes',
+    'Updated Date': 'updatedDate',
+    'City / State': 'cityState',
+    'NEET': 'neet',
+    'PCB %': 'pcbPercentage',
+    'Preferred Country / University': 'countryUni',
+    'Source': 'source',
+    'Fee': 'fee',
+    'Visa': 'visa'
   },
 
   STATUS_MAP: {
-    'new': 'New',
-    'lost': 'Lost',
-    'warm_lead': 'Contacted',
-    'cold_lead': 'New',
+    'dnp 1': 'DNP 1',
+    'dnp 2': 'DNP 2',
+    'dnp 3': 'DNP 3',
+    'dnp 4': 'DNP 4',
+    'dnp 5': 'DNP 5',
+    'natc': 'NATC',
+    'cold lead': 'Cold Lead',
+    'cold': 'Cold Lead',
+    'warm lead': 'Warm Lead',
+    'warm': 'Warm Lead',
+    'hot lead': 'Hot Lead',
+    'hot': 'Hot Lead',
+    'call back': 'Call Back',
+    'callback': 'Call Back',
     'interested': 'Interested',
-    'hot_lead': 'Qualified',
-    'call_back': 'Follow-up',
-    'enrolled': 'Converted'
+    'consultation booked': 'Consultation Booked',
+    'consultation done': 'Consultation Done',
+    'consultation submitted': 'Consultation Submitted',
+    'consultation': 'Consultation Booked',
+    'documents submitted': 'Documents Submitted',
+    'docs submitted': 'Documents Submitted',
+    'applied': 'Applied',
+    'enrolled': 'Enrolled',
+    'lost/dead': 'Lost/Dead',
+    'lost': 'Lost/Dead',
+    'dead': 'Lost/Dead'
   },
 
   normalizeStatus(s) {
@@ -78,12 +91,33 @@ const DataLoader = {
     const leads = [];
     let idCounter = 1;
 
-    rows.forEach((row, idx) => {
+    rows.forEach((row) => {
       const status = this.normalizeStatus(row['Status'] || row['status'] || '');
       const counsellorName = this.normalizeCounsellorName(row['Assigned To'] || row['assignedTo'] || '');
       const counsellorId = counsellorName && counsellorName !== 'Unassigned'
         ? 'CS-' + counsellorName.replace(/\s+/g, '').substring(0, 8)
         : 'CS-UNASSIGNED';
+
+      let city = '', state = '';
+      const cityStateRaw = String(row['City / State'] || row['cityState'] || '').trim();
+      if (cityStateRaw.includes('/')) {
+        const parts = cityStateRaw.split('/');
+        city = parts[0].trim();
+        state = parts[1].trim();
+      } else if (cityStateRaw) {
+        city = cityStateRaw;
+        state = cityStateRaw;
+      }
+
+      let preferredCountry = '', preferredUniversity = '';
+      const countryUniRaw = String(row['Preferred Country / University'] || row['countryUni'] || '').trim();
+      if (countryUniRaw.includes('/')) {
+        const parts = countryUniRaw.split('/');
+        preferredCountry = parts[0].trim();
+        preferredUniversity = parts[1].trim();
+      } else {
+        preferredCountry = countryUniRaw;
+      }
 
       const lead = {
         id: 'XL-' + String(++idCounter).padStart(4, '0'),
@@ -91,45 +125,28 @@ const DataLoader = {
         phone: String(row['Phone'] || row['phone'] || '').trim(),
         guardianName: String(row['Guardian Name'] || row['guardianName'] || '').trim(),
         guardianPhone: String(row['Guardian Phone'] || row['guardianPhone'] || '').trim(),
-        email: String(row['Email'] || row['email'] || '').trim(),
-        city: String(row['City'] || row['city'] || '').trim(),
-        state: String(row['State'] || row['state'] || '').trim(),
-        examCity: String(row['Exam City'] || row['examCity'] || '').trim(),
-        category: String(row['Category'] || row['category'] || '').trim(),
-        neetAppeared: String(row['NEET Appeared'] || row['neetAppeared'] || '').trim(),
-        source: String(row['Source'] || row['source'] || '').trim(),
-        sourceCentre: String(row['Source Centre'] || row['sourceCentre'] || '').trim(),
-        operator: String(row['Operator'] || row['operator'] || '').trim(),
         status: status,
         counsellorName: counsellorName,
         counsellorId: counsellorId,
-        assignedDate: this.parseDate(row['Date'] || row['assignedDate'] || row['date']),
-        nextFollowUp: this.parseDate(row['Next Follow-up'] || row['nextFollowUp'] || row['nextFollowUpRaw']),
-        callAttempts: this.parseNumber(row['Call Attempts'] || row['callAttempts']),
-        applicationFiled: this.parseYesNo(row['Application Filed'] || row['applicationFiled']),
-        lastActivityDate: null,
-        converted: false,
-        lost: false,
-        callOutcome: null,
-        objectionReason: null,
-        objectionRemarks: null,
-        firstContactDateTime: null
+        entryDate: this.parseDate(row['Entry Date'] || row['entryDate'] || row['Date'] || row['date']),
+        followUpDate: this.parseDate(row['Follow-up Date'] || row['followUpDate'] || row['Next Follow-up'] || row['nextFollowUp']),
+        calls: this.parseNumber(row['Calls'] || row['calls'] || row['Call Attempts'] || row['callAttempts']),
+        lastCallStatus: String(row['Last Call Status'] || row['lastCallStatus'] || row['Call Outcome'] || row['callOutcome'] || '').trim() || null,
+        notes: String(row['Notes'] || row['notes'] || '').trim(),
+        updatedDate: this.parseDate(row['Updated Date'] || row['updatedDate'] || row['Last Activity Date Time'] || row['lastActivityDateTime']),
+        city: city,
+        state: state,
+        neet: String(row['NEET'] || row['neet'] || '').trim(),
+        pcbPercentage: this.parseNumber(row['PCB %'] || row['pcbPercentage'] || row['PCB'] || ''),
+        preferredCountry: preferredCountry,
+        preferredUniversity: preferredUniversity,
+        source: String(row['Source'] || row['source'] || '').trim(),
+        sourceCentre: String(row['Source Centre'] || row['sourceCentre'] || '').trim(),
+        fee: this.parseNumber(row['Fee'] || row['fee'] || ''),
+        visa: String(row['Visa'] || row['visa'] || '').trim()
       };
 
-      lead.converted = lead.status === 'Converted';
-      lead.lost = lead.status === 'Lost';
-      lead.lastActivityDate = lead.assignedDate || null;
-
-      const outcomeRaw = String(row['Call Outcome'] || row['callOutcome'] || '').trim();
-      if (outcomeRaw) lead.callOutcome = outcomeRaw;
-      const objReasonRaw = String(row['Objection Reason'] || row['objectionReason'] || '').trim();
-      if (objReasonRaw) lead.objectionReason = objReasonRaw;
-      const objRemarksRaw = String(row['Objection Remarks'] || row['objectionRemarks'] || '').trim();
-      if (objRemarksRaw) lead.objectionRemarks = objRemarksRaw;
-      const fcdt = this.parseDate(row['First Contact Date Time'] || row['firstContactDateTime'] || row['firstContactDate'] || '');
-      if (fcdt) lead.firstContactDateTime = fcdt;
-      const ladt = this.parseDate(row['Last Activity Date Time'] || row['lastActivityDateTime'] || row['lastActivityDate'] || '');
-      if (ladt) lead.lastActivityDate = ladt;
+      if (!lead.updatedDate) lead.updatedDate = lead.entryDate || null;
 
       if (lead.studentName || lead.phone) {
         leads.push(lead);
@@ -153,11 +170,7 @@ const DataLoader = {
       statuses: unique('Status'),
       counsellors: unique('Assigned To'),
       sources: unique('Source'),
-      sourceCentres: unique('Source Centre'),
-      categories: unique('Category'),
-      cities: unique('City'),
-      states: unique('State'),
-      examCities: unique('Exam City')
+      sourceCentres: unique('Source Centre')
     };
   },
 
@@ -214,7 +227,13 @@ const DataLoader = {
 
     if (meta) {
       if (meta.statuses && meta.statuses.length) {
-        const order = ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified', 'Converted', 'Lost'];
+        const order = [
+          'DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5',
+          'NATC', 'Cold Lead', 'Warm Lead', 'Hot Lead', 'Call Back',
+          'Interested', 'Consultation Booked', 'Consultation Done',
+          'Consultation Submitted', 'Documents Submitted', 'Applied',
+          'Enrolled', 'Lost/Dead'
+        ];
         const normalized = [...new Set(meta.statuses.map(s => this.normalizeStatus(s)).filter(Boolean))];
         normalized.sort((a, b) => {
           const ai = order.indexOf(a), bi = order.indexOf(b);
@@ -255,7 +274,13 @@ const DataLoader = {
       : demoData.staff;
     window.IntelAbroadData.sources = demoData.sources;
     window.IntelAbroadData.sourceCentres = demoData.sourceCentres;
-    CFG.statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Qualified', 'Converted', 'Lost'];
+    CFG.statuses = [
+      'DNP 1', 'DNP 2', 'DNP 3', 'DNP 4', 'DNP 5',
+      'NATC', 'Cold Lead', 'Warm Lead', 'Hot Lead', 'Call Back',
+      'Interested', 'Consultation Booked', 'Consultation Done',
+      'Consultation Submitted', 'Documents Submitted', 'Applied',
+      'Enrolled', 'Lost/Dead'
+    ];
     this.source = 'demo';
     this.fileName = null;
     this.rawHeaders = [];
@@ -286,13 +311,6 @@ const DataLoader = {
     if (val === null || val === undefined || val === '') return 0;
     const n = Number(val);
     return isNaN(n) ? 0 : n;
-  },
-
-  parseYesNo(val) {
-    if (!val) return 'No';
-    const s = String(val).trim().toLowerCase();
-    if (s === 'yes' || s === 'y' || s === '1' || s === 'true') return 'Yes';
-    return 'No';
   }
 };
 
