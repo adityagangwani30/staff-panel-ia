@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Insights — IntelAbroad Staff Panel</title>
+  <title>Overview — IntelAbroad Staff Panel</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body data-theme="dark">
@@ -25,7 +25,7 @@
     </div>
 
     <div class="nav-group-label">Workspace</div>
-    <a href="#" class="nav-item">
+    <a href="#" class="nav-item active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       Overview
     </a>
@@ -41,7 +41,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       Activity
     </a>
-    <a href="#" class="nav-item active">
+    <a href="#" class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
       Insights
     </a>
@@ -68,7 +68,7 @@
     <div class="topbar">
       <div class="topbar-left">
         <div class="topbar-title-row">
-          <h1 id="topbarTitle">Insights</h1>
+          <h1 id="topbarTitle">Overview</h1>
           <div class="branch-pill" id="sourcePill">
             <span class="branch-name-text">All Centres</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -83,7 +83,7 @@
           <span class="data-source-badge" id="dataSourceBadge">Demo Data</span>
           <button class="reload-demo-link" id="reloadDemoBtn">Reload Demo Data</button>
         </div>
-        <div class="topbar-subtitle" id="topbarSubtitle">Business insights for better lead management.</div>
+        <div class="topbar-subtitle" id="topbarSubtitle">Business health, daily action items, and pipeline progress at a glance.</div>
       </div>
 
       <div class="topbar-right">
@@ -102,7 +102,7 @@
           Import CSV
           <input type="file" id="excelUpload" accept=".xlsx,.xls,.csv" hidden>
         </label>
-        <button class="btn" id="exportCsvBtn" title="Export current section data">
+        <button class="btn" id="exportCsvBtn" title="Export current data">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
           Export
         </button>
@@ -147,26 +147,46 @@
         <div class="filter-chip-row" id="chipRow"></div>
       </div>
 
-      <!-- Executive KPIs -->
+      <!-- 1. Executive KPIs -->
       <div class="kpi-grid kpi-grid-4" id="executiveKpis"></div>
 
-      <!-- Tabs -->
-      <div class="tabs" id="insightsTabs">
-        <div class="tab active" data-tab="lead">Lead Analytics</div>
-        <div class="tab" data-tab="counsellor">Counsellor Analytics</div>
-        <div class="tab" data-tab="followup">Follow-up Analytics</div>
-        <div class="tab" data-tab="source">Lead Source Analytics</div>
-        <div class="tab" data-tab="geography">Geography Analytics</div>
-        <div class="tab" data-tab="application">Application Overview</div>
+      <!-- 2. Admission Pipeline Funnel -->
+      <div class="overview-section" id="pipelineSection">
+        <div class="section-title-row"><h2 class="section-title">Admission Pipeline</h2></div>
+        <div class="ov-grid ov-grid-2-1">
+          <div class="card"><div class="chart-wrap"><div id="pipelineFunnel"></div></div></div>
+          <div class="card" id="pipelineTableCard">
+            <div class="card-head"><div class="card-title">Stage Conversion</div></div>
+            <div id="pipelineTable"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Tab Panels -->
-      <div id="panel-lead" class="tab-panel active"></div>
-      <div id="panel-counsellor" class="tab-panel"></div>
-      <div id="panel-followup" class="tab-panel"></div>
-      <div id="panel-source" class="tab-panel"></div>
-      <div id="panel-geography" class="tab-panel"></div>
-      <div id="panel-application" class="tab-panel"></div>
+      <!-- 3. Today's Action Centre -->
+      <div class="overview-section" id="actionCentre">
+        <div class="section-title-row"><h2 class="section-title">Today's Action Centre</h2><span class="section-badge" id="actionCountBadge"></span></div>
+        <div class="ov-grid ov-grid-3" id="actionCards"></div>
+      </div>
+
+      <!-- 4. Status Distribution + 5. Activity Feed (side by side) -->
+      <div class="ov-grid ov-grid-2">
+        <div class="overview-section" id="statusDistSection">
+          <div class="section-title-row"><h2 class="section-title">Status Distribution</h2></div>
+          <div class="card"><div class="chart-wrap h260"><canvas id="chartStatusDistOv"></canvas></div></div>
+        </div>
+        <div class="overview-section" id="activityFeed">
+          <div class="section-title-row"><h2 class="section-title">Recent Activity</h2></div>
+          <div class="card" id="activityFeedCard">
+            <div id="activityTimeline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Recent Leads -->
+      <div class="overview-section" id="recentLeadsSection">
+        <div class="section-title-row"><h2 class="section-title">Recent Leads</h2></div>
+        <div class="card"><div id="recentLeadsTable"></div></div>
+      </div>
     </div>
   </main>
 </div>
