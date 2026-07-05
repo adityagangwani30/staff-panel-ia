@@ -86,11 +86,6 @@
           </select>
         </div>
         <div class="f-group">
-          <select id="fCounsellor">
-            <option value="all">Any Assignee</option>
-          </select>
-        </div>
-        <div class="f-group">
           <select id="fSource">
             <option value="all">Any Source</option>
           </select>
@@ -109,7 +104,7 @@
       </div>
 
       <!-- 1. Executive KPIs -->
-      <div class="kpi-grid kpi-grid-4" id="executiveKpis"></div>
+      <div class="kpi-grid kpi-grid-5" id="executiveKpis"></div>
 
       <!-- 2. Admission Pipeline Funnel -->
       <div class="overview-section" id="pipelineSection">
@@ -126,7 +121,7 @@
       <!-- 3. Today's Action Centre -->
       <div class="overview-section" id="actionCentre">
         <div class="section-title-row"><h2 class="section-title">Today's Action Centre</h2><span class="section-badge" id="actionCountBadge"></span></div>
-        <div class="ov-grid ov-grid-3" id="actionCards"></div>
+        <div class="ov-grid ov-grid-5" id="actionCards"></div>
       </div>
 
       <!-- 4. Status Distribution + Counsellor Performance (side by side) -->
@@ -145,6 +140,12 @@
       <div class="overview-section" id="sourcePerfSection">
         <div class="section-title-row"><h2 class="section-title">Source Performance</h2></div>
         <div class="card"><div class="perf-table-wrap"><div id="sourcePerfTable"></div></div></div>
+      </div>
+
+      <!-- 6. Recent Leads -->
+      <div class="overview-section" id="recentLeadsSection">
+        <div class="section-title-row"><h2 class="section-title">Recent Leads</h2></div>
+        <div class="card"><div class="perf-table-wrap"><div id="recentLeadsTable"></div></div></div>
       </div>
     </div>
   </main>

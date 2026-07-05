@@ -111,6 +111,26 @@ const Calc = {
       const cl = leads.filter(l => l.counsellorId === c.id);
       return { id: c.id, name: c.name, centre: c.sourceCentre, role: c.role, assigned: cl.length, active: this.activeLeads(cl), enrolled: this.enrolled(cl), enrollmentRate: cl.length ? (this.enrolled(cl) / cl.length) * 100 : 0, followupsDue: this.pendingFollowups(cl) };
     }).filter(r => r.assigned > 0);
+  },
+
+  consultationBooked(leads) {
+    return leads.filter(l => l.status === 'Consultation Booked' && this._isActive(l)).length;
+  },
+
+  applicationsSubmitted(leads) {
+    return leads.filter(l => l.status === 'Applied' && this._isActive(l)).length;
+  },
+
+  unassignedLeads(leads) {
+    return leads.filter(l => !l.counsellorName || l.counsellorName === 'Unassigned' || l.counsellorId === 'CS-UNASSIGNED').length;
+  },
+
+  lostLeads(leads) {
+    return leads.filter(l => this._isLost(l)).length;
+  },
+
+  consultationsScheduled(leads) {
+    return leads.filter(l => l.status === 'Consultation Booked' && this._isActive(l)).length;
   }
 };
 

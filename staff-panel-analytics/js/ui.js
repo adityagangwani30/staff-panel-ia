@@ -2,7 +2,6 @@ const State = {
   filters: {
     from: null,
     to: null,
-    counsellor: 'all',
     source: 'all',
     status: 'all'
   },
@@ -145,12 +144,15 @@ function renderExecutiveKpis(leads) {
 
   container.innerHTML =
     kpiCardHtml('Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers() }) +
-    kpiCardHtml('New Leads (7d)', Calc.newLeadsPeriod(leads, 7), { color: 'info', icon: iconBarChart(), sub: fmt.int(Calc.newLeads(leads)) + ' today' }) +
     kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget() }) +
-    kpiCardHtml('Pending Follow-ups', Calc.pendingFollowups(leads), { color: 'warning', icon: iconClock() }) +
-    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
     kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck() }) +
-    kpiCardHtml('Enrollment Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true });
+    kpiCardHtml('Overall Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true }) +
+    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock() }) +
+    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
+    kpiCardHtml('Consultation Booked', Calc.consultationBooked(leads), { color: 'info', icon: iconBarChart() }) +
+    kpiCardHtml('Applications Submitted', Calc.applicationsSubmitted(leads), { color: 'info', icon: iconCheck() }) +
+    kpiCardHtml('Unassigned Leads', Calc.unassignedLeads(leads), { color: 'slate', icon: iconUsers() }) +
+    kpiCardHtml('Lost / Dead Leads', Calc.lostLeads(leads), { color: 'slate', icon: iconAlert() });
 }
 
 // ============================================================
@@ -188,22 +190,20 @@ function renderActionCentre(leads) {
 
   const dueToday = Calc.followupsDueToday(leads);
   const overdue = Calc.overdueFollowups(leads);
-  const hotLeads = Calc.hotLeads(leads);
   const callbacks = Calc.callbackRequests(leads);
-  const newToday = Calc.newLeads(leads);
-  const dueTomorrow = Calc.followupsDueTomorrow(leads);
+  const hotLeads = Calc.hotLeads(leads);
+  const consultations = Calc.consultationsScheduled(leads);
 
-  const totalActions = dueToday + overdue + hotLeads + callbacks + newToday + dueTomorrow;
+  const totalActions = dueToday + overdue + callbacks + hotLeads + consultations;
   const badge = document.getElementById('actionCountBadge');
   if (badge) badge.textContent = totalActions + ' items';
 
   container.innerHTML =
     actionCardHtml(iconClock(), 'warning', 'Follow-ups Due Today', dueToday, dueToday === 1 ? '1 follow-up scheduled for today' : dueToday + ' follow-ups scheduled for today') +
     actionCardHtml(iconAlert(), 'danger', 'Overdue Follow-ups', overdue, overdue === 1 ? '1 follow-up past its due date' : overdue + ' follow-ups past their due date') +
-    actionCardHtml(iconHot(), 'pink', 'Hot Leads', hotLeads, hotLeads === 1 ? '1 hot lead ready for immediate contact' : hotLeads + ' hot leads ready for immediate contact') +
     actionCardHtml(iconRefresh(), 'purple', 'Callback Requests', callbacks, callbacks === 1 ? '1 lead requested a callback' : callbacks + ' leads requested a callback') +
-    actionCardHtml(iconUserPlus(), 'info', 'New Leads Today', newToday, newToday === 1 ? '1 new lead added today' : newToday + ' new leads added today') +
-    actionCardHtml(iconClock(), 'slate', 'Follow-ups Due Tomorrow', dueTomorrow, dueTomorrow === 1 ? '1 follow-up due tomorrow' : dueTomorrow + ' follow-ups due tomorrow');
+    actionCardHtml(iconHot(), 'pink', 'Hot Leads', hotLeads, hotLeads === 1 ? '1 hot lead ready for immediate contact' : hotLeads + ' hot leads ready for immediate contact') +
+    actionCardHtml(iconBarChart(), 'info', 'Consultations Scheduled', consultations, consultations === 1 ? '1 consultation scheduled' : consultations + ' consultations scheduled');
 }
 
 // ============================================================
@@ -278,6 +278,25 @@ function renderSourcePerformance(leads) {
 // OVERVIEW RENDER
 // ============================================================
 
+function renderRecentLeads(leads) {
+  const container = document.getElementById('recentLeadsTable');
+  if (!container) return;
+
+  const recent = [...leads]
+    .filter(l => l.entryDate)
+    .sort((a, b) => b.entryDate - a.entryDate)
+    .slice(0, 10);
+
+  if (!recent.length) {
+    container.innerHTML = emptyStateHtml('No recent leads available.');
+    return;
+  }
+
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Name</th><th>Assigned To</th><th>Status</th><th>Source</th><th>Entry Date</th></tr></thead><tbody>${recent.map(l => {
+    return `<tr><td class="name-cell">${escapeHtml(l.studentName || '—')}</td><td>${escapeHtml(l.counsellorName || 'Unassigned')}</td><td>${statusBadge(l.status)}</td><td>${escapeHtml(l.source || '—')}</td><td>${fmt.dateFull(l.entryDate)}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
 function renderOverview(leads) {
   renderExecutiveKpis(leads);
   renderPipeline(leads);
@@ -285,6 +304,7 @@ function renderOverview(leads) {
   renderStatusDistribution(leads);
   renderCounsellorPerformance(leads);
   renderSourcePerformance(leads);
+  renderRecentLeads(leads);
 }
 
 // ============================================================
@@ -300,7 +320,6 @@ function applyFilters() {
     if (!targetDate && (f.from || f.to)) return false;
     if (f.from && targetDate < f.from) return false;
     if (f.to && targetDate > f.to) return false;
-    if (f.counsellor !== 'all' && l.counsellorId !== f.counsellor) return false;
     if (f.source !== 'all' && l.source !== f.source) return false;
     if (f.status !== 'all' && l.status !== f.status) return false;
     return true;
@@ -312,10 +331,6 @@ function renderChips() {
   const chips = [];
   if (f.from) chips.push(['From: ' + fmt.date(f.from), 'from']);
   if (f.to) chips.push(['To: ' + fmt.date(f.to), 'to']);
-  if (f.counsellor !== 'all') {
-    const s = window.IntelAbroadData.staff.find(s => s.id === f.counsellor);
-    chips.push(['Counsellor: ' + (s ? s.name : f.counsellor), 'counsellor']);
-  }
   if (f.source !== 'all') chips.push(['Source: ' + f.source, 'source']);
   if (f.status !== 'all') chips.push(['Status: ' + f.status, 'status']);
 
@@ -327,7 +342,6 @@ function renderChips() {
       const key = b.dataset.clear;
       if (key === 'from') { f.from = null; document.getElementById('fDateFrom').value = ''; }
       else if (key === 'to') { f.to = null; document.getElementById('fDateTo').value = ''; }
-      else if (key === 'counsellor') { f.counsellor = 'all'; document.getElementById('fCounsellor').value = 'all'; }
       else if (key === 'source') { f.source = 'all'; document.getElementById('fSource').value = 'all'; }
       else if (key === 'status') { f.status = 'all'; document.getElementById('fStatus').value = 'all'; }
       runPipeline();
@@ -380,19 +394,8 @@ function readFiltersFromForm() {
   const f = State.filters;
   f.from = document.getElementById('fDateFrom')?.value ? new Date(document.getElementById('fDateFrom').value) : null;
   f.to = document.getElementById('fDateTo')?.value ? new Date(document.getElementById('fDateTo').value + 'T23:59:59') : null;
-  f.counsellor = document.getElementById('fCounsellor')?.value || 'all';
   f.source = document.getElementById('fSource')?.value || 'all';
   f.status = document.getElementById('fStatus')?.value || 'all';
-}
-
-function updateAssigneeDropdownOptions() {
-  const select = document.getElementById('fCounsellor');
-  if (!select) return;
-  select.innerHTML = '<option value="all">Any Assignee</option>';
-  let allowedStaff = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
-  allowedStaff.sort((a, b) => a.name.localeCompare(b.name)).forEach(s => select.appendChild(new Option(s.name, s.id)));
-  select.disabled = false;
-  select.value = State.filters.counsellor;
 }
 
 // ============================================================
@@ -404,7 +407,6 @@ function handleExcelUpload(file) {
     DataLoader.applyDataset(result.leads, result.meta);
     DataLoader.fileName = file.name;
     refreshDynamicFilters();
-    updateAssigneeDropdownOptions();
     runPipeline();
   }).catch(err => {
     alert('Failed to parse file: ' + err.message);
@@ -419,8 +421,8 @@ function wireEvents() {
   document.getElementById('applyFiltersBtn')?.addEventListener('click', () => { readFiltersFromForm(); runPipeline(); });
   document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
     ['fDateFrom', 'fDateTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    ['fCounsellor', 'fSource', 'fStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
-    State.filters.from = null; State.filters.to = null; State.filters.counsellor = 'all';
+    ['fSource', 'fStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
+    State.filters.from = null; State.filters.to = null;
     State.filters.source = 'all'; State.filters.status = 'all';
     runPipeline();
   });
@@ -447,7 +449,6 @@ async function initUI() {
   populateFilterOptions();
   readFiltersFromForm();
   wireEvents();
-  updateAssigneeDropdownOptions();
   runPipeline();
 }
 
