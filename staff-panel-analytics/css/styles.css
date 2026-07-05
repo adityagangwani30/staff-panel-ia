@@ -1614,6 +1614,27 @@ tbody tr.clickable-row {
 .text-danger { color: var(--danger); }
 .text-muted { color: var(--text-muted); }
 
+/* Performance Tables */
+.perf-table-wrap {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.perf-table {
+  font-size: 12px;
+}
+.perf-table th {
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.perf-table td, .perf-table th {
+  padding: 8px 12px;
+}
+.perf-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
 /* Recent Leads Table */
 .ov-table-scroll {
   max-height: 420px;

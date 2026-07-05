@@ -150,7 +150,7 @@ const Calc = {
   counsellorPerformance(leads, counsellors) {
     return counsellors.map(c => {
       const cl = leads.filter(l => l.counsellorId === c.id);
-      return { id: c.id, name: c.name, centre: c.sourceCentre, role: c.role, assigned: cl.length, active: this.activeLeads(cl), enrolled: this.enrolled(cl), enrollmentRate: cl.length ? (this.enrolled(cl) / cl.length) * 100 : 0, avgCalls: this.averageCalls(cl) };
+      return { id: c.id, name: c.name, centre: c.sourceCentre, role: c.role, assigned: cl.length, active: this.activeLeads(cl), enrolled: this.enrolled(cl), enrollmentRate: cl.length ? (this.enrolled(cl) / cl.length) * 100 : 0, avgCalls: this.averageCalls(cl), followupsDue: this.pendingFollowups(cl) };
     }).filter(r => r.assigned > 0);
   },
 

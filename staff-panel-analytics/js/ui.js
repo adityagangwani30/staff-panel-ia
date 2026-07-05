@@ -243,68 +243,45 @@ function renderStatusDistribution(leads) {
 }
 
 // ============================================================
-// 5. ACTIVITY FEED
+// 5. COUNSELLOR PERFORMANCE
 // ============================================================
 
-function renderActivityFeed(leads) {
-  const container = document.getElementById('activityTimeline');
+function renderCounsellorPerformance(leads) {
+  const container = document.getElementById('counsellorPerfTable');
   if (!container) return;
-  if (!leads.length) {
-    container.innerHTML = emptyStateHtml('No activity data available.');
+
+  const staffList = window.IntelAbroadData.staff.filter(s => s.role !== 'Founder');
+  const perf = Calc.counsellorPerformance(leads, staffList).sort((a, b) => b.assigned - a.assigned);
+
+  if (!perf.length) {
+    container.innerHTML = emptyStateHtml('No counsellor data available.');
     return;
   }
 
-  const events = Calc.generateActivityEvents(leads).slice(0, 25);
-  if (!events.length) {
-    container.innerHTML = emptyStateHtml('No activity data available.');
-    return;
-  }
-
-  const typeIcons = {
-    lead_added: iconUserPlus(),
-    status_updated: iconRefresh(),
-    consultation_booked: iconClock(),
-    consultation_done: iconCheck(),
-    consultation_submitted: iconCheck(),
-    documents_submitted: iconCheck(),
-    applied: iconTarget(),
-    enrolled: iconCheck()
-  };
-
-  const typeColors = {
-    lead_added: 'info',
-    status_updated: 'slate',
-    consultation_booked: 'purple',
-    consultation_done: 'success',
-    consultation_submitted: 'warning',
-    documents_submitted: 'primary',
-    applied: 'teal',
-    enrolled: 'success'
-  };
-
-  container.innerHTML = `<div class="timeline-container-ov">${events.map(e => {
-    const icon = typeIcons[e.type] || iconBarChart();
-    const color = typeColors[e.type] || 'slate';
-    const timeStr = e.time ? fmt.date(e.time) + ' ' + fmt.time(e.time) : '';
-    return `<div class="tl-item"><div class="tl-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div><div class="tl-content"><div class="tl-action">${escapeHtml(e.action)}</div><div class="tl-time">${timeStr}</div></div></div>`;
-  }).join('')}</div>`;
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Counsellor</th><th>Centre</th><th>Assigned</th><th>Active</th><th>Follow-ups Due</th><th>Enrolled</th><th>Conv. Rate</th></tr></thead><tbody>${perf.map(p => {
+    return `<tr><td class="name-cell">${escapeHtml(p.name)}</td><td>${escapeHtml(p.centre)}</td><td>${fmt.int(p.assigned)}</td><td>${fmt.int(p.active)}</td><td>${fmt.int(p.followupsDue)}</td><td>${fmt.int(p.enrolled)}</td><td class="${p.enrollmentRate > 10 ? 'text-success' : p.enrollmentRate > 5 ? 'text-warning' : 'text-muted'}">${fmt.pct(p.enrollmentRate, 1)}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
 }
 
 // ============================================================
-// 6. RECENT LEADS TABLE
+// 6. SOURCE PERFORMANCE
 // ============================================================
 
-function renderRecentLeads(leads) {
-  const container = document.getElementById('recentLeadsTable');
+function renderSourcePerformance(leads) {
+  const container = document.getElementById('sourcePerfTable');
   if (!container) return;
-  if (!leads.length) {
-    container.innerHTML = emptyStateHtml('No leads found.');
+
+  const sources = window.IntelAbroadData.sources;
+  const perf = Calc.sourcePerformance(leads, sources).sort((a, b) => b.enrollmentRate - a.enrollmentRate);
+
+  if (!perf.length) {
+    container.innerHTML = emptyStateHtml('No source data available.');
     return;
   }
 
-  const recent = Calc.recentLeads(leads, 10);
-  container.innerHTML = `<div class="table-scroll ov-table-scroll"><table><thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Assignee</th><th>Calls</th><th>Entry Date</th></tr></thead><tbody>${recent.map(l => {
-    return `<tr><td class="name-cell">${escapeHtml(l.studentName)}</td><td>${escapeHtml(l.phone || '—')}</td><td>${statusBadge(l.status)}</td><td>${escapeHtml(l.counsellorName || '—')}</td><td><span class="calls-badge">${fmt.int(l.calls)}</span></td><td>${fmt.date(l.entryDate)}</td></tr>`;
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>#</th><th>Source</th><th>Total Leads</th><th>Enrolled</th><th>Conv. Rate</th></tr></thead><tbody>${perf.map((p, i) => {
+    const rankClass = i === 0 ? 'text-success' : i <= 2 ? 'text-warning' : 'text-muted';
+    return `<tr><td class="rank-cell">${i + 1}</td><td class="name-cell">${escapeHtml(p.source)}</td><td>${fmt.int(p.assigned)}</td><td>${fmt.int(p.enrolled)}</td><td class="${rankClass}" style="font-weight:600">${fmt.pct(p.enrollmentRate, 1)}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -317,8 +294,8 @@ function renderOverview(leads) {
   renderPipeline(leads);
   renderActionCentre(leads);
   renderStatusDistribution(leads);
-  renderActivityFeed(leads);
-  renderRecentLeads(leads);
+  renderCounsellorPerformance(leads);
+  renderSourcePerformance(leads);
 }
 
 // ============================================================
