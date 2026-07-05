@@ -5,6 +5,7 @@ const State = {
     source: 'all',
     status: 'all'
   },
+  selectedStaff: 'all',
   filtered: [],
   charts: {}
 };
@@ -308,6 +309,151 @@ function renderOverview(leads) {
 }
 
 // ============================================================
+// STAFF PERFORMANCE ANALYTICS
+// ============================================================
+
+function getStaffReportIds(staffId) {
+  const staffList = window.IntelAbroadData.staff;
+  const ids = new Set([staffId]);
+  let added = true;
+  while (added) {
+    added = false;
+    staffList.forEach(s => {
+      if (s.reportsTo && ids.has(s.reportsTo) && !ids.has(s.id)) {
+        ids.add(s.id);
+        added = true;
+      }
+    });
+  }
+  return Array.from(ids);
+}
+
+function getStaffLeads(staffId) {
+  const leads = State.filtered;
+  if (staffId === 'all') return leads;
+
+  const staff = window.IntelAbroadData.staff.find(s => s.id === staffId);
+  if (!staff) return leads;
+
+  if (staff.role === 'Founder') {
+    return leads;
+  }
+  if (staff.role === 'BranchManager') {
+    return leads.filter(l => l.sourceCentre === staff.sourceCentre);
+  }
+  if (staff.role === 'TeamLead') {
+    const reportIds = getStaffReportIds(staffId);
+    return leads.filter(l => reportIds.includes(l.counsellorId));
+  }
+  return leads.filter(l => l.counsellorId === staffId);
+}
+
+function populateStaffSelector() {
+  const select = document.getElementById('staffSelector');
+  if (!select) return;
+
+  const staffList = window.IntelAbroadData.staff || [];
+  const managers = staffList.filter(s => s.role === 'BranchManager').sort((a, b) => a.name.localeCompare(b.name));
+  const leads = staffList.filter(s => s.role === 'TeamLead').sort((a, b) => a.name.localeCompare(b.name));
+  const counsellors = staffList.filter(s => s.role === 'Counsellor').sort((a, b) => a.name.localeCompare(b.name));
+
+  let html = `<option value="all">All Staff</option>`;
+
+  if (managers.length) {
+    html += `<optgroup label="Branch Managers">${managers.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.sourceCentre)})</option>`).join('')}</optgroup>`;
+  }
+  if (leads.length) {
+    html += `<optgroup label="Team Leads">${leads.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>`;
+  }
+  if (counsellors.length) {
+    html += `<optgroup label="Counsellors">${counsellors.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>`;
+  }
+
+  select.innerHTML = html;
+  select.value = State.selectedStaff;
+}
+
+function renderStaffKpis(leads) {
+  const container = document.getElementById('staffKpis');
+  if (!container) return;
+  if (!leads.length) {
+    container.innerHTML = emptyStateHtml('No data available for the selected filters.');
+    return;
+  }
+
+  const delay = Calc.averageFollowupDelay(leads);
+
+  container.innerHTML =
+    kpiCardHtml('Assigned Leads', leads.length, { color: 'primary', icon: iconUsers() }) +
+    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget() }) +
+    kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck() }) +
+    kpiCardHtml('Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true }) +
+    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock() }) +
+    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
+    kpiCardHtml('Hot Leads', Calc.hotLeads(leads), { color: 'pink', icon: iconHot() }) +
+    kpiCardHtml('Average Follow-up Delay', fmt.dec(delay, 1) + 'd', { color: 'slate', icon: iconClock() });
+}
+
+function renderStaffPipeline(leads) {
+  const stages = Calc.pipelineStages(leads);
+  drawFunnel('staffPipelineFunnel', stages);
+
+  const table = document.getElementById('staffPipelineTable');
+  if (!table) return;
+  if (!stages.length) {
+    table.innerHTML = emptyStateHtml('No pipeline data available.');
+    return;
+  }
+  table.innerHTML = `<table><thead><tr><th>Stage</th><th>Count</th><th>Stage Conversion</th><th>Drop-off</th></tr></thead><tbody>${stages.map((s, i) => {
+    const convClass = s.stageConversion > 50 ? 'text-success' : s.stageConversion > 25 ? 'text-warning' : 'text-danger';
+    const dropClass = s.dropOff > 50 ? 'text-danger' : s.dropOff > 25 ? 'text-warning' : 'text-success';
+    return `<tr><td class="name-cell">${s.stage}</td><td>${fmt.int(s.count)}</td>${i === 0 ? '<td class="text-muted">—</td><td class="text-muted">—</td>' : `<td class="${convClass}">${fmt.pct(s.stageConversion, 1)}</td><td class="${dropClass}">${fmt.pct(s.dropOff, 1)}</td>`}</tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function renderStaffStatusDistribution(leads) {
+  const canvasId = 'chartStaffStatusDist';
+  const dist = Calc.statusDistribution(leads);
+  const hasData = dist.some(d => d.count > 0);
+
+  if (!hasData) {
+    const parent = document.getElementById(canvasId)?.parentElement;
+    if (parent) parent.innerHTML = emptyStateHtml('No status data available.');
+    return;
+  }
+
+  drawChart(canvasId, {
+    type: 'doughnut',
+    data: {
+      labels: dist.map(d => d.status + ' (' + d.count + ')'),
+      datasets: [{ data: dist.map(d => d.count), backgroundColor: CFG.palette.slice(0, dist.length), borderWidth: 1, borderColor: '#0c0c0e' }]
+    },
+    options: Charts.donutOpts()
+  });
+}
+
+function renderStaffPerfSummary(leads) {
+  const container = document.getElementById('staffPerfSummaryTable');
+  if (!container) return;
+
+  const assigned = leads.length;
+  const completedFollowups = leads.filter(l => l.calls > 0).length;
+  const pendingFollowups = Calc.pendingFollowups(leads);
+  const overdueFollowups = Calc.overdueFollowups(leads);
+  const enrollmentRate = Calc.enrollmentRate(leads);
+
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td class="name-cell">Assigned Leads</td><td style="font-weight:600">${fmt.int(assigned)}</td></tr><tr><td class="name-cell">Completed Follow-ups</td><td style="font-weight:600;color:var(--success)">${fmt.int(completedFollowups)}</td></tr><tr><td class="name-cell">Pending Follow-ups</td><td style="font-weight:600;color:var(--warning)">${fmt.int(pendingFollowups)}</td></tr><tr><td class="name-cell">Overdue Follow-ups</td><td style="font-weight:600;color:var(--danger)">${fmt.int(overdueFollowups)}</td></tr><tr><td class="name-cell">Enrollment Rate</td><td style="font-weight:600;color:var(--purple)">${fmt.pct(enrollmentRate, 1)}</td></tr></tbody></table></div>`;
+}
+
+function renderStaffAnalytics() {
+  const leads = getStaffLeads(State.selectedStaff);
+  renderStaffKpis(leads);
+  renderStaffPipeline(leads);
+  renderStaffStatusDistribution(leads);
+  renderStaffPerfSummary(leads);
+}
+
+// ============================================================
 // FILTERS
 // ============================================================
 
@@ -374,6 +520,7 @@ function runPipeline() {
   applyFilters();
   renderChips();
   renderOverview(State.filtered);
+  renderStaffAnalytics();
   updateLastUpdatedText();
 }
 
@@ -407,6 +554,7 @@ function handleExcelUpload(file) {
     DataLoader.applyDataset(result.leads, result.meta);
     DataLoader.fileName = file.name;
     refreshDynamicFilters();
+    populateStaffSelector();
     runPipeline();
   }).catch(err => {
     alert('Failed to parse file: ' + err.message);
@@ -425,6 +573,11 @@ function wireEvents() {
     State.filters.from = null; State.filters.to = null;
     State.filters.source = 'all'; State.filters.status = 'all';
     runPipeline();
+  });
+
+  document.getElementById('staffSelector')?.addEventListener('change', e => {
+    State.selectedStaff = e.target.value;
+    renderStaffAnalytics();
   });
 
   document.getElementById('exportCsvBtn')?.addEventListener('click', exportCurrentSection);
@@ -447,6 +600,7 @@ async function initUI() {
     await DataLoader.loadFromDefaultUrl();
   } catch (e) {}
   populateFilterOptions();
+  populateStaffSelector();
   readFiltersFromForm();
   wireEvents();
   runPipeline();

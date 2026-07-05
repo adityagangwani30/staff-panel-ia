@@ -147,6 +147,45 @@
         <div class="section-title-row"><h2 class="section-title">Recent Leads</h2></div>
         <div class="card"><div class="perf-table-wrap"><div id="recentLeadsTable"></div></div></div>
       </div>
+
+      <!-- ===================== STAFF ANALYTICS SECTION ===================== -->
+      <div class="overview-section" id="staffAnalyticsSection" style="margin-top: 24px; border-top: 1px solid var(--border-soft); padding-top: 24px;">
+        <div class="section-title-row" style="justify-content: space-between; align-items: center; margin-bottom: 16px; width: 100%;">
+          <h2 class="section-title">Staff Performance Analytics</h2>
+          <div class="f-group">
+            <select id="staffSelector" style="min-width: 220px; font-weight: 600;">
+              <option value="all">All Staff</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Staff KPIs -->
+        <div class="kpi-grid kpi-grid-4" id="staffKpis"></div>
+
+        <!-- Staff Pipeline -->
+        <div class="overview-section" id="staffPipelineSection" style="margin-top: 16px;">
+          <div class="card-head" style="margin-bottom: 12px;"><div class="card-title">Personal Pipeline</div></div>
+          <div class="ov-grid ov-grid-2-1">
+            <div class="card"><div class="chart-wrap"><div id="staffPipelineFunnel"></div></div></div>
+            <div class="card" id="staffPipelineTableCard">
+              <div class="card-head"><div class="card-title">Stage Conversion</div></div>
+              <div id="staffPipelineTable"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Distribution + Performance Summary -->
+        <div class="ov-grid ov-grid-2" style="margin-top: 16px;">
+          <div class="overview-section" id="staffStatusDistSection">
+            <div class="section-title-row"><h2 class="section-title">Personal Status Distribution</h2></div>
+            <div class="card"><div class="chart-wrap h260"><canvas id="chartStaffStatusDist"></canvas></div></div>
+          </div>
+          <div class="overview-section" id="staffPerfSummarySection">
+            <div class="section-title-row"><h2 class="section-title">Performance Summary</h2></div>
+            <div class="card"><div class="perf-table-wrap"><div id="staffPerfSummaryTable"></div></div></div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </div>

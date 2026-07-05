@@ -131,6 +131,17 @@ const Calc = {
 
   consultationsScheduled(leads) {
     return leads.filter(l => l.status === 'Consultation Booked' && this._isActive(l)).length;
+  },
+
+  averageFollowupDelay(leads, today) {
+    const target = today || CFG.today;
+    const overdueLeads = leads.filter(l => l.followUpDate && l.followUpDate < target && this._isActive(l));
+    if (!overdueLeads.length) return 0;
+    const sum = overdueLeads.reduce((total, l) => {
+      const diffMs = target.getTime() - l.followUpDate.getTime();
+      return total + (diffMs / (1000 * 60 * 60 * 24));
+    }, 0);
+    return sum / overdueLeads.length;
   }
 };
 
