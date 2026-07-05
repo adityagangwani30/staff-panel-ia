@@ -11,111 +11,132 @@ interface PipelineFunnelProps {
   leads: Lead[];
 }
 
+const STAGE_COLORS = [
+  '#3B82F6', // blue
+  '#6366F1', // indigo
+  '#8B5CF6', // purple
+  '#A855F7', // violet
+  '#06B6D4', // cyan
+  '#14B8A6', // teal
+  '#22C55E', // green
+];
+
+const container: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+const row: Variants = {
+  hidden: { opacity: 0, x: -16 },
+  show:   { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 220, damping: 24 } },
+};
+
 export function PipelineFunnel({ leads }: PipelineFunnelProps) {
   const stages = Calc.pipelineStages(leads);
   const max = stages[0]?.count || 0;
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.04 } }
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, x: -10 },
-    show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
-  };
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      {/* Visual Funnel (2 Columns wide) */}
-      <motion.div 
-        variants={containerVariants}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      {/* ── Funnel bars (2/3) ─────────────────────────────────── */}
+      <motion.div
+        variants={container}
         initial="hidden"
         animate="show"
-        className="lg:col-span-2 p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm space-y-3.5"
+        className="ia-card p-6 lg:col-span-2 space-y-4"
+        style={{ background: 'var(--bg-card)' }}
       >
         {stages.map((stage, idx) => {
-          const widthPct = max ? (stage.count / max) * 100 : 0;
-          const color = CFG.palette[idx % CFG.palette.length];
-          const pctFromTotal = max ? (stage.count / max) * 100 : 0;
+          const pct = max ? (stage.count / max) * 100 : 0;
+          const color = STAGE_COLORS[idx % STAGE_COLORS.length];
 
           return (
-            <motion.div 
-              key={idx} 
-              variants={itemVariants}
-              className="flex items-center gap-4"
-            >
-              {/* Label */}
-              <div className="w-36 text-xs font-semibold text-slate-300 truncate text-right">
-                {stage.stage}
+            <motion.div key={idx} variants={row}>
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {stage.stage}
+                </span>
+                <span className="font-mono text-[13px] font-semibold text-white">
+                  {stage.count.toLocaleString()}
+                  <span className="ml-2 text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
+                    {idx === 0 ? '100%' : `${pct.toFixed(1)}%`}
+                  </span>
+                </span>
               </div>
-              
-              {/* Funnel Track */}
-              <div className="flex-1 h-9 bg-slate-950/60 rounded-lg overflow-hidden border border-slate-800/40 relative flex items-center">
-                {/* Colored Fill */}
-                <motion.div 
+
+              {/* Bar track */}
+              <div
+                className="h-3 rounded-full overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.05)' }}
+              >
+                <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.max(widthPct, 6)}%` }}
-                  transition={{ duration: 0.65, ease: 'easeOut', delay: idx * 0.03 }}
-                  className="h-full rounded-r flex items-center justify-end px-3 font-mono text-[11px] font-extrabold text-slate-950"
-                  style={{ backgroundColor: color }}
-                >
-                  {stage.count > 0 && <span className="opacity-90">{stage.count}</span>}
-                </motion.div>
-                {stage.count === 0 && (
-                  <span className="pl-3 font-mono text-xs text-slate-600 font-medium">0</span>
-                )}
-              </div>
-              
-              {/* Pct label */}
-              <div className="w-12 text-xs font-mono text-slate-400 font-bold text-left">
-                {idx === 0 ? '100%' : `${pctFromTotal.toFixed(0)}%`}
+                  animate={{ width: `${Math.max(pct, stage.count > 0 ? 2 : 0)}%` }}
+                  transition={{ duration: 0.7, ease: 'easeOut', delay: idx * 0.05 }}
+                  className="h-full rounded-full"
+                  style={{ background: color }}
+                />
               </div>
             </motion.div>
           );
         })}
       </motion.div>
 
-      {/* Conversion Table (1 Column wide) */}
-      <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm flex flex-col">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-3 border-b border-slate-800/60">
-          Conversion Detail
+      {/* ── Conversion detail table (1/3) ─────────────────────── */}
+      <div
+        className="ia-card p-6 flex flex-col"
+        style={{ background: 'var(--bg-card)' }}
+      >
+        <div className="text-[11px] font-bold uppercase tracking-widest mb-4"
+             style={{ color: 'var(--text-muted)' }}>
+          Stage Conversion
         </div>
-        <div className="flex-1 overflow-x-auto mt-2">
-          <table className="w-full text-left text-xs border-collapse">
+
+        <div className="flex-1 overflow-x-auto">
+          <table className="w-full text-left text-[12px] border-collapse">
             <thead>
-              <tr className="text-slate-400 font-semibold border-b border-slate-800/40">
-                <th className="py-2">Stage</th>
-                <th className="py-2 text-right">Count</th>
-                <th className="py-2 text-right">
-                  Stage Conv. <Tooltip tooltipKey="stageConversion" alignRight />
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th className="pb-2 pr-3 font-semibold" style={{ color: 'var(--text-muted)' }}>Stage</th>
+                <th className="pb-2 text-right font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Conv <Tooltip tooltipKey="stageConversion" alignRight />
                 </th>
-                <th className="py-2 text-right">
-                  Drop-off <Tooltip tooltipKey="dropOff" alignRight />
+                <th className="pb-2 text-right pl-3 font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Drop <Tooltip tooltipKey="dropOff" alignRight />
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/30 text-slate-300">
+            <tbody>
               {stages.map((stage, idx) => {
-                const convClass = stage.stageConversion > 50 ? 'text-green-400' : stage.stageConversion > 25 ? 'text-amber-400' : 'text-red-400';
-                const dropClass = stage.dropOff > 50 ? 'text-red-400' : stage.dropOff > 25 ? 'text-amber-400' : 'text-green-400';
-                
+                const convColor = stage.stageConversion > 50
+                  ? '#22C55E' : stage.stageConversion > 25
+                  ? '#F59E0B' : '#EF4444';
+                const dropColor = stage.dropOff > 50
+                  ? '#EF4444' : stage.dropOff > 25
+                  ? '#F59E0B' : '#22C55E';
+
                 return (
-                  <tr key={idx} className="hover:bg-slate-950/20 transition-colors">
-                    <td className="py-2.5 font-medium text-slate-200">{stage.stage}</td>
-                    <td className="py-2.5 text-right font-mono font-semibold">{stage.count}</td>
+                  <tr
+                    key={idx}
+                    style={{ borderBottom: '1px solid var(--border)' }}
+                    className="transition-colors hover:bg-white/[0.02]"
+                  >
+                    <td className="py-2.5 pr-3 font-medium truncate max-w-[90px]"
+                        style={{ color: 'var(--text-secondary)' }}>
+                      {stage.stage}
+                    </td>
                     {idx === 0 ? (
                       <>
-                        <td className="py-2.5 text-right text-slate-500 font-medium">—</td>
-                        <td className="py-2.5 text-right text-slate-500 font-medium">—</td>
+                        <td className="py-2.5 text-right" style={{ color: 'var(--text-muted)' }}>—</td>
+                        <td className="py-2.5 text-right pl-3" style={{ color: 'var(--text-muted)' }}>—</td>
                       </>
                     ) : (
                       <>
-                        <td className={`py-2.5 text-right font-mono font-bold ${convClass}`}>
+                        <td className="py-2.5 text-right font-mono font-semibold"
+                            style={{ color: convColor }}>
                           {stage.stageConversion.toFixed(1)}%
                         </td>
-                        <td className={`py-2.5 text-right font-mono font-bold ${dropClass}`}>
+                        <td className="py-2.5 text-right pl-3 font-mono font-semibold"
+                            style={{ color: dropColor }}>
                           {stage.dropOff.toFixed(1)}%
                         </td>
                       </>
@@ -127,6 +148,7 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
           </table>
         </div>
       </div>
+
     </div>
   );
 }

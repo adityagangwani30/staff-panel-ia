@@ -1,33 +1,116 @@
 @import "tailwindcss";
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   IntelAbroad Design System — Enterprise Dark Theme
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 :root {
-  --background: #030712;
-  --foreground: #f8fafc;
+  /* ── Backgrounds ── */
+  --bg-base:       #09090B;
+  --bg-secondary:  #111113;
+  --bg-card:       #0F1013;
+  --bg-sidebar:    #0C0D10;
+  --bg-hover:      #16181D;
+
+  /* ── Borders ── */
+  --border:        rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.12);
+
+  /* ── Text ── */
+  --text-primary:   #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted:     #71717A;
+
+  /* ── Accent Palette ── */
+  --accent-blue:   #3B82F6;
+  --accent-green:  #22C55E;
+  --accent-yellow: #F59E0B;
+  --accent-red:    #EF4444;
+  --accent-purple: #8B5CF6;
+  --accent-cyan:   #06B6D4;
+  --accent-orange: #F97316;
+  --accent-pink:   #EC4899;
+  --accent-teal:   #14B8A6;
+  --accent-indigo: #6366F1;
+
+  /* ── Legacy aliases kept for backwards-compat ── */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
 }
 
+/* ── Tailwind theme token mapping ── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background:   var(--bg-base);
+  --color-foreground:   var(--text-primary);
+  --color-card:         var(--bg-card);
+  --color-card-hover:   var(--bg-hover);
+  --color-border:       var(--border);
+  --color-muted:        var(--text-muted);
+  --color-secondary:    var(--text-secondary);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Fira Code", monospace;
+}
+
+/* ── Base styles ── */
+html {
+  color-scheme: dark;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Selection ── */
+::selection {
+  background: rgba(59,130,246,0.25);
+  color: #fff;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* ── Custom Scrollbars ── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ── Thin divider utility ── */
+.divider { border-color: var(--border); }
+
+/* ── Card base ── */
+.ia-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
+.ia-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+
+/* ── Fade-in utility ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeInUp 0.35s ease both; }
+
+/* ── Recharts tweaks ── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255,255,255,0.05) !important;
+}
+.recharts-text {
+  fill: var(--text-muted) !important;
+  font-size: 11px !important;
+  font-family: var(--font-inter), sans-serif !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
 }

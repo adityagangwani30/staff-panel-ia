@@ -1,13 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip as RechartsTooltip, 
-  ResponsiveContainer 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
@@ -18,90 +14,106 @@ interface SourcePerfProps {
   leads: Lead[];
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl px-3 py-2.5 text-[12px] shadow-xl min-w-[140px]"
+         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+      <div className="font-semibold mb-1.5">{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center justify-between gap-4">
+          <span style={{ color: 'var(--text-muted)' }}>{p.name}</span>
+          <span className="font-mono font-semibold" style={{ color: p.color }}>{p.value}{p.name === 'Conv. %' ? '%' : ''}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export function SourcePerf({ leads }: SourcePerfProps) {
   const sources = CFG.sources;
-  const perf = useMemo(() => {
-    return Calc.sourcePerformance(leads, sources)
-      .sort((a, b) => b.enrollmentRate - a.enrollmentRate);
-  }, [leads, sources]);
 
-  // Recharts bar chart mapping data
-  const chartData = useMemo(() => {
-    return perf.slice(0, 5).map(p => ({
-      name: p.source,
-      assigned: p.assigned,
+  const perf = useMemo(() =>
+    Calc.sourcePerformance(leads, sources).sort((a, b) => b.enrollmentRate - a.enrollmentRate),
+    [leads, sources]
+  );
+
+  const chartData = useMemo(() =>
+    perf.slice(0, 6).map(p => ({
+      name: p.source.length > 14 ? p.source.slice(0, 14) + '…' : p.source,
+      fullName: p.source,
+      leads: p.assigned,
       enrolled: p.enrolled,
-      convRate: parseFloat(p.enrollmentRate.toFixed(1))
-    }));
-  }, [perf]);
+      rate: parseFloat(p.enrollmentRate.toFixed(1)),
+    })),
+    [perf]
+  );
 
   return (
-    <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl shadow-sm space-y-6">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
-        {/* Left: Recharts Horizontal Bar Chart */}
-        <div className="h-[250px] flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-2 border-b border-slate-800/40">
-            Top 5 Channels (Conversion Rate)
+    <div className="ia-card p-6 space-y-6" style={{ background: 'var(--bg-card)' }}>
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+
+        {/* Chart — 3 col */}
+        <div className="xl:col-span-3 h-[220px]">
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-3"
+               style={{ color: 'var(--text-muted)' }}>
+            Top Channels — Conversion Rate
           </div>
-          <div className="flex-1 mt-3">
-            {chartData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500">No data available</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                >
-                  <XAxis type="number" stroke="#475569" fontSize={10} />
-                  <YAxis dataKey="name" type="category" stroke="#475569" fontSize={9} width={80} />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#334155',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      color: '#f8fafc'
-                    }}
-                  />
-                  <Bar dataKey="convRate" name="Conv. %" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={12} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-[12px]"
+                 style={{ color: 'var(--text-muted)' }}>
+              No data available
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
+                <XAxis type="number" fontSize={10} stroke="transparent" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
+                <YAxis dataKey="name" type="category" width={100} fontSize={10}
+                       stroke="transparent" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                <RTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Bar dataKey="rate" name="Conv. %" radius={[0, 6, 6, 0]} maxBarSize={14}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i === 0 ? '#22C55E' : i === 1 ? '#3B82F6' : i === 2 ? '#8B5CF6' : '#64748B'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
-        {/* Right: Detailed Ranking Grid Table */}
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 select-none pb-2 border-b border-slate-800/40">
-            All Channels Summary
+        {/* Table — 2 col */}
+        <div className="xl:col-span-2">
+          <div className="text-[11px] font-bold uppercase tracking-widest mb-3"
+               style={{ color: 'var(--text-muted)' }}>
+            All Channels
           </div>
-          <div className="overflow-x-auto max-h-[220px] mt-2 scrollbar-thin">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="overflow-x-auto max-h-[200px]">
+            <table className="w-full text-[12px] border-collapse">
               <thead>
-                <tr className="text-slate-400 font-semibold border-b border-slate-800/40">
-                  <th className="py-2 w-8 text-center">#</th>
-                  <th className="py-2">Source</th>
-                  <th className="py-2 text-right">Leads</th>
-                  <th className="py-2 text-right">Enr</th>
-                  <th className="py-2 text-right">
-                    Conv % <Tooltip tooltipKey="sourceConvRate" alignRight />
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th className="pb-2 text-left font-semibold" style={{ color: 'var(--text-muted)' }}>#</th>
+                  <th className="pb-2 text-left font-semibold" style={{ color: 'var(--text-muted)' }}>Source</th>
+                  <th className="pb-2 text-right font-semibold" style={{ color: 'var(--text-muted)' }}>Leads</th>
+                  <th className="pb-2 text-right font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Conv <Tooltip tooltipKey="sourceConvRate" alignRight />
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/30 text-slate-300">
+              <tbody>
                 {perf.map((p, idx) => {
-                  const rankClass = idx === 0 ? 'text-green-400 font-bold' : idx <= 2 ? 'text-amber-400 font-semibold' : 'text-slate-500';
+                  const rateColor = idx === 0 ? '#22C55E' : idx <= 2 ? '#F59E0B' : 'var(--text-secondary)';
                   return (
-                    <tr key={idx} className="hover:bg-slate-950/20 transition-colors">
-                      <td className={`py-2 text-center font-mono ${rankClass}`}>{idx + 1}</td>
-                      <td className="py-2 font-semibold text-slate-200 truncate max-w-[120px]">{p.source}</td>
-                      <td className="py-2 text-right font-mono">{p.assigned}</td>
-                      <td className="py-2 text-right font-mono text-green-400/90">{p.enrolled}</td>
-                      <td className={`py-2 text-right font-mono font-bold ${idx === 0 ? 'text-green-400' : idx <= 2 ? 'text-amber-400' : 'text-slate-400'}`}>
-                        {p.enrollmentRate.toFixed(1)}%
-                      </td>
+                    <tr key={idx} className="transition-colors hover:bg-white/[0.025]"
+                        style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td className="py-2.5 pr-3 font-mono text-[11px]"
+                          style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
+                      <td className="py-2.5 font-medium truncate max-w-[120px]"
+                          style={{ color: 'var(--text-primary)' }}>{p.source}</td>
+                      <td className="py-2.5 text-right font-mono"
+                          style={{ color: 'var(--text-secondary)' }}>{p.assigned}</td>
+                      <td className="py-2.5 text-right font-mono font-semibold"
+                          style={{ color: rateColor }}>{p.enrollmentRate.toFixed(1)}%</td>
                     </tr>
                   );
                 })}
@@ -109,7 +121,6 @@ export function SourcePerf({ leads }: SourcePerfProps) {
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );
