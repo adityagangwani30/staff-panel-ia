@@ -1,7 +1,8 @@
 const State = {
   filters: {
-    from: null,
-    to: null,
+    dateRange: 'all',
+    customFrom: null,
+    customTo: null,
     source: 'all',
     status: 'all'
   },
@@ -9,6 +10,47 @@ const State = {
   filtered: [],
   charts: {}
 };
+
+function getDateRangeBoundaries(range, customFrom, customTo) {
+  const today = CFG.today;
+  let from = null;
+  let to = null;
+
+  switch (range) {
+    case 'today':
+      from = new Date(today.toDateString());
+      to = new Date(today.toDateString() + 'T23:59:59');
+      break;
+    case '7d':
+      to = new Date(today.toDateString() + 'T23:59:59');
+      from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000 + 1000);
+      from.setHours(0, 0, 0, 0);
+      break;
+    case '30d':
+      to = new Date(today.toDateString() + 'T23:59:59');
+      from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000 + 1000);
+      from.setHours(0, 0, 0, 0);
+      break;
+    case '90d':
+      to = new Date(today.toDateString() + 'T23:59:59');
+      from = new Date(to.getTime() - 90 * 24 * 60 * 60 * 1000 + 1000);
+      from.setHours(0, 0, 0, 0);
+      break;
+    case 'month':
+      from = new Date(today.getFullYear(), today.getMonth(), 1);
+      to = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+      break;
+    case 'year':
+      from = new Date(today.getFullYear(), 0, 1);
+      to = new Date(today.getFullYear(), 11, 31, 23, 59, 59);
+      break;
+    case 'custom':
+      from = customFrom ? new Date(customFrom) : null;
+      to = customTo ? new Date(customTo + 'T23:59:59') : null;
+      break;
+  }
+  return { from, to };
+}
 
 const MetricTooltipDefs = {
   totalLeads: {
@@ -584,11 +626,12 @@ function applyFilters() {
   const f = State.filters;
   let allowedLeads = window.IntelAbroadData.leads;
 
+  const { from, to } = getDateRangeBoundaries(f.dateRange, f.customFrom, f.customTo);
+
   State.filtered = allowedLeads.filter(l => {
     const targetDate = l.entryDate;
-    if (!targetDate && (f.from || f.to)) return false;
-    if (f.from && targetDate < f.from) return false;
-    if (f.to && targetDate > f.to) return false;
+    if (from && (!targetDate || targetDate < from)) return false;
+    if (to && (!targetDate || targetDate > to)) return false;
     if (f.source !== 'all' && l.source !== f.source) return false;
     if (f.status !== 'all' && l.status !== f.status) return false;
     return true;
@@ -598,8 +641,23 @@ function applyFilters() {
 function renderChips() {
   const f = State.filters;
   const chips = [];
-  if (f.from) chips.push(['From: ' + fmt.date(f.from), 'from']);
-  if (f.to) chips.push(['To: ' + fmt.date(f.to), 'to']);
+
+  if (f.dateRange !== 'all') {
+    let label = '';
+    if (f.dateRange === 'today') label = 'Today';
+    else if (f.dateRange === '7d') label = 'Last 7 Days';
+    else if (f.dateRange === '30d') label = 'Last 30 Days';
+    else if (f.dateRange === '90d') label = 'Last 90 Days';
+    else if (f.dateRange === 'month') label = 'This Month';
+    else if (f.dateRange === 'year') label = 'This Year';
+    else if (f.dateRange === 'custom') {
+      const fromStr = f.customFrom ? fmt.date(new Date(f.customFrom)) : 'Any';
+      const toStr = f.customTo ? fmt.date(new Date(f.customTo)) : 'Any';
+      label = `Range: ${fromStr} - ${toStr}`;
+    }
+    chips.push([label, 'dateRange']);
+  }
+
   if (f.source !== 'all') chips.push(['Source: ' + f.source, 'source']);
   if (f.status !== 'all') chips.push(['Status: ' + f.status, 'status']);
 
@@ -609,8 +667,18 @@ function renderChips() {
   row.querySelectorAll('button[data-clear]').forEach(b => {
     b.addEventListener('click', () => {
       const key = b.dataset.clear;
-      if (key === 'from') { f.from = null; document.getElementById('fDateFrom').value = ''; }
-      else if (key === 'to') { f.to = null; document.getElementById('fDateTo').value = ''; }
+      if (key === 'dateRange') {
+        f.dateRange = 'all';
+        document.getElementById('fDateRange').value = 'all';
+        const customDiv = document.getElementById('customDateInputs');
+        if (customDiv) customDiv.style.display = 'none';
+        f.customFrom = null;
+        f.customTo = null;
+        const elFrom = document.getElementById('fDateFrom');
+        const elTo = document.getElementById('fDateTo');
+        if (elFrom) elFrom.value = '';
+        if (elTo) elTo.value = '';
+      }
       else if (key === 'source') { f.source = 'all'; document.getElementById('fSource').value = 'all'; }
       else if (key === 'status') { f.status = 'all'; document.getElementById('fStatus').value = 'all'; }
       runPipeline();
@@ -649,7 +717,12 @@ function runPipeline() {
 
 function updateLastUpdatedText() {
   const node = document.getElementById('lastUpdated');
-  if (node) node.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  if (node) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    node.innerHTML = `<span>${dateStr}</span><br><span>${timeStr}</span>`;
+  }
 }
 
 // ============================================================
@@ -662,8 +735,9 @@ function populateFilterOptions() {
 
 function readFiltersFromForm() {
   const f = State.filters;
-  f.from = document.getElementById('fDateFrom')?.value ? new Date(document.getElementById('fDateFrom').value) : null;
-  f.to = document.getElementById('fDateTo')?.value ? new Date(document.getElementById('fDateTo').value + 'T23:59:59') : null;
+  f.dateRange = document.getElementById('fDateRange')?.value || 'all';
+  f.customFrom = document.getElementById('fDateFrom')?.value || null;
+  f.customTo = document.getElementById('fDateTo')?.value || null;
   f.source = document.getElementById('fSource')?.value || 'all';
   f.status = document.getElementById('fStatus')?.value || 'all';
 }
@@ -691,11 +765,38 @@ function handleExcelUpload(file) {
 function wireEvents() {
   document.getElementById('applyFiltersBtn')?.addEventListener('click', () => { readFiltersFromForm(); runPipeline(); });
   document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
+    const rangeEl = document.getElementById('fDateRange');
+    if (rangeEl) rangeEl.value = 'all';
+    const customDiv = document.getElementById('customDateInputs');
+    if (customDiv) customDiv.style.display = 'none';
     ['fDateFrom', 'fDateTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     ['fSource', 'fStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 'all'; });
-    State.filters.from = null; State.filters.to = null;
-    State.filters.source = 'all'; State.filters.status = 'all';
+
+    State.filters.dateRange = 'all';
+    State.filters.customFrom = null;
+    State.filters.customTo = null;
+    State.filters.source = 'all';
+    State.filters.status = 'all';
     runPipeline();
+  });
+
+  document.getElementById('fDateRange')?.addEventListener('change', e => {
+    const val = e.target.value;
+    const customDiv = document.getElementById('customDateInputs');
+    if (customDiv) {
+      customDiv.style.display = val === 'custom' ? 'inline-flex' : 'none';
+    }
+    if (val !== 'custom') {
+      readFiltersFromForm();
+      runPipeline();
+    }
+  });
+
+  ['fDateFrom', 'fDateTo'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      readFiltersFromForm();
+      runPipeline();
+    });
   });
 
   document.getElementById('staffSelector')?.addEventListener('change', e => {
