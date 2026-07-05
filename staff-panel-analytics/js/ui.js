@@ -10,6 +10,126 @@ const State = {
   charts: {}
 };
 
+const MetricTooltipDefs = {
+  totalLeads: {
+    def: 'Total number of lead records currently present in the CRM dataset.',
+    formula: 'Total Leads = COUNT(All Lead Records)',
+    data: 'Lead Dataset'
+  },
+  activeLeads: {
+    def: 'Number of leads that are still active in the admission pipeline.',
+    formula: 'COUNT(Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Status'
+  },
+  enrolled: {
+    def: 'Total number of leads who have successfully completed enrollment.',
+    formula: 'COUNT(Status = Enrolled)',
+    data: 'Status'
+  },
+  conversionRate: {
+    def: 'Percentage of all leads that have successfully enrolled.',
+    formula: '(Enrolled Leads ÷ Total Leads) × 100',
+    data: 'Status'
+  },
+  followupsDueToday: {
+    def: 'Number of leads whose follow-up date is today.',
+    formula: 'COUNT(Follow-Up Date = Today)',
+    data: 'Follow-Up Date'
+  },
+  overdueFollowups: {
+    def: 'Number of active leads whose follow-up date has passed.',
+    formula: 'COUNT(Follow-Up Date < Today AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Follow-Up Date, Status'
+  },
+  consultationBooked: {
+    def: 'Number of active leads currently scheduled for a consultation.',
+    formula: 'COUNT(Status = Consultation Booked)',
+    data: 'Status'
+  },
+  applicationsSubmitted: {
+    def: 'Number of active leads who have submitted their applications.',
+    formula: 'COUNT(Status = Applied)',
+    data: 'Status'
+  },
+  unassignedLeads: {
+    def: 'Leads that have not been assigned to any counsellor.',
+    formula: 'COUNT(Counsellor Name is Empty OR Counsellor ID = CS-UNASSIGNED)',
+    data: 'Counsellor Name, Counsellor ID'
+  },
+  lostLeads: {
+    def: 'Leads that are no longer active due to rejection or lack of interest.',
+    formula: 'COUNT(Status = Lost/Dead)',
+    data: 'Status'
+  },
+  callbackRequests: {
+    def: 'Number of active leads who requested a call back.',
+    formula: 'COUNT((Status = Call Back OR Last Call Status = Call Back Later) AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Status, Last Call Status'
+  },
+  hotLeads: {
+    def: 'High-priority active leads requiring urgent action.',
+    formula: 'COUNT(Status = Hot Lead AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Status'
+  },
+  consultationsScheduled: {
+    def: 'Number of active leads currently scheduled for a consultation.',
+    formula: 'COUNT(Status = Consultation Booked AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Status'
+  },
+  assignedLeads: {
+    def: 'Total leads assigned to the selected staff member.',
+    formula: 'COUNT(Leads Assigned to Selected Staff Scope)',
+    data: 'Counsellor ID / Branch / Hierarchy'
+  },
+  averageFollowupDelay: {
+    def: 'Average number of days follow-ups are overdue for active leads.',
+    formula: 'SUM(Today - Follow-Up Date) ÷ COUNT(Overdue Follow-ups in Staff Scope)',
+    data: 'Follow-Up Date, Status'
+  },
+  stageConversion: {
+    def: 'Percentage of leads progressing to this stage from the previous stage.',
+    formula: '(Leads at Current Stage ÷ Leads at Previous Stage) × 100',
+    data: 'Status (Order)'
+  },
+  dropOff: {
+    def: 'Percentage of leads who did not progress to this stage from the previous stage.',
+    formula: '((Leads at Previous Stage - Leads at Current Stage) ÷ Leads at Previous Stage) × 100',
+    data: 'Status (Order)'
+  },
+  sourceLeads: {
+    def: 'Total leads received from a specific marketing source.',
+    formula: 'COUNT(Leads where Source = Channel)',
+    data: 'Source'
+  },
+  sourceEnrolled: {
+    def: 'Total enrolled leads from a specific marketing source.',
+    formula: 'COUNT(Status = Enrolled where Source = Channel)',
+    data: 'Source, Status'
+  },
+  sourceConvRate: {
+    def: 'Percentage of leads from a particular source that successfully enrolled.',
+    formula: '(Enrolled Leads from Source ÷ Total Leads from Source) × 100',
+    data: 'Source, Status'
+  },
+  staffCompletedFollowups: {
+    def: 'Count of leads in staff scope that have completed at least one call attempt.',
+    formula: 'COUNT(Leads with Calls > 0 within Selected Staff Scope)',
+    data: 'Calls, Counsellor ID'
+  },
+  staffPendingFollowups: {
+    def: 'Count of active leads in staff scope with follow-up date scheduled today or in future.',
+    formula: 'COUNT(Follow-Up Date ≥ Today AND Status ≠ Enrolled AND Status ≠ Lost/Dead)',
+    data: 'Follow-Up Date, Status, Counsellor ID'
+  }
+};
+
+function tooltipHtml(key, alignRight) {
+  const info = MetricTooltipDefs[key];
+  if (!info) return '';
+  const rightClass = alignRight ? ' tooltip-right' : '';
+  return `<span class="tooltip-wrap"><span class="info-btn" onclick="event.stopPropagation()"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble${rightClass}"><strong>Definition:</strong><br>${info.def}<br><strong style="display:block;margin-top:6px;">Formula:</strong><code>${info.formula}</code><br><strong style="display:block;margin-top:6px;">Data Used:</strong>${info.data}</span></span>`;
+}
+
 const fmt = {
   int(n) {
     if (n == null || isNaN(n) || !isFinite(n)) return '0';
@@ -55,12 +175,14 @@ function kpiCardHtml(label, target, opts) {
   const color = o.color || 'primary';
   const isPct = o.isPct;
   const sub = o.sub || '';
+  const tooltipKey = o.tooltipKey || '';
+  const tooltipAlignRight = o.tooltipAlignRight || false;
   const displayVal = isPct ? fmt.pct(target, 1) : (typeof target === 'string' ? escapeHtml(target) : fmt.int(target));
-  return `<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div></div><div class="kpi-label">${label}</div><div class="kpi-value">${displayVal}</div>${sub ? `<div class="kpi-trend-row"><span class="kpi-sub">${sub}</span></div>` : ''}</div>`;
+  return `<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div>${tooltipKey ? tooltipHtml(tooltipKey, tooltipAlignRight) : ''}</div><div class="kpi-label">${label}</div><div class="kpi-value">${displayVal}</div>${sub ? `<div class="kpi-trend-row"><span class="kpi-sub">${sub}</span></div>` : ''}</div>`;
 }
 
-function actionCardHtml(icon, color, label, count, desc) {
-  return `<div class="action-card" style="border-left:3px solid color-mix(in srgb, var(--${color}) 30%, transparent)"><div class="action-card-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div><div class="action-card-body"><div class="action-card-count">${fmt.int(count)}</div><div class="action-card-label">${label}</div></div><div class="action-card-desc">${desc}</div></div>`;
+function actionCardHtml(icon, color, label, count, desc, tooltipKey, tooltipAlignRight) {
+  return `<div class="action-card" style="border-left:3px solid color-mix(in srgb, var(--${color}) 30%, transparent);position:relative;"><div style="position:absolute;top:10px;right:10px;">${tooltipKey ? tooltipHtml(tooltipKey, tooltipAlignRight) : ''}</div><div class="action-card-icon" style="background:var(--${color}-tint);color:var(--${color})">${icon}</div><div class="action-card-body"><div class="action-card-count">${fmt.int(count)}</div><div class="action-card-label">${label}</div></div><div class="action-card-desc">${desc}</div></div>`;
 }
 
 function statusBadge(status) {
@@ -144,16 +266,16 @@ function renderExecutiveKpis(leads) {
   }
 
   container.innerHTML =
-    kpiCardHtml('Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers() }) +
-    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget() }) +
-    kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck() }) +
-    kpiCardHtml('Overall Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true }) +
-    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock() }) +
-    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
-    kpiCardHtml('Consultation Booked', Calc.consultationBooked(leads), { color: 'info', icon: iconBarChart() }) +
-    kpiCardHtml('Applications Submitted', Calc.applicationsSubmitted(leads), { color: 'info', icon: iconCheck() }) +
-    kpiCardHtml('Unassigned Leads', Calc.unassignedLeads(leads), { color: 'slate', icon: iconUsers() }) +
-    kpiCardHtml('Lost / Dead Leads', Calc.lostLeads(leads), { color: 'slate', icon: iconAlert() });
+    kpiCardHtml('Total Leads', Calc.totalAssigned(leads), { color: 'primary', icon: iconUsers(), tooltipKey: 'totalLeads' }) +
+    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget(), tooltipKey: 'activeLeads' }) +
+    kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck(), tooltipKey: 'enrolled' }) +
+    kpiCardHtml('Overall Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true, tooltipKey: 'conversionRate' }) +
+    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'followupsDueToday', tooltipAlignRight: true }) +
+    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'overdueFollowups' }) +
+    kpiCardHtml('Consultation Booked', Calc.consultationBooked(leads), { color: 'info', icon: iconBarChart(), tooltipKey: 'consultationBooked' }) +
+    kpiCardHtml('Applications Submitted', Calc.applicationsSubmitted(leads), { color: 'info', icon: iconCheck(), tooltipKey: 'applicationsSubmitted' }) +
+    kpiCardHtml('Unassigned Leads', Calc.unassignedLeads(leads), { color: 'slate', icon: iconUsers(), tooltipKey: 'unassignedLeads' }) +
+    kpiCardHtml('Lost / Dead Leads', Calc.lostLeads(leads), { color: 'slate', icon: iconAlert(), tooltipKey: 'lostLeads', tooltipAlignRight: true });
 }
 
 // ============================================================
@@ -170,7 +292,7 @@ function renderPipeline(leads) {
     table.innerHTML = emptyStateHtml('No pipeline data available.');
     return;
   }
-  table.innerHTML = `<table><thead><tr><th>Stage</th><th>Count</th><th>Stage Conversion</th><th>Drop-off</th></tr></thead><tbody>${stages.map((s, i) => {
+  table.innerHTML = `<table><thead><tr><th>Stage</th><th>Count</th><th>Stage Conversion ${tooltipHtml('stageConversion')}</th><th>Drop-off ${tooltipHtml('dropOff', true)}</th></tr></thead><tbody>${stages.map((s, i) => {
     const convClass = s.stageConversion > 50 ? 'text-success' : s.stageConversion > 25 ? 'text-warning' : 'text-danger';
     const dropClass = s.dropOff > 50 ? 'text-danger' : s.dropOff > 25 ? 'text-warning' : 'text-success';
     return `<tr><td class="name-cell">${s.stage}</td><td>${fmt.int(s.count)}</td>${i === 0 ? '<td class="text-muted">—</td><td class="text-muted">—</td>' : `<td class="${convClass}">${fmt.pct(s.stageConversion, 1)}</td><td class="${dropClass}">${fmt.pct(s.dropOff, 1)}</td>`}</tr>`;
@@ -200,11 +322,11 @@ function renderActionCentre(leads) {
   if (badge) badge.textContent = totalActions + ' items';
 
   container.innerHTML =
-    actionCardHtml(iconClock(), 'warning', 'Follow-ups Due Today', dueToday, dueToday === 1 ? '1 follow-up scheduled for today' : dueToday + ' follow-ups scheduled for today') +
-    actionCardHtml(iconAlert(), 'danger', 'Overdue Follow-ups', overdue, overdue === 1 ? '1 follow-up past its due date' : overdue + ' follow-ups past their due date') +
-    actionCardHtml(iconRefresh(), 'purple', 'Callback Requests', callbacks, callbacks === 1 ? '1 lead requested a callback' : callbacks + ' leads requested a callback') +
-    actionCardHtml(iconHot(), 'pink', 'Hot Leads', hotLeads, hotLeads === 1 ? '1 hot lead ready for immediate contact' : hotLeads + ' hot leads ready for immediate contact') +
-    actionCardHtml(iconBarChart(), 'info', 'Consultations Scheduled', consultations, consultations === 1 ? '1 consultation scheduled' : consultations + ' consultations scheduled');
+    actionCardHtml(iconClock(), 'warning', 'Follow-ups Due Today', dueToday, dueToday === 1 ? '1 follow-up scheduled for today' : dueToday + ' follow-ups scheduled for today', 'followupsDueToday') +
+    actionCardHtml(iconAlert(), 'danger', 'Overdue Follow-ups', overdue, overdue === 1 ? '1 follow-up past its due date' : overdue + ' follow-ups past their due date', 'overdueFollowups') +
+    actionCardHtml(iconRefresh(), 'purple', 'Callback Requests', callbacks, callbacks === 1 ? '1 lead requested a callback' : callbacks + ' leads requested a callback', 'callbackRequests') +
+    actionCardHtml(iconHot(), 'pink', 'Hot Leads', hotLeads, hotLeads === 1 ? '1 hot lead ready for immediate contact' : hotLeads + ' hot leads ready for immediate contact', 'hotLeads', true) +
+    actionCardHtml(iconBarChart(), 'info', 'Consultations Scheduled', consultations, consultations === 1 ? '1 consultation scheduled' : consultations + ' consultations scheduled', 'consultationsScheduled', true);
 }
 
 // ============================================================
@@ -248,7 +370,7 @@ function renderCounsellorPerformance(leads) {
     return;
   }
 
-  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Counsellor</th><th>Centre</th><th>Assigned</th><th>Active</th><th>Follow-ups Due</th><th>Enrolled</th><th>Conv. Rate</th></tr></thead><tbody>${perf.map(p => {
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Counsellor</th><th>Centre</th><th>Assigned ${tooltipHtml('assignedLeads')}</th><th>Active ${tooltipHtml('activeLeads')}</th><th>Follow-ups Due ${tooltipHtml('staffPendingFollowups')}</th><th>Enrolled ${tooltipHtml('enrolled')}</th><th>Conv. Rate ${tooltipHtml('conversionRate', true)}</th></tr></thead><tbody>${perf.map(p => {
     return `<tr><td class="name-cell">${escapeHtml(p.name)}</td><td>${escapeHtml(p.centre)}</td><td>${fmt.int(p.assigned)}</td><td>${fmt.int(p.active)}</td><td>${fmt.int(p.followupsDue)}</td><td>${fmt.int(p.enrolled)}</td><td class="${p.enrollmentRate > 10 ? 'text-success' : p.enrollmentRate > 5 ? 'text-warning' : 'text-muted'}">${fmt.pct(p.enrollmentRate, 1)}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
@@ -269,7 +391,7 @@ function renderSourcePerformance(leads) {
     return;
   }
 
-  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>#</th><th>Source</th><th>Total Leads</th><th>Enrolled</th><th>Conv. Rate</th></tr></thead><tbody>${perf.map((p, i) => {
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>#</th><th>Source</th><th>Total Leads ${tooltipHtml('sourceLeads')}</th><th>Enrolled ${tooltipHtml('sourceEnrolled')}</th><th>Conv. Rate ${tooltipHtml('sourceConvRate', true)}</th></tr></thead><tbody>${perf.map((p, i) => {
     const rankClass = i === 0 ? 'text-success' : i <= 2 ? 'text-warning' : 'text-muted';
     return `<tr><td class="rank-cell">${i + 1}</td><td class="name-cell">${escapeHtml(p.source)}</td><td>${fmt.int(p.assigned)}</td><td>${fmt.int(p.enrolled)}</td><td class="${rankClass}" style="font-weight:600">${fmt.pct(p.enrollmentRate, 1)}</td></tr>`;
   }).join('')}</tbody></table></div>`;
@@ -384,14 +506,14 @@ function renderStaffKpis(leads) {
   const delay = Calc.averageFollowupDelay(leads);
 
   container.innerHTML =
-    kpiCardHtml('Assigned Leads', leads.length, { color: 'primary', icon: iconUsers() }) +
-    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget() }) +
-    kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck() }) +
-    kpiCardHtml('Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true }) +
-    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock() }) +
-    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert() }) +
-    kpiCardHtml('Hot Leads', Calc.hotLeads(leads), { color: 'pink', icon: iconHot() }) +
-    kpiCardHtml('Average Follow-up Delay', fmt.dec(delay, 1) + 'd', { color: 'slate', icon: iconClock() });
+    kpiCardHtml('Assigned Leads', leads.length, { color: 'primary', icon: iconUsers(), tooltipKey: 'assignedLeads' }) +
+    kpiCardHtml('Active Leads', Calc.activeLeads(leads), { color: 'teal', icon: iconTarget(), tooltipKey: 'activeLeads' }) +
+    kpiCardHtml('Enrolled', Calc.enrolled(leads), { color: 'success', icon: iconCheck(), tooltipKey: 'enrolled' }) +
+    kpiCardHtml('Conversion Rate', Calc.enrollmentRate(leads), { color: 'purple', icon: iconTrendingUp(), isPct: true, tooltipKey: 'conversionRate', tooltipAlignRight: true }) +
+    kpiCardHtml('Follow-ups Due Today', Calc.followupsDueToday(leads), { color: 'warning', icon: iconClock(), tooltipKey: 'followupsDueToday' }) +
+    kpiCardHtml('Overdue Follow-ups', Calc.overdueFollowups(leads), { color: 'danger', icon: iconAlert(), tooltipKey: 'overdueFollowups' }) +
+    kpiCardHtml('Hot Leads', Calc.hotLeads(leads), { color: 'pink', icon: iconHot(), tooltipKey: 'hotLeads' }) +
+    kpiCardHtml('Average Follow-up Delay', fmt.dec(delay, 1) + 'd', { color: 'slate', icon: iconClock(), tooltipKey: 'averageFollowupDelay', tooltipAlignRight: true });
 }
 
 function renderStaffPipeline(leads) {
@@ -404,7 +526,7 @@ function renderStaffPipeline(leads) {
     table.innerHTML = emptyStateHtml('No pipeline data available.');
     return;
   }
-  table.innerHTML = `<table><thead><tr><th>Stage</th><th>Count</th><th>Stage Conversion</th><th>Drop-off</th></tr></thead><tbody>${stages.map((s, i) => {
+  table.innerHTML = `<table><thead><tr><th>Stage</th><th>Count</th><th>Stage Conversion ${tooltipHtml('stageConversion')}</th><th>Drop-off ${tooltipHtml('dropOff', true)}</th></tr></thead><tbody>${stages.map((s, i) => {
     const convClass = s.stageConversion > 50 ? 'text-success' : s.stageConversion > 25 ? 'text-warning' : 'text-danger';
     const dropClass = s.dropOff > 50 ? 'text-danger' : s.dropOff > 25 ? 'text-warning' : 'text-success';
     return `<tr><td class="name-cell">${s.stage}</td><td>${fmt.int(s.count)}</td>${i === 0 ? '<td class="text-muted">—</td><td class="text-muted">—</td>' : `<td class="${convClass}">${fmt.pct(s.stageConversion, 1)}</td><td class="${dropClass}">${fmt.pct(s.dropOff, 1)}</td>`}</tr>`;
@@ -442,7 +564,7 @@ function renderStaffPerfSummary(leads) {
   const overdueFollowups = Calc.overdueFollowups(leads);
   const enrollmentRate = Calc.enrollmentRate(leads);
 
-  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td class="name-cell">Assigned Leads</td><td style="font-weight:600">${fmt.int(assigned)}</td></tr><tr><td class="name-cell">Completed Follow-ups</td><td style="font-weight:600;color:var(--success)">${fmt.int(completedFollowups)}</td></tr><tr><td class="name-cell">Pending Follow-ups</td><td style="font-weight:600;color:var(--warning)">${fmt.int(pendingFollowups)}</td></tr><tr><td class="name-cell">Overdue Follow-ups</td><td style="font-weight:600;color:var(--danger)">${fmt.int(overdueFollowups)}</td></tr><tr><td class="name-cell">Enrollment Rate</td><td style="font-weight:600;color:var(--purple)">${fmt.pct(enrollmentRate, 1)}</td></tr></tbody></table></div>`;
+  container.innerHTML = `<div class="table-scroll"><table class="perf-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td class="name-cell">Assigned Leads ${tooltipHtml('assignedLeads')}</td><td style="font-weight:600">${fmt.int(assigned)}</td></tr><tr><td class="name-cell">Completed Follow-ups ${tooltipHtml('staffCompletedFollowups')}</td><td style="font-weight:600;color:var(--success)">${fmt.int(completedFollowups)}</td></tr><tr><td class="name-cell">Pending Follow-ups ${tooltipHtml('staffPendingFollowups')}</td><td style="font-weight:600;color:var(--warning)">${fmt.int(pendingFollowups)}</td></tr><tr><td class="name-cell">Overdue Follow-ups ${tooltipHtml('overdueFollowups')}</td><td style="font-weight:600;color:var(--danger)">${fmt.int(overdueFollowups)}</td></tr><tr><td class="name-cell">Enrollment Rate ${tooltipHtml('conversionRate')}</td><td style="font-weight:600;color:var(--purple)">${fmt.pct(enrollmentRate, 1)}</td></tr></tbody></table></div>`;
 }
 
 function renderStaffAnalytics() {

@@ -108,7 +108,24 @@
 
       <!-- 2. Admission Pipeline Funnel -->
       <div class="overview-section" id="pipelineSection">
-        <div class="section-title-row"><h2 class="section-title">Admission Pipeline</h2></div>
+        <div class="section-title-row">
+          <h2 class="section-title">
+            Admission Pipeline
+            <span class="tooltip-wrap">
+              <span class="info-btn">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </span>
+              <span class="tooltip-bubble">
+                <strong>Definition:</strong><br>
+                Visualizes progression of active leads through the admission funnel stages.<br>
+                <strong style="display:block;margin-top:6px;">Formula:</strong>
+                <code>COUNT(Leads progressing through Stage Order)</code><br>
+                <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                Status, Status Order
+              </span>
+            </span>
+          </h2>
+        </div>
         <div class="ov-grid ov-grid-2-1">
           <div class="card"><div class="chart-wrap"><div id="pipelineFunnel"></div></div></div>
           <div class="card" id="pipelineTableCard">
@@ -120,38 +137,139 @@
 
       <!-- 3. Today's Action Centre -->
       <div class="overview-section" id="actionCentre">
-        <div class="section-title-row"><h2 class="section-title">Today's Action Centre</h2><span class="section-badge" id="actionCountBadge"></span></div>
+        <div class="section-title-row">
+          <h2 class="section-title">
+            Today's Action Centre
+            <span class="tooltip-wrap">
+              <span class="info-btn">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </span>
+              <span class="tooltip-bubble">
+                <strong>Definition:</strong><br>
+                Critical daily action items for active leads requiring immediate contact.<br>
+                <strong style="display:block;margin-top:6px;">Formula:</strong>
+                <code>Sum of pending, overdue, callbacks, hot and scheduled items</code><br>
+                <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                Follow-Up Date, Status, Last Call Status
+              </span>
+            </span>
+          </h2>
+          <span class="section-badge" id="actionCountBadge"></span>
+        </div>
         <div class="ov-grid ov-grid-5" id="actionCards"></div>
       </div>
 
       <!-- 4. Status Distribution + Counsellor Performance (side by side) -->
       <div class="ov-grid ov-grid-2">
         <div class="overview-section" id="statusDistSection">
-          <div class="section-title-row"><h2 class="section-title">Status Distribution</h2></div>
+          <div class="section-title-row">
+            <h2 class="section-title">
+              Status Distribution
+              <span class="tooltip-wrap">
+                <span class="info-btn">
+                  <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </span>
+                <span class="tooltip-bubble">
+                  <strong>Definition:</strong><br>
+                  Distribution of leads across all CRM statuses.<br>
+                  <strong style="display:block;margin-top:6px;">Formula:</strong>
+                  <code>COUNT(Leads grouped by Status)</code><br>
+                  <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                  Status
+                </span>
+              </span>
+            </h2>
+          </div>
           <div class="card"><div class="chart-wrap h260"><canvas id="chartStatusDistOv"></canvas></div></div>
         </div>
         <div class="overview-section" id="counsellorPerfSection">
-          <div class="section-title-row"><h2 class="section-title">Counsellor Performance</h2></div>
+          <div class="section-title-row">
+            <h2 class="section-title">
+              Counsellor Performance
+              <span class="tooltip-wrap">
+                <span class="info-btn">
+                  <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </span>
+                <span class="tooltip-bubble">
+                  <strong>Definition:</strong><br>
+                  Performance metrics breakdown per assigned counsellor.<br>
+                  <strong style="display:block;margin-top:6px;">Formula:</strong>
+                  <code>Summarized metrics over Counsellor ID</code><br>
+                  <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                  Counsellor ID, Status, Follow-Up Date
+                </span>
+              </span>
+            </h2>
+          </div>
           <div class="card"><div class="perf-table-wrap"><div id="counsellorPerfTable"></div></div></div>
         </div>
       </div>
 
       <!-- 5. Source Performance -->
       <div class="overview-section" id="sourcePerfSection">
-        <div class="section-title-row"><h2 class="section-title">Source Performance</h2></div>
+        <div class="section-title-row">
+          <h2 class="section-title">
+            Source Performance
+            <span class="tooltip-wrap">
+              <span class="info-btn">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </span>
+              <span class="tooltip-bubble">
+                <strong>Definition:</strong><br>
+                Evaluates leads volume and conversion rates per marketing source.<br>
+                <strong style="display:block;margin-top:6px;">Formula:</strong>
+                <code>(Enrolled Leads per Source ÷ Total Leads per Source) × 100</code><br>
+                <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                Source, Status
+              </span>
+            </span>
+          </h2>
+        </div>
         <div class="card"><div class="perf-table-wrap"><div id="sourcePerfTable"></div></div></div>
       </div>
 
       <!-- 6. Recent Leads -->
       <div class="overview-section" id="recentLeadsSection">
-        <div class="section-title-row"><h2 class="section-title">Recent Leads</h2></div>
+        <div class="section-title-row">
+          <h2 class="section-title">
+            Recent Leads
+            <span class="tooltip-wrap">
+              <span class="info-btn">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </span>
+              <span class="tooltip-bubble">
+                <strong>Definition:</strong><br>
+                List of the 10 most recently added lead records.<br>
+                <strong style="display:block;margin-top:6px;">Formula:</strong>
+                <code>Sort leads by Entry Date descending, take top 10</code><br>
+                <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                Student Name, Entry Date, Counsellor Name, Status, Source
+              </span>
+            </span>
+          </h2>
+        </div>
         <div class="card"><div class="perf-table-wrap"><div id="recentLeadsTable"></div></div></div>
       </div>
 
       <!-- ===================== STAFF ANALYTICS SECTION ===================== -->
       <div class="overview-section" id="staffAnalyticsSection" style="margin-top: 24px; border-top: 1px solid var(--border-soft); padding-top: 24px;">
         <div class="section-title-row" style="justify-content: space-between; align-items: center; margin-bottom: 16px; width: 100%;">
-          <h2 class="section-title">Staff Performance Analytics</h2>
+          <h2 class="section-title">
+            Staff Performance Analytics
+            <span class="tooltip-wrap">
+              <span class="info-btn">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </span>
+              <span class="tooltip-bubble">
+                <strong>Definition:</strong><br>
+                Detailed performance metrics filtered for the selected staff member.<br>
+                <strong style="display:block;margin-top:6px;">Formula:</strong>
+                <code>Resolve leads based on Staff Selection Hierarchy</code><br>
+                <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                Counsellor ID, Reports To, Source Centre
+              </span>
+            </span>
+          </h2>
           <div class="f-group">
             <select id="staffSelector" style="min-width: 220px; font-weight: 600;">
               <option value="all">All Staff</option>
@@ -164,7 +282,24 @@
 
         <!-- Staff Pipeline -->
         <div class="overview-section" id="staffPipelineSection" style="margin-top: 16px;">
-          <div class="card-head" style="margin-bottom: 12px;"><div class="card-title">Personal Pipeline</div></div>
+          <div class="card-head" style="margin-bottom: 12px;">
+            <div class="card-title">
+              Personal Pipeline
+              <span class="tooltip-wrap">
+                <span class="info-btn">
+                  <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </span>
+                <span class="tooltip-bubble">
+                  <strong>Definition:</strong><br>
+                  Visualizes personal progression of active leads through stages for the selected staff member.<br>
+                  <strong style="display:block;margin-top:6px;">Formula:</strong>
+                  <code>COUNT(Leads progressing through Stage Order in staff scope)</code><br>
+                  <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                  Status, Status Order, Counsellor ID
+                </span>
+              </span>
+            </div>
+          </div>
           <div class="ov-grid ov-grid-2-1">
             <div class="card"><div class="chart-wrap"><div id="staffPipelineFunnel"></div></div></div>
             <div class="card" id="staffPipelineTableCard">
@@ -177,11 +312,45 @@
         <!-- Status Distribution + Performance Summary -->
         <div class="ov-grid ov-grid-2" style="margin-top: 16px;">
           <div class="overview-section" id="staffStatusDistSection">
-            <div class="section-title-row"><h2 class="section-title">Personal Status Distribution</h2></div>
+            <div class="section-title-row">
+              <h2 class="section-title">
+                Personal Status Distribution
+                <span class="tooltip-wrap">
+                  <span class="info-btn">
+                    <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  </span>
+                  <span class="tooltip-bubble">
+                    <strong>Definition:</strong><br>
+                    Distribution of statuses for leads assigned within the selected staff scope.<br>
+                    <strong style="display:block;margin-top:6px;">Formula:</strong>
+                    <code>COUNT(Leads grouped by Status in staff scope)</code><br>
+                    <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                    Status, Counsellor ID
+                  </span>
+                </span>
+              </h2>
+            </div>
             <div class="card"><div class="chart-wrap h260"><canvas id="chartStaffStatusDist"></canvas></div></div>
           </div>
           <div class="overview-section" id="staffPerfSummarySection">
-            <div class="section-title-row"><h2 class="section-title">Performance Summary</h2></div>
+            <div class="section-title-row">
+              <h2 class="section-title">
+                Performance Summary
+                <span class="tooltip-wrap">
+                  <span class="info-btn">
+                    <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  </span>
+                  <span class="tooltip-bubble">
+                    <strong>Definition:</strong><br>
+                    Summary of performance metrics for the selected staff scope.<br>
+                    <strong style="display:block;margin-top:6px;">Formula:</strong>
+                    <code>Assigned, Completed (calls > 0), Pending, Overdue, and Enrollment Rate</code><br>
+                    <strong style="display:block;margin-top:6px;">Data Used:</strong>
+                    Status, Follow-Up Date, Calls, Counsellor ID
+                  </span>
+                </span>
+              </h2>
+            </div>
             <div class="card"><div class="perf-table-wrap"><div id="staffPerfSummaryTable"></div></div></div>
           </div>
         </div>
