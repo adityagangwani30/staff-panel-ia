@@ -127,7 +127,8 @@ function tooltipHtml(key, alignRight) {
   const info = MetricTooltipDefs[key];
   if (!info) return '';
   const rightClass = alignRight ? ' tooltip-right' : '';
-  return `<span class="tooltip-wrap"><span class="info-btn" onclick="event.stopPropagation()"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble${rightClass}"><strong>Definition:</strong><br>${info.def}<br><strong style="display:block;margin-top:6px;">Formula:</strong><code>${info.formula}</code><br><strong style="display:block;margin-top:6px;">Data Used:</strong>${info.data}</span></span>`;
+  const label = key.replace(/([A-Z])/g, ' $1').toLowerCase();
+  return `<span class="tooltip-wrap"><span class="info-btn" tabindex="0" role="button" aria-label="More information about ${escapeHtml(label)}" onclick="event.stopPropagation()"><svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span><span class="tooltip-bubble${rightClass}"><strong>Definition:</strong><br>${info.def}<br><strong style="display:block;margin-top:6px;">Formula:</strong><code>${info.formula}</code><br><strong style="display:block;margin-top:6px;">Data Used:</strong>${info.data}</span></span>`;
 }
 
 const fmt = {

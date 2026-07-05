@@ -1237,8 +1237,19 @@ tbody tr:hover {
   transform: none;
 }
 
-/* Hover/active triggers */
+.info-btn:focus {
+  outline: none;
+}
+
+.info-btn:focus-visible {
+  outline: 1.5px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Hover/focus/active triggers */
 .info-btn:hover + .tooltip-bubble,
+.info-btn:focus + .tooltip-bubble,
+.info-btn:focus-visible + .tooltip-bubble,
 .info-btn.active + .tooltip-bubble {
   opacity: 1;
   visibility: visible;
@@ -1246,6 +1257,8 @@ tbody tr:hover {
 }
 
 .info-btn:hover + .tooltip-bubble.tooltip-right,
+.info-btn:focus + .tooltip-bubble.tooltip-right,
+.info-btn:focus-visible + .tooltip-bubble.tooltip-right,
 .info-btn.active + .tooltip-bubble.tooltip-right {
   opacity: 1;
   visibility: visible;

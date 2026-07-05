@@ -18,12 +18,14 @@ const Calc = {
 
   pendingFollowups(leads, today) {
     const target = today || CFG.today;
-    return leads.filter(l => l.followUpDate && l.followUpDate >= target && this._isActive(l)).length;
+    const targetMidnight = new Date(target.toDateString());
+    return leads.filter(l => l.followUpDate && l.followUpDate >= targetMidnight && this._isActive(l)).length;
   },
 
   overdueFollowups(leads, today) {
     const target = today || CFG.today;
-    return leads.filter(l => l.followUpDate && l.followUpDate < target && this._isActive(l)).length;
+    const targetMidnight = new Date(target.toDateString());
+    return leads.filter(l => l.followUpDate && l.followUpDate < targetMidnight && this._isActive(l)).length;
   },
 
   followupsDueToday(leads, today) {
@@ -120,10 +122,11 @@ const Calc = {
 
   averageFollowupDelay(leads, today) {
     const target = today || CFG.today;
-    const overdueLeads = leads.filter(l => l.followUpDate && l.followUpDate < target && this._isActive(l));
+    const targetMidnight = new Date(target.toDateString());
+    const overdueLeads = leads.filter(l => l.followUpDate && l.followUpDate < targetMidnight && this._isActive(l));
     if (!overdueLeads.length) return 0;
     const sum = overdueLeads.reduce((total, l) => {
-      const diffMs = target.getTime() - l.followUpDate.getTime();
+      const diffMs = targetMidnight.getTime() - l.followUpDate.getTime();
       return total + (diffMs / (1000 * 60 * 60 * 24));
     }, 0);
     return sum / overdueLeads.length;
