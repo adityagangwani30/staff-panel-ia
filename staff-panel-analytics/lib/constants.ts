@@ -1,7 +1,9 @@
 import { StaffMember } from './types';
 
 export const CFG = {
-  today: new Date('2026-07-03T09:00:00'),
+  // ── Always use real current date in production ──────────────────────
+  today: new Date(),
+
   sourceCentres: ['Delhi Office', 'Raipur Office'],
   sources: ['Facebook Ads', 'Google Ads', 'Instagram', 'Referral', 'Walk-in', 'Website', 'Education Fair', 'Agent Partner'],
   statuses: [
@@ -25,26 +27,6 @@ export const CFG = {
   callLastStatuses: ['Interested', 'Not Interested', 'Busy', "Didn't Answer", 'Call Back Later', 'Wrong Number', null],
   states: ['Delhi', 'Uttar Pradesh', 'Maharashtra', 'Madhya Pradesh', 'Rajasthan', 'Bihar', 'Haryana', 'Punjab', 'Gujarat', 'West Bengal'],
   cities: ['Delhi', 'Mumbai', 'Nagpur', 'Raipur', 'Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Jaipur', 'Jodhpur', 'Ahmedabad', 'Indore', 'Bhopal', 'Patna', 'Chandigarh', 'Ludhiana', 'Kolkata', 'Pune', 'Surat', 'Noida'],
-  statusClass: {
-    'DNP 1': 'st-dnp1',
-    'DNP 2': 'st-dnp2',
-    'DNP 3': 'st-dnp3',
-    'DNP 4': 'st-dnp4',
-    'DNP 5': 'st-dnp5',
-    'NATC': 'st-natc',
-    'Cold Lead': 'st-cold',
-    'Warm Lead': 'st-warm',
-    'Hot Lead': 'st-hot',
-    'Call Back': 'st-callback',
-    'Interested': 'st-interested',
-    'Consultation Booked': 'st-cons-booked',
-    'Consultation Done': 'st-cons-done',
-    'Consultation Submitted': 'st-cons-sub',
-    'Documents Submitted': 'st-docs-sub',
-    'Applied': 'st-applied',
-    'Enrolled': 'st-enrolled',
-    'Lost/Dead': 'st-lost'
-  } as Record<string, string>,
   statusColors: {
     'DNP 1': '#64748b',
     'DNP 2': '#64748b',
@@ -73,20 +55,15 @@ export const CFG = {
     'Enrolled': 16, 'Lost/Dead': -1
   } as Record<string, number>,
   staff: [
-    { id: 'S001', name: 'Dr. Suhail', role: 'Founder', sourceCentre: 'all', reportsTo: null, profile: 'star-performer' },
-    { id: 'S002', name: 'Vanshta Verma', role: 'BranchManager', sourceCentre: 'Delhi Office', reportsTo: 'S001', profile: 'high-performer' },
-    { id: 'S005', name: 'Kunal Taswala', role: 'BranchManager', sourceCentre: 'Raipur Office', reportsTo: 'S001', profile: 'medium-performer' },
-    { id: 'S006', name: 'Hemant Vaidya', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'star-performer' },
-    { id: 'S007', name: 'Firdauss', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
-    { id: 'S008', name: 'Mehak Khan', role: 'TeamLead', sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
-    { id: 'S014', name: 'Sofiya Khan', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'low-performer' },
-    { id: 'S015', name: 'Payal Shankhwar', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'medium-performer' },
-    { id: 'S016', name: 'Aditya Gangwani', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'star-performer' },
-    { id: 'S017', name: 'Heena Bandhe', role: 'Counsellor', sourceCentre: 'Raipur Office', reportsTo: 'S005', profile: 'high-performer' }
+    { id: 'S001', name: 'Dr. Suhail',       role: 'Founder',        sourceCentre: 'all',          reportsTo: null,   profile: 'star-performer'   },
+    { id: 'S002', name: 'Vanshta Verma',    role: 'BranchManager',  sourceCentre: 'Delhi Office', reportsTo: 'S001', profile: 'high-performer'   },
+    { id: 'S005', name: 'Kunal Taswala',    role: 'BranchManager',  sourceCentre: 'Raipur Office',reportsTo: 'S001', profile: 'medium-performer' },
+    { id: 'S006', name: 'Hemant Vaidya',    role: 'TeamLead',       sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'star-performer'   },
+    { id: 'S007', name: 'Firdauss',         role: 'TeamLead',       sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
+    { id: 'S008', name: 'Mehak Khan',       role: 'TeamLead',       sourceCentre: 'Delhi Office', reportsTo: 'S002', profile: 'medium-performer' },
+    { id: 'S014', name: 'Sofiya Khan',      role: 'Counsellor',     sourceCentre: 'Raipur Office',reportsTo: 'S005', profile: 'low-performer'    },
+    { id: 'S015', name: 'Payal Shankhwar',  role: 'Counsellor',     sourceCentre: 'Raipur Office',reportsTo: 'S005', profile: 'medium-performer' },
+    { id: 'S016', name: 'Aditya Gangwani',  role: 'Counsellor',     sourceCentre: 'Raipur Office',reportsTo: 'S005', profile: 'star-performer'   },
+    { id: 'S017', name: 'Heena Bandhe',     role: 'Counsellor',     sourceCentre: 'Raipur Office',reportsTo: 'S005', profile: 'high-performer'   }
   ] as StaffMember[],
-  palette: ['#3b82f6', '#22c55e', '#eab308', '#a855f7', '#06b6d4', '#ec4899', '#14b8a6', '#ef4444', '#64748b', '#f97316', '#8b5cf6', '#f43f5e', '#0ea5e9', '#84cc16', '#d946ef', '#10b981', '#f59e0b', '#78716c'],
-  firstNames: ['Aarav','Priya','Rohan','Ananya','Vikram','Sneha','Kabir','Ishita','Arjun','Meera','Dev','Riya','Aditya','Kavya','Rahul','Neha','Sahil','Pooja','Karan','Divya','Nikhil','Sanya','Yash','Tanya','Aryan','Simran','Varun','Nisha','Manav','Alisha','Rohit','Preeti','Siddharth','Radhika','Harsh','Anjali','Vivek','Shreya','Amit','Kriti'],
-  lastNames: ['Sharma','Verma','Iyer','Nair','Reddy','Gupta','Malhotra','Kapoor','Chatterjee','Menon','Joshi','Bhat','Rao','Singh','Patel','Mehta','Chawla','Bose','Pillai','Kulkarni'],
-  guardianSuffixes: ['Father', 'Mother'],
-  emailProviders: ['gmail.com', 'yahoo.com', 'outlook.com', 'rediffmail.com', 'hotmail.com']
 };

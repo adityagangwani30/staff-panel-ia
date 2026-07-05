@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { Lead, StaffMember } from './types';
 
 export const DataLoader = {

@@ -22,7 +22,7 @@ export function RecentLeads({ leads }: RecentLeadsProps) {
   const recent = [...leads]
     .filter(l => l.entryDate)
     .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
-    .slice(0, 12);
+    .slice(0, 10);
 
   return (
     <div className="ia-card p-6" style={{ background: 'var(--bg-card)' }}>

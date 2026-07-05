@@ -36,7 +36,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
   const overdue      = Calc.overdueFollowups(leads);
   const callbacks    = Calc.callbackRequests(leads);
   const hotLeads     = Calc.hotLeads(leads);
-  const consultations= Calc.consultationsScheduled(leads);
+  const consultations= Calc.consultationBooked(leads);
 
   const cards: ActionCard[] = [
     {

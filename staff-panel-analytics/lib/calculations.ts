@@ -59,26 +59,30 @@ export const Calc = {
   },
 
   pipelineStages(leads: Lead[]): StageInfo[] {
-    const active = leads.filter(l => !this._isLost(l));
     const order = CFG.statusOrder;
+    const nonLost = leads.filter(l => !this._isLost(l));
 
+    // Each stage includes leads AT or BEYOND that funnel position
     const stageDefs = [
-      { stage: 'Total Leads', minOrder: 0 },
-      { stage: 'Interested', minOrder: order['Interested'] },
-      { stage: 'Consultation Booked', minOrder: order['Consultation Booked'] },
-      { stage: 'Consultation Done', minOrder: order['Consultation Done'] },
-      { stage: 'Documents Submitted', minOrder: order['Documents Submitted'] },
-      { stage: 'Applied', minOrder: order['Applied'] },
-      { stage: 'Enrolled', minOrder: order['Enrolled'] }
+      { stage: 'Total Leads',          minOrder: -999 },  // all leads (incl. early DNP)
+      { stage: 'Interested',           minOrder: order['Interested'] },
+      { stage: 'Consultation Booked',  minOrder: order['Consultation Booked'] },
+      { stage: 'Consultation Done',    minOrder: order['Consultation Done'] },
+      { stage: 'Documents Submitted',  minOrder: order['Documents Submitted'] },
+      { stage: 'Applied',              minOrder: order['Applied'] },
+      { stage: 'Enrolled',             minOrder: order['Enrolled'] },
     ];
 
     const stages: StageInfo[] = [];
     for (let i = 0; i < stageDefs.length; i++) {
       const sd = stageDefs[i];
-      const count = active.filter(l => (order[l.status] !== undefined ? order[l.status] : 0) >= sd.minOrder).length;
-      const prevCount = i > 0 ? stages[i - 1].count : active.length;
+      // Stage 0 = all non-lost leads; subsequent stages = leads whose status >= minOrder
+      const count = i === 0
+        ? nonLost.length
+        : nonLost.filter(l => (order[l.status] ?? -999) >= sd.minOrder).length;
+      const prevCount = i > 0 ? stages[i - 1].count : count;
       const stageConv = prevCount > 0 ? (count / prevCount) * 100 : 0;
-      const dropOff = prevCount > 0 ? ((prevCount - count) / prevCount) * 100 : 0;
+      const dropOff   = prevCount > 0 ? ((prevCount - count) / prevCount) * 100 : 0;
       stages.push({ stage: sd.stage, count, stageConversion: stageConv, dropOff });
     }
     return stages;
@@ -120,9 +124,7 @@ export const Calc = {
     return leads.filter(l => this._isLost(l)).length;
   },
 
-  consultationsScheduled(leads: Lead[]) {
-    return leads.filter(l => l.status === 'Consultation Booked' && this._isActive(l)).length;
-  },
+  // NOTE: consultationsScheduled is an alias for consultationBooked — use consultationBooked directly.
 
   averageFollowupDelay(leads: Lead[], today?: Date) {
     const target = today || CFG.today;

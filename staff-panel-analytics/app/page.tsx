@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Download, Upload, RotateCcw, SlidersHorizontal,
-  ChevronDown, X, Building2
+  X, Building2
 } from 'lucide-react';
 import { getInitialDataset } from '@/lib/demoData';
 import { DataLoader } from '@/lib/dataLoader';
@@ -12,7 +12,6 @@ import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
 import { FilterState, Lead, StaffMember } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
-import { Tooltip } from '@/components/ui/Tooltip';
 
 // Sections
 import { ExecutiveKpis }  from '@/components/overview/ExecutiveKpis';

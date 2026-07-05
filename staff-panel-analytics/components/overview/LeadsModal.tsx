@@ -15,7 +15,7 @@ interface LeadsModalProps {
 }
 
 export function LeadsModal({ isOpen, title, leadsList, onClose }: LeadsModalProps) {
-  // Listen for Escape key
+  // Keyboard: Escape closes; trap focus within modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -33,76 +33,117 @@ export function LeadsModal({ isOpen, title, leadsList, onClose }: LeadsModalProp
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leads-modal-title"
+        >
           {/* Backdrop */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="absolute inset-0 backdrop-blur-sm"
+            style={{ background: 'rgba(0,0,0,0.65)' }}
           />
 
-          {/* Dialog Content */}
+          {/* Dialog */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative w-full max-w-4xl max-h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="relative w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80">
-              <h3 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
+            <div className="flex items-center justify-between px-6 py-4"
+                 style={{ borderBottom: '1px solid var(--border)' }}>
+              <h3
+                id="leads-modal-title"
+                className="text-[15px] font-semibold flex items-center gap-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 {title}
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-800 text-slate-300">
+                <span
+                  className="px-2 py-0.5 text-[11px] font-bold rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}
+                >
                   {leadsList.length}
                 </span>
               </h3>
-              <button 
+              <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-200 transition-colors p-1 hover:bg-slate-800/60 rounded-lg focus:outline-none"
+                aria-label="Close dialog"
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Body */}
             <div className="p-6 overflow-y-auto flex-1">
               {leadsList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                  <svg className="w-12 h-12 stroke-current mb-2" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <p className="text-xs">No leads match this category.</p>
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                       style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                         style={{ color: 'var(--text-muted)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                    No leads match this category.
+                  </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto border border-slate-800/50 rounded-xl">
-                  <table className="w-full text-left text-xs border-collapse">
+                <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid var(--border)' }}>
+                  <table className="w-full text-left text-[12px] border-collapse">
                     <thead>
-                      <tr className="bg-slate-950/40 text-slate-400 font-semibold border-b border-slate-800/50">
-                        <th className="px-4 py-3">Name</th>
-                        <th className="px-4 py-3">Phone</th>
-                        <th className="px-4 py-3">Assigned To</th>
-                        <th className="px-4 py-3">Source</th>
-                        <th className="px-4 py-3">Last Activity</th>
-                        <th className="px-4 py-3">Status</th>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+                        {['Name', 'Phone', 'Assigned To', 'Source', 'Last Activity', 'Status'].map(h => (
+                          <th key={h} className="px-4 py-3 font-semibold whitespace-nowrap"
+                              style={{ color: 'var(--text-muted)' }}>
+                            {h}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/30 text-slate-300">
+                    <tbody>
                       {leadsList.map((l, idx) => {
                         const lastAct = Calc.getLastActivityDate(l);
-                        const lastActStr = lastAct 
+                        const lastActStr = lastAct
                           ? lastAct.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                           : '—';
                         return (
-                          <tr key={idx} className="hover:bg-slate-950/20 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-slate-200">{l.studentName}</td>
-                            <td className="px-4 py-3 font-mono text-slate-400 select-all">{l.phone}</td>
-                            <td className="px-4 py-3 text-slate-400">{l.counsellorName || 'Unassigned'}</td>
-                            <td className="px-4 py-3 text-slate-400">{l.source}</td>
-                            <td className="px-4 py-3 font-mono text-slate-400">{lastActStr}</td>
-                            <td className="px-4 py-3"><Badge status={l.status} /></td>
+                          <tr key={idx} className="transition-colors hover:bg-white/[0.025]"
+                              style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td className="px-4 py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
+                              {l.studentName}
+                            </td>
+                            <td className="px-4 py-3 font-mono select-all" style={{ color: 'var(--text-secondary)' }}>
+                              {l.phone}
+                            </td>
+                            <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>
+                              {l.counsellorName || <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>}
+                            </td>
+                            <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>
+                              {l.source}
+                            </td>
+                            <td className="px-4 py-3 font-mono" style={{ color: 'var(--text-muted)' }}>
+                              {lastActStr}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge status={l.status} />
+                            </td>
                           </tr>
                         );
                       })}

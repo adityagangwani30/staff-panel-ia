@@ -1,6 +1,11 @@
 import { CFG } from './constants';
 import { Lead, StaffMember, ActivityLogEntry } from './types';
 
+// ── Static name arrays (local to demo generation) ──────────────────────
+const FIRST_NAMES = ['Aarav','Priya','Rohan','Ananya','Vikram','Sneha','Kabir','Ishita','Arjun','Meera','Dev','Riya','Aditya','Kavya','Rahul','Neha','Sahil','Pooja','Karan','Divya','Nikhil','Sanya','Yash','Tanya','Aryan','Simran','Varun','Nisha','Manav','Alisha','Rohit','Preeti','Siddharth','Radhika','Harsh','Anjali','Vivek','Shreya','Amit','Kriti'];
+const LAST_NAMES  = ['Sharma','Verma','Iyer','Nair','Reddy','Gupta','Malhotra','Kapoor','Chatterjee','Menon','Joshi','Bhat','Rao','Singh','Patel','Mehta','Chawla','Bose','Pillai','Kulkarni'];
+const GUARDIAN_SUFFIXES = ['Father', 'Mother'];
+
 let _seed = 98765;
 function seededRandom(): number {
   const m = 0x80000000;
@@ -176,13 +181,13 @@ export function generateLeadsData(staffList: StaffMember[], count: number): Lead
       const entryDate = addDays(CFG.today, -daysAgo);
       const updatedDate = addDays(entryDate, randInt(0, Math.min(daysAgo, 14)));
 
-      const firstName = pick(CFG.firstNames);
-      const lastName = pick(CFG.lastNames);
+      const firstName = pick(FIRST_NAMES);
+      const lastName = pick(LAST_NAMES);
       const studentName = firstName + ' ' + lastName;
 
       const state = pick(CFG.states);
       const city = randInt(0, 3) === 0 ? state : pick(CFG.cities);
-      const guardianName = pick(CFG.guardianSuffixes) + ' of ' + studentName;
+      const guardianName = pick(GUARDIAN_SUFFIXES) + ' of ' + studentName;
       const guardianPhone = '99' + String(randInt(10000000, 99999999));
 
       const followUpDate = (status !== 'Enrolled' && status !== 'Lost/Dead' && seededRandom() < 0.55)
