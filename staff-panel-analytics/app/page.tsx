@@ -330,7 +330,7 @@ export default function DashboardPage() {
             <SourcePerf leads={filteredLeads} onExplore={handleExplore} />
           </div>
           <div>
-            <SectionHeading title="Recent Admissions" sub="Most recently entered leads in the CRM" />
+            <SectionHeading title="New Leads" sub="Most recently entered leads in the CRM" />
             <RecentLeads leads={filteredLeads} />
           </div>
         </section>
