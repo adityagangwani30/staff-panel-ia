@@ -1,89 +1,67 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RTooltip } from 'recharts';
 import {
   Users, Target, CheckCircle2, TrendingUp, Clock, AlertTriangle, Star,
 } from 'lucide-react';
 import { Lead, StaffMember } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
-import { CFG } from '@/lib/constants';
+import { formatMetric, type MetricFmt } from '@/lib/utils';
+import { KPI_COLOR_MAP, CHART_PALETTE, FUNNEL_PALETTE, fadeStaggerContainer, fadeCardItem } from '@/lib/ui';
 import { Select } from '@/components/ui/Select';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { DonutTooltip } from '@/components/shared/ChartTooltip';
 
 interface StaffAnalyticsProps {
   allLeads: Lead[];
   staffList: StaffMember[];
 }
 
-/* ─── Color tokens ───────────────────────────────────────────────────── */
-const KPI_COLORS: Record<string, { icon: string; glow: string }> = {
-  blue:   { icon: 'text-blue-400',   glow: 'rgba(59,130,246,0.08)'  },
-  teal:   { icon: 'text-teal-400',   glow: 'rgba(20,184,166,0.08)'  },
-  green:  { icon: 'text-green-400',  glow: 'rgba(34,197,94,0.08)'   },
-  purple: { icon: 'text-purple-400', glow: 'rgba(139,92,246,0.08)'  },
-  amber:  { icon: 'text-amber-400',  glow: 'rgba(245,158,11,0.08)'  },
-  red:    { icon: 'text-red-400',    glow: 'rgba(239,68,68,0.08)'   },
-  pink:   { icon: 'text-pink-400',   glow: 'rgba(236,72,153,0.08)'  },
-  slate:  { icon: 'text-slate-400',  glow: 'rgba(100,116,139,0.06)' },
-};
+interface KpiCardDef {
+  label: string;
+  value: number;
+  fmt: MetricFmt;
+  color: keyof typeof KPI_COLOR_MAP;
+  icon: React.ElementType;
+  tooltipKey: string;
+  alignRight?: boolean;
+}
 
-const DONUT_COLORS = [
-  '#3B82F6','#8B5CF6','#22C55E','#F59E0B','#EF4444',
-  '#06B6D4','#F97316','#14B8A6','#EC4899','#64748B',
-];
+/** Recursively collect IDs of all staff reporting to the given ID. */
+function getReportIds(id: string, staffList: StaffMember[]): string[] {
+  const ids = [id];
+  staffList.filter(s => s.reportsTo === id).forEach(dr => ids.push(...getReportIds(dr.id, staffList)));
+  return ids;
+}
 
-const FUNNEL_COLORS = ['#3B82F6','#6366F1','#8B5CF6','#A855F7','#06B6D4','#14B8A6','#22C55E'];
-
-/* ─── Animation ───────────────────────────────────────────────────────── */
-const container: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.04 } } };
-const card: Variants     = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } } };
-
-/* ─── Custom donut tooltip ────────────────────────────────────────────── */
-const DonutTip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl px-3 py-2 text-[12px] shadow-xl"
-         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-      <div className="font-semibold">{payload[0].name}</div>
-      <div style={{ color: 'var(--text-muted)' }}>{payload[0].value} leads</div>
-    </div>
-  );
-};
-
-/* ─── Component ──────────────────────────────────────────────────────── */
 export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
   const [selectedStaffId, setSelectedStaffId] = useState('all');
 
-  /* Resolve scope */
-  const getReportIds = (id: string): string[] => {
-    const ids = [id];
-    staffList.filter(s => s.reportsTo === id).forEach(dr => ids.push(...getReportIds(dr.id)));
-    return ids;
-  };
-
+  /* ── Scoped leads ── */
   const staffLeads = useMemo(() => {
     if (selectedStaffId === 'all') return allLeads;
-    const s = staffList.find(x => x.id === selectedStaffId);
-    if (!s) return [];
-    if (s.role === 'Founder') return allLeads;
-    if (s.role === 'BranchManager') return allLeads.filter(l => l.sourceCentre === s.sourceCentre);
-    if (s.role === 'TeamLead') {
-      const ids = getReportIds(selectedStaffId);
+    const member = staffList.find(x => x.id === selectedStaffId);
+    if (!member) return [];
+    if (member.role === 'Founder') return allLeads;
+    if (member.role === 'BranchManager')
+      return allLeads.filter(l => l.sourceCentre === member.sourceCentre);
+    if (member.role === 'TeamLead') {
+      const ids = getReportIds(selectedStaffId, staffList);
       return allLeads.filter(l => ids.includes(l.counsellorId));
     }
     return allLeads.filter(l => l.counsellorId === selectedStaffId);
   }, [selectedStaffId, allLeads, staffList]);
 
-  /* Staff groups for select */
+  /* ── Staff groups ── */
   const groups = useMemo(() => ({
-    managers:   staffList.filter(s => s.role === 'BranchManager'),
-    leads:      staffList.filter(s => s.role === 'TeamLead'),
-    counsellors:staffList.filter(s => s.role === 'Counsellor'),
+    managers:    staffList.filter(s => s.role === 'BranchManager'),
+    leads:       staffList.filter(s => s.role === 'TeamLead'),
+    counsellors: staffList.filter(s => s.role === 'Counsellor'),
   }), [staffList]);
 
-  /* KPI values */
+  /* ── KPI values ── */
   const activeLeads = Calc.activeLeads(staffLeads);
   const enrolled    = Calc.enrolled(staffLeads);
   const convRate    = Calc.enrollmentRate(staffLeads);
@@ -92,32 +70,45 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
   const hotLeads    = Calc.hotLeads(staffLeads);
   const delay       = Calc.averageFollowupDelay(staffLeads);
 
-  const kpiCards = [
-    { label: 'Assigned Leads',         value: staffLeads.length,   fmt: 'n', color: 'blue',   icon: Users,         tooltipKey: 'assignedLeads' },
-    { label: 'Active Leads',           value: activeLeads,          fmt: 'n', color: 'teal',   icon: Target,        tooltipKey: 'activeLeads' },
-    { label: 'Enrolled',               value: enrolled,             fmt: 'n', color: 'green',  icon: CheckCircle2,  tooltipKey: 'enrolled' },
-    { label: 'Conversion Rate',        value: convRate,             fmt: '%', color: 'purple', icon: TrendingUp,    tooltipKey: 'conversionRate', alignRight: true },
-    { label: 'Follow-ups Due Today',   value: dueToday,             fmt: 'n', color: 'amber',  icon: Clock,         tooltipKey: 'followupsDueToday' },
-    { label: 'Overdue Follow-ups',     value: overdue,              fmt: 'n', color: 'red',    icon: AlertTriangle, tooltipKey: 'overdueFollowups' },
-    { label: 'Hot Leads',              value: hotLeads,             fmt: 'n', color: 'pink',   icon: Star,          tooltipKey: 'hotLeads' },
-    { label: 'Avg Follow-up Delay',    value: delay,                fmt: 'd', color: 'slate',  icon: Clock,         tooltipKey: 'averageFollowupDelay', alignRight: true },
+  const kpiCards: KpiCardDef[] = [
+    { label: 'Assigned Leads',       value: staffLeads.length, fmt: 'n', color: 'blue',   icon: Users,         tooltipKey: 'assignedLeads' },
+    { label: 'Active Leads',         value: activeLeads,       fmt: 'n', color: 'teal',   icon: Target,        tooltipKey: 'activeLeads' },
+    { label: 'Enrolled',             value: enrolled,          fmt: 'n', color: 'green',  icon: CheckCircle2,  tooltipKey: 'enrolled' },
+    { label: 'Conversion Rate',      value: convRate,          fmt: '%', color: 'purple', icon: TrendingUp,    tooltipKey: 'conversionRate', alignRight: true },
+    { label: 'Follow-ups Due Today', value: dueToday,          fmt: 'n', color: 'amber',  icon: Clock,         tooltipKey: 'followupsDueToday' },
+    { label: 'Overdue Follow-ups',   value: overdue,           fmt: 'n', color: 'red',    icon: AlertTriangle, tooltipKey: 'overdueFollowups' },
+    { label: 'Hot Leads',            value: hotLeads,          fmt: 'n', color: 'pink',   icon: Star,          tooltipKey: 'hotLeads' },
+    { label: 'Avg Follow-up Delay',  value: delay,             fmt: 'd', color: 'slate',  icon: Clock,         tooltipKey: 'averageFollowupDelay', alignRight: true },
   ];
 
-  /* Donut data */
-  const donutData = useMemo(() => {
-    const dist = Calc.statusDistribution(staffLeads);
-    return dist.filter(d => d.count > 0)
+  /* ── Donut data ── */
+  const donutData = useMemo(() =>
+    Calc.statusDistribution(staffLeads)
+      .filter(d => d.count > 0)
       .sort((a, b) => b.count - a.count)
-      .map((d, i) => ({ name: d.status, value: d.count, color: DONUT_COLORS[i % DONUT_COLORS.length] }));
-  }, [staffLeads]);
+      .map((d, i) => ({ name: d.status, value: d.count, color: CHART_PALETTE[i % CHART_PALETTE.length] })),
+    [staffLeads],
+  );
 
-  /* Funnel data */
-  const funnelStages = Calc.pipelineStages(staffLeads);
-  const funnelMax    = funnelStages[0]?.count || 0;
+  /* ── Funnel data ── */
+  const funnelStages = useMemo(() => Calc.pipelineStages(staffLeads), [staffLeads]);
+  const funnelMax = funnelStages[0]?.count ?? 0;
+
+  /* ── Performance table rows ── */
+  const perfRows: Array<{ label: string; value: number; fmt: MetricFmt; color: string; tip: string }> = [
+    { label: 'Assigned Leads',     value: staffLeads.length,                           fmt: 'n', color: 'white',   tip: 'assignedLeads' },
+    { label: 'Calls Made',         value: staffLeads.filter(l => l.calls > 0).length,  fmt: 'n', color: '#22C55E', tip: 'staffCompletedFollowups' },
+    { label: 'Pending Follow-ups', value: Calc.pendingFollowups(staffLeads),            fmt: 'n', color: '#F59E0B', tip: 'staffPendingFollowups' },
+    { label: 'Overdue Follow-ups', value: overdue,                                     fmt: 'n', color: '#EF4444', tip: 'overdueFollowups' },
+    { label: 'Enrolled',           value: enrolled,                                    fmt: 'n', color: '#22C55E', tip: 'enrolled' },
+    { label: 'Conversion Rate',    value: convRate,                                    fmt: '%', color: '#8B5CF6', tip: 'conversionRate' },
+    { label: 'Avg Follow-up Delay',value: delay,                                      fmt: 'd', color: '#A1A1AA', tip: 'averageFollowupDelay' },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* ── Header ── */}
+
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-[20px] font-semibold text-white">Staff Performance Analytics</h2>
@@ -143,28 +134,40 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
         </Select>
       </div>
 
-      {/* ── Empty state ── */}
+      {/* Empty state */}
       {staffLeads.length === 0 ? (
-        <div className="ia-card p-12 text-center text-[13px]" style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+        <div className="ia-card p-12 text-center text-[13px]"
+             style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
           No leads assigned under this staff member scope.
         </div>
       ) : (
         <AnimatePresence mode="wait">
-          <motion.div key={selectedStaffId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }} className="space-y-6">
+          <motion.div
+            key={selectedStaffId}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
 
-            {/* ── KPI Cards ── */}
-            <motion.div variants={container} initial="hidden" animate="show"
-                        className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* KPI Cards */}
+            <motion.div
+              variants={fadeStaggerContainer}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+            >
               {kpiCards.map((k, idx) => {
                 const Icon = k.icon;
-                const cs = KPI_COLORS[k.color];
-                const displayVal = k.fmt === '%' ? `${k.value.toFixed(1)}%`
-                  : k.fmt === 'd' ? `${k.value.toFixed(1)}d`
-                  : k.value.toLocaleString();
+                const cs = KPI_COLOR_MAP[k.color];
                 return (
-                  <motion.div key={idx} variants={card}
-                              className="ia-card p-5 flex flex-col gap-3" style={{ background: 'var(--bg-card)' }}>
+                  <motion.div
+                    key={idx}
+                    variants={fadeCardItem}
+                    className="ia-card p-5 flex flex-col gap-3"
+                    style={{ background: 'var(--bg-card)' }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                            style={{ background: cs.glow }}>
@@ -173,15 +176,19 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                       <Tooltip tooltipKey={k.tooltipKey} alignRight={k.alignRight} />
                     </div>
                     <div>
-                      <div className="font-mono font-bold text-white" style={{ fontSize: 28 }}>{displayVal}</div>
-                      <div className="text-[12px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>{k.label}</div>
+                      <div className="font-mono font-bold text-white" style={{ fontSize: 28 }}>
+                        {formatMetric(k.value, k.fmt)}
+                      </div>
+                      <div className="text-[12px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {k.label}
+                      </div>
                     </div>
                   </motion.div>
                 );
               })}
             </motion.div>
 
-            {/* ── Personal Funnel + Donut ── */}
+            {/* Personal Funnel + Donut */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
               {/* Funnel bars */}
@@ -191,7 +198,6 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                 </div>
                 {funnelStages.map((stage, idx) => {
                   const pct = funnelMax ? (stage.count / funnelMax) * 100 : 0;
-                  const color = FUNNEL_COLORS[idx % FUNNEL_COLORS.length];
                   return (
                     <div key={idx}>
                       <div className="flex items-center justify-between mb-1.5">
@@ -211,7 +217,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                           animate={{ width: `${Math.max(pct, stage.count > 0 ? 2 : 0)}%` }}
                           transition={{ duration: 0.65, ease: 'easeOut', delay: idx * 0.04 }}
                           className="h-full rounded-full"
-                          style={{ background: color }}
+                          style={{ background: FUNNEL_PALETTE[idx % FUNNEL_PALETTE.length] }}
                         />
                       </div>
                     </div>
@@ -233,7 +239,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                                paddingAngle={2} dataKey="value" strokeWidth={0}>
                             {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
                           </Pie>
-                          <RTooltip content={<DonutTip />} />
+                          <RTooltip content={<DonutTooltip />} />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
@@ -241,7 +247,6 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                         <span className="text-[9px] font-semibold mt-0.5 uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Active</span>
                       </div>
                     </div>
-                    {/* Mini legend */}
                     <div className="mt-4 space-y-1.5 overflow-y-auto max-h-[120px]">
                       {donutData.map((d, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px]">
@@ -262,7 +267,7 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
               </div>
             </div>
 
-            {/* ── Performance Summary Table ── */}
+            {/* Performance Summary Table */}
             <div className="ia-card p-6" style={{ background: 'var(--bg-card)' }}>
               <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
                 Performance Summary
@@ -275,29 +280,20 @@ export function StaffAnalytics({ allLeads, staffList }: StaffAnalyticsProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { label: 'Assigned Leads',       val: staffLeads.length,                              fmt: 'n', color: 'white',   tip: 'assignedLeads' },
-                    { label: 'Calls Made',            val: staffLeads.filter(l => l.calls > 0).length,    fmt: 'n', color: '#22C55E', tip: 'staffCompletedFollowups' },
-                    { label: 'Pending Follow-ups',    val: Calc.pendingFollowups(staffLeads),              fmt: 'n', color: '#F59E0B', tip: 'staffPendingFollowups' },
-                    { label: 'Overdue Follow-ups',    val: Calc.overdueFollowups(staffLeads),              fmt: 'n', color: '#EF4444', tip: 'overdueFollowups' },
-                    { label: 'Enrolled',              val: enrolled,                                       fmt: 'n', color: '#22C55E', tip: 'enrolled' },
-                    { label: 'Conversion Rate',       val: convRate,                                       fmt: '%', color: '#8B5CF6', tip: 'conversionRate' },
-                    { label: 'Avg Follow-up Delay',   val: delay,                                          fmt: 'd', color: '#A1A1AA', tip: 'averageFollowupDelay' },
-                  ].map((r, i) => {
-                    const display = r.fmt === '%' ? `${r.val.toFixed(1)}%`
-                      : r.fmt === 'd' ? `${r.val.toFixed(1)} days`
-                      : r.val.toLocaleString();
-                    return (
-                      <tr key={i} className="hover:bg-white/[0.025] transition-colors"
-                          style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td className="py-3 font-medium flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
+                  {perfRows.map((r, i) => (
+                    <tr key={i} className="hover:bg-white/[0.025] transition-colors"
+                        style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td className="py-3 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                        <span className="flex items-center gap-1">
                           {r.label}
                           <Tooltip tooltipKey={r.tip} />
-                        </td>
-                        <td className="py-3 text-right font-mono font-semibold" style={{ color: r.color }}>{display}</td>
-                      </tr>
-                    );
-                  })}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right font-mono font-semibold" style={{ color: r.color }}>
+                        {formatMetric(r.value, r.fmt)}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

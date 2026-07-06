@@ -1,28 +1,24 @@
 'use client';
 
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Lead } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
+import { formatDate } from '@/lib/utils';
+import { fadeStaggerContainer, fadeSlideItem } from '@/lib/ui';
 
 interface RecentLeadsProps {
   leads: Lead[];
 }
 
-const container: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.025 } },
-};
-const row: Variants = {
-  hidden: { opacity: 0, y: 4 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.22, ease: 'easeOut' } },
-};
-
 export function RecentLeads({ leads }: RecentLeadsProps) {
-  const recent = [...leads]
-    .filter(l => l.entryDate)
-    .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
-    .slice(0, 10);
+  const recent = useMemo(() =>
+    [...leads]
+      .filter(l => l.entryDate)
+      .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
+      .slice(0, 10),
+    [leads]
+  );
 
   return (
     <div className="ia-card p-6" style={{ background: 'var(--bg-card)' }}>
@@ -42,40 +38,35 @@ export function RecentLeads({ leads }: RecentLeadsProps) {
               ))}
             </tr>
           </thead>
-          <motion.tbody variants={container} initial="hidden" animate="show">
-            {recent.map((l, idx) => {
-              const date = new Date(l.entryDate).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric',
-              });
-              return (
-                <motion.tr
-                  key={idx}
-                  variants={row}
-                  className="group transition-colors hover:bg-white/[0.025]"
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                >
-                  <td className="py-3 pr-4 font-semibold text-[13px]"
-                      style={{ color: 'var(--text-primary)' }}>
-                    {l.studentName}
-                  </td>
-                  <td className="py-3 pr-4 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                    {l.counsellorName || (
-                      <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <Badge status={l.status} />
-                  </td>
-                  <td className="py-3 pr-4 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                    {l.source}
-                  </td>
-                  <td className="py-3 text-right font-mono text-[12px]"
-                      style={{ color: 'var(--text-muted)' }}>
-                    {date}
-                  </td>
-                </motion.tr>
-              );
-            })}
+          <motion.tbody variants={fadeStaggerContainer} initial="hidden" animate="show">
+            {recent.map((l, idx) => (
+              <motion.tr
+                key={idx}
+                variants={fadeSlideItem}
+                className="group transition-colors hover:bg-white/[0.025]"
+                style={{ borderBottom: '1px solid var(--border)' }}
+              >
+                <td className="py-3 pr-4 font-semibold text-[13px]"
+                    style={{ color: 'var(--text-primary)' }}>
+                  {l.studentName}
+                </td>
+                <td className="py-3 pr-4 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                  {l.counsellorName || (
+                    <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>
+                  )}
+                </td>
+                <td className="py-3 pr-4">
+                  <Badge status={l.status} />
+                </td>
+                <td className="py-3 pr-4 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                  {l.source}
+                </td>
+                <td className="py-3 text-right font-mono text-[12px]"
+                    style={{ color: 'var(--text-muted)' }}>
+                  {formatDate(l.entryDate)}
+                </td>
+              </motion.tr>
+            ))}
             {recent.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-[13px]"

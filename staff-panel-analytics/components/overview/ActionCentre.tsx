@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Clock, AlertTriangle, RefreshCw, Star, CalendarCheck } from 'lucide-react';
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { fadeStaggerContainer, fadeSlideItem } from '@/lib/ui';
 
 interface ActionCentreProps {
   leads: Lead[];
@@ -22,23 +23,14 @@ type ActionCard = {
   alignRight?: boolean;
 };
 
-const container: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
-};
-const item: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  show:   { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 240, damping: 24 } },
-};
-
 export function ActionCentre({ leads }: ActionCentreProps) {
-  const dueToday     = Calc.followupsDueToday(leads);
-  const overdue      = Calc.overdueFollowups(leads);
-  const callbacks    = Calc.callbackRequests(leads);
-  const hotLeads     = Calc.hotLeads(leads);
-  const consultations= Calc.consultationBooked(leads);
+  const dueToday     = useMemo(() => Calc.followupsDueToday(leads), [leads]);
+  const overdue      = useMemo(() => Calc.overdueFollowups(leads), [leads]);
+  const callbacks    = useMemo(() => Calc.callbackRequests(leads), [leads]);
+  const hotLeads     = useMemo(() => Calc.hotLeads(leads), [leads]);
+  const consultations= useMemo(() => Calc.consultationBooked(leads), [leads]);
 
-  const cards: ActionCard[] = [
+  const cards: ActionCard[] = useMemo(() => [
     {
       label: 'Follow-ups Due Today',
       count: dueToday,
@@ -85,11 +77,11 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       tooltipKey: 'consultationsScheduled',
       alignRight: true,
     },
-  ];
+  ], [dueToday, overdue, callbacks, hotLeads, consultations]);
 
   return (
     <motion.div
-      variants={container}
+      variants={fadeStaggerContainer}
       initial="hidden"
       animate="show"
       className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"
@@ -99,7 +91,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
         return (
           <motion.div
             key={idx}
-            variants={item}
+            variants={fadeSlideItem}
             whileHover={{ y: -2 }}
             className="ia-card p-5 flex flex-col gap-4 relative overflow-hidden"
             style={{ background: 'var(--bg-card)' }}

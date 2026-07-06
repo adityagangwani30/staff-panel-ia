@@ -1,37 +1,18 @@
 'use client';
 
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
-import { CFG } from '@/lib/constants';
+import { FUNNEL_PALETTE, fadeStaggerContainer, fadeSlideRow } from '@/lib/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 interface PipelineFunnelProps {
   leads: Lead[];
 }
 
-const STAGE_COLORS = [
-  '#3B82F6', // blue
-  '#6366F1', // indigo
-  '#8B5CF6', // purple
-  '#A855F7', // violet
-  '#06B6D4', // cyan
-  '#14B8A6', // teal
-  '#22C55E', // green
-];
-
-const container: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
-};
-const row: Variants = {
-  hidden: { opacity: 0, x: -16 },
-  show:   { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 220, damping: 24 } },
-};
-
 export function PipelineFunnel({ leads }: PipelineFunnelProps) {
-  const stages = Calc.pipelineStages(leads);
+  const stages = useMemo(() => Calc.pipelineStages(leads), [leads]);
   const max = stages[0]?.count || 0;
 
   return (
@@ -39,7 +20,7 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
 
       {/* ── Funnel bars (2/3) ─────────────────────────────────── */}
       <motion.div
-        variants={container}
+        variants={fadeStaggerContainer}
         initial="hidden"
         animate="show"
         className="ia-card p-6 lg:col-span-2 space-y-4"
@@ -47,10 +28,10 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
       >
         {stages.map((stage, idx) => {
           const pct = max ? (stage.count / max) * 100 : 0;
-          const color = STAGE_COLORS[idx % STAGE_COLORS.length];
+          const color = FUNNEL_PALETTE[idx % FUNNEL_PALETTE.length];
 
           return (
-            <motion.div key={idx} variants={row}>
+            <motion.div key={idx} variants={fadeSlideRow}>
               {/* Header row */}
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>

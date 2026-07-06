@@ -8,30 +8,17 @@ import {
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
+import { ChartTooltip } from '@/components/shared/ChartTooltip';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 interface CounsellorPerfProps {
   leads: Lead[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl px-3 py-2.5 text-[12px] shadow-xl min-w-[150px]"
-         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-      <div className="font-semibold mb-1.5">{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} className="flex items-center justify-between gap-4">
-          <span style={{ color: 'var(--text-muted)' }}>{p.name}</span>
-          <span className="font-mono font-semibold" style={{ color: p.color }}>{p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
+const BAR_COLORS = ['#22C55E', '#14B8A6', '#3B82F6', '#64748B'];
 
 export function CounsellorPerf({ leads }: CounsellorPerfProps) {
-  const counsellors = CFG.staff.filter((s: any) => s.role !== 'Founder');
+  const counsellors = useMemo(() => CFG.staff.filter(s => s.role !== 'Founder'), []);
 
   const perf = useMemo(() =>
     Calc.counsellorPerformance(leads, counsellors).sort((a, b) => b.enrolled - a.enrolled),
@@ -42,8 +29,7 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
     perf.slice(0, 6).map(p => ({
       name: p.name.split(' ')[0],
       fullName: p.name,
-      enrolled: p.enrolled,
-      assigned: p.assigned,
+      Enrolled: p.enrolled,
     })),
     [perf]
   );
@@ -70,10 +56,13 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
                 <XAxis type="number" fontSize={10} stroke="transparent" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                 <YAxis dataKey="name" type="category" width={70} fontSize={10}
                        stroke="transparent" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
-                <RTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="enrolled" name="Enrolled" radius={[0, 6, 6, 0]} maxBarSize={14}>
+                <RTooltip
+                  content={props => <ChartTooltip {...props} />}
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                />
+                <Bar dataKey="Enrolled" radius={[0, 6, 6, 0]} maxBarSize={14}>
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? '#22C55E' : i === 1 ? '#14B8A6' : i === 2 ? '#3B82F6' : '#64748B'} />
+                    <Cell key={i} fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -116,6 +105,13 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
                     </tr>
                   );
                 })}
+                {perf.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                      No counsellors found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
