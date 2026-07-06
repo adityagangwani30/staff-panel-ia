@@ -5,11 +5,14 @@ import { motion } from 'framer-motion';
 import { Clock, AlertTriangle, RefreshCw, Star, CalendarCheck } from 'lucide-react';
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
+import { CFG } from '@/lib/constants';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { fadeStaggerContainer, fadeSlideItem } from '@/lib/ui';
+import { exploreLeads, toMidnight } from '@/lib/utils';
 
 interface ActionCentreProps {
   leads: Lead[];
+  onExplore: (title: string, leads: Lead[]) => void;
 }
 
 type ActionCard = {
@@ -21,9 +24,13 @@ type ActionCard = {
   icon: React.ElementType;
   tooltipKey: string;
   alignRight?: boolean;
+  filterFn: (l: Lead) => boolean;
 };
 
-export function ActionCentre({ leads }: ActionCentreProps) {
+export function ActionCentre({ leads, onExplore }: ActionCentreProps) {
+  const today = CFG.today;
+  const midnight = toMidnight(today);
+
   const dueToday     = useMemo(() => Calc.followupsDueToday(leads), [leads]);
   const overdue      = useMemo(() => Calc.overdueFollowups(leads), [leads]);
   const callbacks    = useMemo(() => Calc.callbackRequests(leads), [leads]);
@@ -39,6 +46,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       accentBg: 'rgba(245,158,11,0.08)',
       icon: Clock,
       tooltipKey: 'followupsDueToday',
+      filterFn: l => !!l.followUpDate && new Date(l.followUpDate).toDateString() === today.toDateString(),
     },
     {
       label: 'Overdue Follow-ups',
@@ -48,6 +56,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       accentBg: 'rgba(239,68,68,0.08)',
       icon: AlertTriangle,
       tooltipKey: 'overdueFollowups',
+      filterFn: l => !!l.followUpDate && new Date(l.followUpDate) < midnight && Calc._isActive(l),
     },
     {
       label: 'Callback Requests',
@@ -57,6 +66,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       accentBg: 'rgba(139,92,246,0.08)',
       icon: RefreshCw,
       tooltipKey: 'callbackRequests',
+      filterFn: l => (l.status === 'Call Back' || l.lastCallStatus === 'Call Back Later') && Calc._isActive(l),
     },
     {
       label: 'Hot Leads',
@@ -66,6 +76,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       accentBg: 'rgba(249,115,22,0.08)',
       icon: Star,
       tooltipKey: 'hotLeads',
+      filterFn: l => l.status === 'Hot Lead' && Calc._isActive(l),
     },
     {
       label: 'Consultations Scheduled',
@@ -76,8 +87,9 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       icon: CalendarCheck,
       tooltipKey: 'consultationsScheduled',
       alignRight: true,
+      filterFn: l => l.status === 'Consultation Booked' && Calc._isActive(l),
     },
-  ], [dueToday, overdue, callbacks, hotLeads, consultations]);
+  ], [dueToday, overdue, callbacks, hotLeads, consultations, today, midnight]);
 
   return (
     <motion.div
@@ -89,11 +101,12 @@ export function ActionCentre({ leads }: ActionCentreProps) {
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
-          <motion.div
+          <motion.button
             key={idx}
             variants={fadeSlideItem}
+            onClick={() => exploreLeads(onExplore, card.label, leads.filter(card.filterFn))}
             whileHover={{ y: -2 }}
-            className="ia-card p-5 flex flex-col gap-4 relative overflow-hidden"
+            className="ia-card p-5 flex flex-col gap-4 relative overflow-hidden group text-left w-full cursor-pointer select-none"
             style={{ background: 'var(--bg-card)' }}
           >
             {/* Accent top line */}
@@ -103,7 +116,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
             />
 
             {/* Icon + tooltip */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{ background: card.accentBg }}
@@ -114,7 +127,7 @@ export function ActionCentre({ leads }: ActionCentreProps) {
             </div>
 
             {/* Count */}
-            <div>
+            <div className="w-full flex-grow">
               <div
                 className="font-mono font-bold leading-none"
                 style={{ fontSize: 'clamp(32px, 5vw, 44px)', color: card.accentColor }}
@@ -128,7 +141,16 @@ export function ActionCentre({ leads }: ActionCentreProps) {
                 {card.count === 1 ? `1 ${card.sub}` : `${card.count} ${card.sub}`}
               </div>
             </div>
-          </motion.div>
+
+            {/* Explore Hint */}
+            <div
+              className="mt-1 pt-3 border-t flex items-center gap-1.5 text-[10px] font-semibold transition-colors duration-200 w-full"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 group-hover:bg-blue-400 transition-colors duration-200" />
+              <span className="group-hover:text-blue-400 transition-colors duration-200">Click to explore</span>
+            </div>
+          </motion.button>
         );
       })}
     </motion.div>

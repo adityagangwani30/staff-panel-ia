@@ -4,16 +4,29 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Lead } from '@/lib/types';
 import { Calc } from '@/lib/calculations';
+import { CFG } from '@/lib/constants';
 import { FUNNEL_PALETTE, fadeStaggerContainer, fadeSlideRow } from '@/lib/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { exploreLeads } from '@/lib/utils';
 
 interface PipelineFunnelProps {
   leads: Lead[];
+  onExplore: (title: string, leads: Lead[]) => void;
 }
 
-export function PipelineFunnel({ leads }: PipelineFunnelProps) {
+export function PipelineFunnel({ leads, onExplore }: PipelineFunnelProps) {
   const stages = useMemo(() => Calc.pipelineStages(leads), [leads]);
   const max = stages[0]?.count || 0;
+
+  const handleExploreStage = (stageName: string, index: number) => {
+    const order = CFG.statusOrder;
+    const filterFn = (l: Lead) => {
+      if (Calc._isLost(l)) return false;
+      if (index === 0) return true; // 'Total Leads' stage
+      return (order[l.status] ?? -999) >= (order[stageName] ?? -999);
+    };
+    exploreLeads(onExplore, `${stageName} Stage`, leads.filter(filterFn));
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -23,7 +36,7 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
         variants={fadeStaggerContainer}
         initial="hidden"
         animate="show"
-        className="ia-card p-6 lg:col-span-2 space-y-4"
+        className="ia-card p-6 lg:col-span-2 space-y-3"
         style={{ background: 'var(--bg-card)' }}
       >
         {stages.map((stage, idx) => {
@@ -31,23 +44,32 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
           const color = FUNNEL_PALETTE[idx % FUNNEL_PALETTE.length];
 
           return (
-            <motion.div key={idx} variants={fadeSlideRow}>
+            <motion.button
+              key={idx}
+              variants={fadeSlideRow}
+              onClick={() => handleExploreStage(stage.stage, idx)}
+              className="w-full text-left group p-2 -m-2 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer block select-none focus:outline-none"
+            >
               {/* Header row */}
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <div className="flex items-center justify-between mb-1.5 w-full">
+                <span className="text-[13px] font-medium transition-colors duration-200 group-hover:text-blue-400"
+                      style={{ color: 'var(--text-secondary)' }}>
                   {stage.stage}
                 </span>
-                <span className="font-mono text-[13px] font-semibold text-white">
+                <span className="font-mono text-[13px] font-semibold text-white flex items-center gap-2">
                   {stage.count.toLocaleString()}
-                  <span className="ml-2 text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
                     {idx === 0 ? '100%' : `${pct.toFixed(1)}%`}
+                  </span>
+                  <span className="text-[10px] font-semibold text-blue-400/0 group-hover:text-blue-400/80 transition-all duration-200 ml-1">
+                    Explore →
                   </span>
                 </span>
               </div>
 
               {/* Bar track */}
               <div
-                className="h-3 rounded-full overflow-hidden"
+                className="h-3 rounded-full overflow-hidden transition-all duration-200 group-hover:shadow-[0_0_8px_rgba(59,130,246,0.15)]"
                 style={{ background: 'rgba(255,255,255,0.05)' }}
               >
                 <motion.div
@@ -58,7 +80,7 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
                   style={{ background: color }}
                 />
               </div>
-            </motion.div>
+            </motion.button>
           );
         })}
       </motion.div>
@@ -98,10 +120,11 @@ export function PipelineFunnel({ leads }: PipelineFunnelProps) {
                 return (
                   <tr
                     key={idx}
+                    onClick={() => handleExploreStage(stage.stage, idx)}
                     style={{ borderBottom: '1px solid var(--border)' }}
-                    className="transition-colors hover:bg-white/[0.02]"
+                    className="transition-colors hover:bg-white/[0.04] cursor-pointer group"
                   >
-                    <td className="py-2.5 pr-3 font-medium truncate max-w-[90px]"
+                    <td className="py-2.5 pr-3 font-medium truncate max-w-[90px] group-hover:text-blue-400 transition-colors"
                         style={{ color: 'var(--text-secondary)' }}>
                       {stage.stage}
                     </td>

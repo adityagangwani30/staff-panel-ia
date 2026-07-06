@@ -7,7 +7,6 @@ import { getInitialDataset } from '@/lib/demoData';
 import { DataLoader } from '@/lib/dataLoader';
 import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
-import { toMidnight, MS_PER_DAY } from '@/lib/utils';
 import { FilterState, Lead, StaffMember } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
 import { SectionHeading } from '@/components/shared/SectionHeading';
@@ -120,14 +119,9 @@ export default function DashboardPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  /* ── Inactive modal ── */
-  const handleInactiveCardClick = (days: number) => {
-    const cutoff = new Date(toMidnight(CFG.today).getTime() - days * MS_PER_DAY);
-    const inactive = filteredLeads.filter(l => {
-      const last = Calc.getLastActivityDate(l);
-      return last && last <= cutoff && Calc._isActive(l);
-    });
-    setModalState({ isOpen: true, title: `${days}-Day Inactive Leads`, leads: inactive });
+  /* ── Explore modal ── */
+  const handleExplore = (title: string, leads: Lead[]) => {
+    setModalState({ isOpen: true, title, leads });
   };
 
   /* ── Timestamp ── */
@@ -220,8 +214,7 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
             style={{ background: '#3B82F6', color: 'white' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#2563EB')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#3B82F6')}
-          >
+            onMouseLeave={e => (e.currentTarget.style.background = '#3B82F6')}>
             <Download className="w-3.5 h-3.5" />
             Export
           </button>
@@ -303,30 +296,30 @@ export default function DashboardPage() {
         {/* Section 1 — Executive KPIs */}
         <section>
           <SectionHeading title="Executive KPIs" sub="Organisation-wide metrics for the selected time period" />
-          <ExecutiveKpis leads={filteredLeads} onInactiveCardClick={handleInactiveCardClick} />
+          <ExecutiveKpis leads={filteredLeads} onExplore={handleExplore} />
         </section>
 
         {/* Section 2 — Pipeline Funnel */}
         <section>
           <SectionHeading title="Admission Pipeline Funnel" sub="Lead progression through every stage of the IntelAbroad workflow" />
-          <PipelineFunnel leads={filteredLeads} />
+          <PipelineFunnel leads={filteredLeads} onExplore={handleExplore} />
         </section>
 
         {/* Section 3 — Action Centre */}
         <section>
           <SectionHeading title="Today's Action Centre" sub="Items that require immediate attention" />
-          <ActionCentre leads={filteredLeads} />
+          <ActionCentre leads={filteredLeads} onExplore={handleExplore} />
         </section>
 
         {/* Section 4 — Status Distribution + Counsellor Performance */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <SectionHeading title="Status Distribution" sub="Lead spread across all CRM statuses" />
-            <StatusDist leads={filteredLeads} />
+            <StatusDist leads={filteredLeads} onExplore={handleExplore} />
           </div>
           <div>
             <SectionHeading title="Counsellor Performance" sub="Enrollment ranking by individual counsellors" />
-            <CounsellorPerf leads={filteredLeads} />
+            <CounsellorPerf leads={filteredLeads} onExplore={handleExplore} />
           </div>
         </section>
 
@@ -334,7 +327,7 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <SectionHeading title="Source Performance" sub="Lead acquisition and conversion by marketing channel" />
-            <SourcePerf leads={filteredLeads} />
+            <SourcePerf leads={filteredLeads} onExplore={handleExplore} />
           </div>
           <div>
             <SectionHeading title="Recent Admissions" sub="Most recently entered leads in the CRM" />
@@ -344,7 +337,7 @@ export default function DashboardPage() {
 
         {/* Section 6 — Staff Analytics */}
         <section className="pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-          <StaffAnalytics allLeads={filteredLeads} staffList={staffList} />
+          <StaffAnalytics allLeads={filteredLeads} staffList={staffList} onExplore={handleExplore} />
         </section>
 
       </main>

@@ -10,14 +10,16 @@ import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
 import { ChartTooltip } from '@/components/shared/ChartTooltip';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { exploreLeads, toMidnight } from '@/lib/utils';
 
 interface CounsellorPerfProps {
   leads: Lead[];
+  onExplore: (title: string, leads: Lead[]) => void;
 }
 
 const BAR_COLORS = ['#22C55E', '#14B8A6', '#3B82F6', '#64748B'];
 
-export function CounsellorPerf({ leads }: CounsellorPerfProps) {
+export function CounsellorPerf({ leads, onExplore }: CounsellorPerfProps) {
   const counsellors = useMemo(() => CFG.staff.filter(s => s.role !== 'Founder'), []);
 
   const perf = useMemo(() =>
@@ -30,9 +32,42 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
       name: p.name.split(' ')[0],
       fullName: p.name,
       Enrolled: p.enrolled,
+      id: p.id,
     })),
     [perf]
   );
+
+  const handleBarClick = (data: any) => {
+    if (data && data.payload) {
+      const payload = data.payload;
+      exploreLeads(
+        onExplore,
+        `Enrolled Leads — ${payload.fullName}`,
+        leads.filter(l => l.counsellorId === payload.id && Calc._isEnrolled(l))
+      );
+    }
+  };
+
+  const exploreCounsellorLeads = (id: string, name: string) => {
+    exploreLeads(onExplore, `Assigned Leads — ${name}`, leads.filter(l => l.counsellorId === id));
+  };
+
+  const exploreCounsellorFollowups = (id: string, name: string) => {
+    const midnight = toMidnight(CFG.today);
+    exploreLeads(
+      onExplore,
+      `Pending Follow-ups — ${name}`,
+      leads.filter(l => l.counsellorId === id && !!l.followUpDate && new Date(l.followUpDate) >= midnight && Calc._isActive(l))
+    );
+  };
+
+  const exploreCounsellorEnrolled = (id: string, name: string) => {
+    exploreLeads(
+      onExplore,
+      `Enrolled Leads — ${name}`,
+      leads.filter(l => l.counsellorId === id && Calc._isEnrolled(l))
+    );
+  };
 
   return (
     <div className="ia-card p-6" style={{ background: 'var(--bg-card)' }}>
@@ -60,9 +95,13 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
                   content={props => <ChartTooltip {...props} />}
                   cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                 />
-                <Bar dataKey="Enrolled" radius={[0, 6, 6, 0]} maxBarSize={14}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]} />
+                <Bar dataKey="Enrolled" radius={[0, 6, 6, 0]} maxBarSize={14} onClick={handleBarClick}>
+                  {chartData.map((d, i) => (
+                    <Cell
+                      key={i}
+                      fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]}
+                      className="cursor-pointer outline-none transition-all duration-200 hover:opacity-85"
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -92,16 +131,36 @@ export function CounsellorPerf({ leads }: CounsellorPerfProps) {
                 {perf.map((p, idx) => {
                   const rateColor = p.enrollmentRate > 10 ? '#22C55E' : p.enrollmentRate > 5 ? '#F59E0B' : 'var(--text-secondary)';
                   return (
-                    <tr key={idx} className="transition-colors hover:bg-white/[0.025]"
+                    <tr key={idx} className="transition-colors hover:bg-white/[0.015]"
                         style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td className="py-2.5 font-medium truncate max-w-[110px]"
-                          style={{ color: 'var(--text-primary)' }}>{p.name}</td>
-                      <td className="py-2.5 text-right font-mono"
-                          style={{ color: 'var(--text-secondary)' }}>{p.assigned}</td>
-                      <td className="py-2.5 text-right font-mono"
-                          style={{ color: '#F59E0B' }}>{p.followupsDue}</td>
-                      <td className="py-2.5 text-right font-mono font-semibold"
-                          style={{ color: rateColor }}>{p.enrollmentRate.toFixed(1)}%</td>
+                      <td
+                        onClick={() => exploreCounsellorLeads(p.id, p.name)}
+                        className="py-2.5 font-medium truncate max-w-[110px] cursor-pointer hover:text-blue-400 transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {p.name}
+                      </td>
+                      <td
+                        onClick={() => exploreCounsellorLeads(p.id, p.name)}
+                        className="py-2.5 text-right font-mono cursor-pointer hover:text-blue-400 hover:font-bold transition-all"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {p.assigned}
+                      </td>
+                      <td
+                        onClick={() => exploreCounsellorFollowups(p.id, p.name)}
+                        className="py-2.5 text-right font-mono cursor-pointer hover:text-amber-400 hover:font-bold transition-all"
+                        style={{ color: '#F59E0B' }}
+                      >
+                        {p.followupsDue}
+                      </td>
+                      <td
+                        onClick={() => exploreCounsellorEnrolled(p.id, p.name)}
+                        className="py-2.5 text-right font-mono font-semibold cursor-pointer hover:text-green-400 transition-all"
+                        style={{ color: rateColor }}
+                      >
+                        {p.enrollmentRate.toFixed(1)}%
+                      </td>
                     </tr>
                   );
                 })}

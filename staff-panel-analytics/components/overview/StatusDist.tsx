@@ -7,12 +7,14 @@ import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
 import { CHART_PALETTE } from '@/lib/ui';
 import { DonutTooltip } from '@/components/shared/ChartTooltip';
+import { exploreLeads } from '@/lib/utils';
 
 interface StatusDistProps {
   leads: Lead[];
+  onExplore: (title: string, leads: Lead[]) => void;
 }
 
-export function StatusDist({ leads }: StatusDistProps) {
+export function StatusDist({ leads, onExplore }: StatusDistProps) {
   const chartData = useMemo(() => {
     const dist = Calc.statusDistribution(leads);
     return dist
@@ -27,6 +29,10 @@ export function StatusDist({ leads }: StatusDistProps) {
 
   const total  = useMemo(() => chartData.reduce((s, d) => s + d.value, 0), [chartData]);
   const active = useMemo(() => Calc.activeLeads(leads), [leads]);
+
+  const handleCellClick = (statusName: string) => {
+    exploreLeads(onExplore, `${statusName} Status`, leads.filter(l => l.status === statusName));
+  };
 
   return (
     <div className="ia-card p-6 flex flex-col sm:flex-row items-center gap-6"
@@ -43,22 +49,32 @@ export function StatusDist({ leads }: StatusDistProps) {
                   innerRadius={54} outerRadius={72}
                   paddingAngle={2} dataKey="value" strokeWidth={0}
                 >
-                  {chartData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  {chartData.map((d, i) => (
+                    <Cell
+                      key={i}
+                      fill={d.color}
+                      onClick={() => handleCellClick(d.name)}
+                      className="cursor-pointer outline-none transition-all duration-200 hover:opacity-85"
+                    />
+                  ))}
                 </Pie>
                 <RTooltip content={<DonutTooltip />} />
               </PieChart>
             </ResponsiveContainer>
 
             {/* Centre label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-              <span className="font-mono font-bold text-white" style={{ fontSize: 26 }}>
+            <button
+              onClick={() => exploreLeads(onExplore, 'Active Leads', leads.filter(l => Calc._isActive(l)))}
+              className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto cursor-pointer focus:outline-none group/centre"
+            >
+              <span className="font-mono font-bold text-white transition-colors group-hover/centre:text-blue-400" style={{ fontSize: 26 }}>
                 {active.toLocaleString()}
               </span>
-              <span className="text-[10px] font-semibold mt-0.5 uppercase tracking-widest"
+              <span className="text-[10px] font-semibold mt-0.5 uppercase tracking-widest transition-colors group-hover/centre:text-blue-400"
                     style={{ color: 'var(--text-muted)' }}>
                 Active
               </span>
-            </div>
+            </button>
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[12px]"
@@ -73,19 +89,22 @@ export function StatusDist({ leads }: StatusDistProps) {
         {chartData.map((d, i) => {
           const pct = total ? ((d.value / total) * 100).toFixed(1) : '0';
           return (
-            <div key={i}
-                 className="flex items-center justify-between gap-3 py-1 px-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+            <button
+              key={i}
+              onClick={() => handleCellClick(d.name)}
+              className="group flex items-center justify-between gap-3 py-1 px-2 rounded-lg hover:bg-white/[0.025] transition-colors cursor-pointer w-full text-left focus:outline-none"
+            >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                <span className="text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-[12px] truncate transition-colors group-hover:text-blue-400" style={{ color: 'var(--text-secondary)' }}>
                   {d.name}
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>{pct}%</span>
-                <span className="font-mono text-[12px] font-semibold text-white">{d.value}</span>
+                <span className="font-mono text-[12px] font-semibold text-white group-hover:text-blue-400 transition-colors">{d.value}</span>
               </div>
-            </div>
+            </button>
           );
         })}
         {chartData.length === 0 && (

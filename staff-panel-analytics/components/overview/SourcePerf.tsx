@@ -10,15 +10,16 @@ import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
 import { ChartTooltip } from '@/components/shared/ChartTooltip';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { exploreLeads } from '@/lib/utils';
 
 interface SourcePerfProps {
   leads: Lead[];
+  onExplore: (title: string, leads: Lead[]) => void;
 }
 
-/** Top-4 bar colors — ranked by conversion rate */
 const BAR_COLORS = ['#22C55E', '#3B82F6', '#8B5CF6', '#64748B'];
 
-export function SourcePerf({ leads }: SourcePerfProps) {
+export function SourcePerf({ leads, onExplore }: SourcePerfProps) {
   const perf = useMemo(
     () => Calc.sourcePerformance(leads, CFG.sources).sort((a, b) => b.enrollmentRate - a.enrollmentRate),
     [leads],
@@ -27,10 +28,26 @@ export function SourcePerf({ leads }: SourcePerfProps) {
   const chartData = useMemo(
     () => perf.slice(0, 6).map(p => ({
       name: p.source.length > 14 ? p.source.slice(0, 14) + '…' : p.source,
+      fullName: p.source,
       'Conv. %': parseFloat(p.enrollmentRate.toFixed(1)),
     })),
     [perf],
   );
+
+  const handleBarClick = (data: any) => {
+    if (data && data.payload) {
+      const payload = data.payload;
+      exploreLeads(onExplore, `Leads from ${payload.fullName}`, leads.filter(l => l.source === payload.fullName));
+    }
+  };
+
+  const exploreSourceLeads = (source: string) => {
+    exploreLeads(onExplore, `Leads from ${source}`, leads.filter(l => l.source === source));
+  };
+
+  const exploreSourceEnrolled = (source: string) => {
+    exploreLeads(onExplore, `Enrolled Leads — ${source}`, leads.filter(l => l.source === source && Calc._isEnrolled(l)));
+  };
 
   return (
     <div className="ia-card p-6" style={{ background: 'var(--bg-card)' }}>
@@ -59,9 +76,13 @@ export function SourcePerf({ leads }: SourcePerfProps) {
                   content={props => <ChartTooltip {...props} valueSuffix="%" />}
                   cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                 />
-                <Bar dataKey="Conv. %" radius={[0, 6, 6, 0]} maxBarSize={14}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]} />
+                <Bar dataKey="Conv. %" radius={[0, 6, 6, 0]} maxBarSize={14} onClick={handleBarClick}>
+                  {chartData.map((d, i) => (
+                    <Cell
+                      key={i}
+                      fill={BAR_COLORS[Math.min(i, BAR_COLORS.length - 1)]}
+                      className="cursor-pointer outline-none transition-all duration-200 hover:opacity-85"
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -91,18 +112,30 @@ export function SourcePerf({ leads }: SourcePerfProps) {
                 {perf.map((p, idx) => {
                   const rateColor = idx === 0 ? '#22C55E' : idx <= 2 ? '#F59E0B' : 'var(--text-secondary)';
                   return (
-                    <tr key={idx} className="transition-colors hover:bg-white/[0.025]"
+                    <tr key={idx} className="transition-colors hover:bg-white/[0.015]"
                         style={{ borderBottom: '1px solid var(--border)' }}>
                       <td className="py-2.5 pr-3 font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
                         {idx + 1}
                       </td>
-                      <td className="py-2.5 font-medium truncate max-w-[120px]" style={{ color: 'var(--text-primary)' }}>
+                      <td
+                        onClick={() => exploreSourceLeads(p.source)}
+                        className="py-2.5 font-medium truncate max-w-[120px] cursor-pointer hover:text-blue-400 transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {p.source}
                       </td>
-                      <td className="py-2.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+                      <td
+                        onClick={() => exploreSourceLeads(p.source)}
+                        className="py-2.5 text-right font-mono cursor-pointer hover:text-blue-400 hover:font-bold transition-all"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
                         {p.assigned}
                       </td>
-                      <td className="py-2.5 text-right font-mono font-semibold" style={{ color: rateColor }}>
+                      <td
+                        onClick={() => exploreSourceEnrolled(p.source)}
+                        className="py-2.5 text-right font-mono font-semibold cursor-pointer hover:text-green-400 transition-all"
+                        style={{ color: rateColor }}
+                      >
                         {p.enrollmentRate.toFixed(1)}%
                       </td>
                     </tr>

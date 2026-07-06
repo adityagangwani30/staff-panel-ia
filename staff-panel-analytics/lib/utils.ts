@@ -1,3 +1,5 @@
+import { Lead } from './types';
+
 /** Milliseconds in one day — avoids magic numbers throughout the codebase */
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -32,4 +34,20 @@ export function formatDate(date: Date | string | null | undefined): string {
  */
 export function toMidnight(date: Date): Date {
   return new Date(date.toDateString());
+}
+
+/**
+ * Standardized click-to-explore handler for the drill-down system.
+ * Handles empty checks consistently and invokes the explorer modal callback.
+ */
+export function exploreLeads(
+  onExplore: (title: string, leads: Lead[]) => void,
+  title: string,
+  leads: Lead[]
+) {
+  if (!leads || leads.length === 0) {
+    alert('No matching leads found.');
+    return;
+  }
+  onExplore(title, leads);
 }
