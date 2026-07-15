@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { Download, Upload, RotateCcw, SlidersHorizontal, Building2 } from 'lucide-react';
 import { getInitialDataset } from '@/lib/demoData';
@@ -140,18 +141,34 @@ export default function DashboardPage() {
         className="sticky top-0 z-40 flex items-center justify-between px-6 py-4"
         style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
       >
-        {/* Brand */}
-        <div className="flex items-center gap-3 select-none">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-               style={{ background: 'rgba(59,130,246,0.15)' }}>
-            <Building2 className="w-4 h-4 text-blue-400" />
-          </div>
-          <div>
-            <div className="text-[15px] font-semibold text-white">IntelAbroad</div>
-            <div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              Overview Dashboard
+        {/* Brand & Nav */}
+        <div className="flex items-center gap-6 select-none">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                 style={{ background: 'rgba(59,130,246,0.15)' }}>
+              <Building2 className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-[15px] font-semibold text-white">IntelAbroad</div>
+              <div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                Staff Portal
+              </div>
             </div>
           </div>
+          <nav className="hidden md:flex items-center gap-2 border-l pl-6 border-zinc-800">
+            <Link
+              href="/"
+              className="text-[13px] font-medium px-3 py-1.5 rounded-lg transition-colors bg-blue-500/10 text-blue-400 font-semibold"
+            >
+              Overview
+            </Link>
+            <Link
+              href="/demo-analytics"
+              className="text-[13px] font-medium px-3 py-1.5 rounded-lg transition-colors text-zinc-400 hover:text-white"
+            >
+              Trend Analytics (Demo)
+            </Link>
+          </nav>
         </div>
 
         {/* Controls */}
@@ -231,6 +248,22 @@ export default function DashboardPage() {
 
       {/* ━━━ MAIN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <main className="max-w-screen-2xl mx-auto px-6 py-8 space-y-10">
+
+        {/* Mobile Navigation fallback */}
+        <div className="md:hidden flex gap-2 p-1.5 rounded-xl border border-zinc-800" style={{ background: 'var(--bg-secondary)' }}>
+          <Link
+            href="/"
+            className="flex-1 text-center text-[12px] font-medium py-2 rounded-lg bg-blue-500/10 text-blue-400 font-semibold"
+          >
+            Overview
+          </Link>
+          <Link
+            href="/demo-analytics"
+            className="flex-1 text-center text-[12px] font-medium py-2 rounded-lg text-zinc-400 hover:text-white"
+          >
+            Trend Analytics
+          </Link>
+        </div>
 
         {/* Page title */}
         <div>

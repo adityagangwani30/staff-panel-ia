@@ -63,6 +63,17 @@ function generateActivityLog(
       const callDays = totalDays > 0 ? Math.floor(seededRandom() * totalDays) : 0;
       const callDate = addDays(entryDate, callDays);
       log.push({ date: callDate, type: 'Call Completed', details: 'Outgoing call completed' });
+
+      // Simulate WhatsApp activity associated with the leads
+      if (seededRandom() < 0.6) {
+        const waDays = totalDays > 0 ? Math.floor(seededRandom() * totalDays) : 0;
+        const waType = seededRandom() < 0.75 ? 'WhatsApp Sent' : 'WhatsApp Received';
+        log.push({
+          date: addDays(entryDate, waDays),
+          type: waType,
+          details: waType === 'WhatsApp Sent' ? 'WhatsApp template message sent' : 'Incoming WhatsApp reply received'
+        });
+      }
     }
   }
 
@@ -99,7 +110,7 @@ function generateActivityLog(
   return log;
 }
 
-export function generateLeadsData(staffList: StaffMember[], count: number): Lead[] {
+export function generateLeadsData(staffList: StaffMember[], count: number, maxDaysAgo = 120): Lead[] {
   _seed = 98765; // Reset seed to lock values
   const leads: Lead[] = [];
 
@@ -177,7 +188,7 @@ export function generateLeadsData(staffList: StaffMember[], count: number): Lead
       }
 
       const isTodayLead = seededRandom() < 0.04;
-      const daysAgo = isTodayLead ? randInt(0, 1) : randInt(2, 120);
+      const daysAgo = isTodayLead ? randInt(0, 1) : randInt(2, maxDaysAgo);
       const entryDate = addDays(CFG.today, -daysAgo);
       const updatedDate = addDays(entryDate, randInt(0, Math.min(daysAgo, 14)));
 
@@ -257,5 +268,11 @@ export function generateLeadsData(staffList: StaffMember[], count: number): Lead
 export function getInitialDataset() {
   const staffList = [...CFG.staff];
   const leads = generateLeadsData(staffList, 640);
+  return { staff: staffList, leads, sourceCentres: CFG.sourceCentres, sources: CFG.sources };
+}
+
+export function getTrendDataset() {
+  const staffList = [...CFG.staff];
+  const leads = generateLeadsData(staffList, 1200, 365); // 1200 leads spanning 365 days
   return { staff: staffList, leads, sourceCentres: CFG.sourceCentres, sources: CFG.sources };
 }
