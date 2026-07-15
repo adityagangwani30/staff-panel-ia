@@ -35,7 +35,8 @@ export const TrendCalc = {
     customToStr: string | null,
     today = CFG.today
   ): TrendPeriodBoundaries {
-    const to = new Date(today.toDateString() + 'T23:59:59');
+    const to = new Date(today.getTime());
+    to.setHours(23, 59, 59, 999);
     let currentFrom: Date;
     let currentTo = to;
     let previousFrom: Date;
@@ -46,6 +47,7 @@ export const TrendCalc = {
       currentFrom = new Date(to.getTime() - 7 * MS_PER_DAY + 1000);
       currentFrom.setHours(0, 0, 0, 0);
       previousTo = new Date(currentFrom.getTime() - 1000);
+      previousTo.setHours(23, 59, 59, 999);
       previousFrom = new Date(previousTo.getTime() - 7 * MS_PER_DAY + 1000);
       previousFrom.setHours(0, 0, 0, 0);
       groupBy = 'daily';
@@ -53,6 +55,7 @@ export const TrendCalc = {
       currentFrom = new Date(to.getTime() - 30 * MS_PER_DAY + 1000);
       currentFrom.setHours(0, 0, 0, 0);
       previousTo = new Date(currentFrom.getTime() - 1000);
+      previousTo.setHours(23, 59, 59, 999);
       previousFrom = new Date(previousTo.getTime() - 30 * MS_PER_DAY + 1000);
       previousFrom.setHours(0, 0, 0, 0);
       groupBy = 'daily';
@@ -60,6 +63,7 @@ export const TrendCalc = {
       currentFrom = new Date(to.getTime() - 90 * MS_PER_DAY + 1000);
       currentFrom.setHours(0, 0, 0, 0);
       previousTo = new Date(currentFrom.getTime() - 1000);
+      previousTo.setHours(23, 59, 59, 999);
       previousFrom = new Date(previousTo.getTime() - 90 * MS_PER_DAY + 1000);
       previousFrom.setHours(0, 0, 0, 0);
       groupBy = 'weekly';
@@ -67,20 +71,44 @@ export const TrendCalc = {
       currentFrom = new Date(to.getTime() - 365 * MS_PER_DAY + 1000);
       currentFrom.setHours(0, 0, 0, 0);
       previousTo = new Date(currentFrom.getTime() - 1000);
+      previousTo.setHours(23, 59, 59, 999);
       previousFrom = new Date(previousTo.getTime() - 365 * MS_PER_DAY + 1000);
       previousFrom.setHours(0, 0, 0, 0);
       groupBy = 'monthly';
     } else {
-      // Custom range: fallback to 30d if dates are not selected
-      const fromDate = customFromStr ? new Date(customFromStr) : new Date(today.getTime() - 30 * MS_PER_DAY);
+      // Custom range: split YYYY-MM-DD safely to avoid UTC day shift
+      let fromDate: Date;
+      if (customFromStr) {
+        const parts = customFromStr.split('-');
+        if (parts.length === 3) {
+          fromDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0, 0);
+        } else {
+          fromDate = new Date(customFromStr);
+        }
+      } else {
+        fromDate = new Date(today.getTime() - 30 * MS_PER_DAY);
+      }
       fromDate.setHours(0, 0, 0, 0);
-      const toDate = customToStr ? new Date(customToStr + 'T23:59:59') : to;
+
+      let toDate: Date;
+      if (customToStr) {
+        const parts = customToStr.split('-');
+        if (parts.length === 3) {
+          toDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 23, 59, 59, 999);
+        } else {
+          toDate = new Date(customToStr);
+          toDate.setHours(23, 59, 59, 999);
+        }
+      } else {
+        toDate = new Date(to.getTime());
+      }
 
       currentFrom = fromDate;
       currentTo = toDate;
 
       const durationMs = currentTo.getTime() - currentFrom.getTime();
       previousTo = new Date(currentFrom.getTime() - 1000);
+      previousTo.setHours(23, 59, 59, 999);
       previousFrom = new Date(previousTo.getTime() - durationMs);
       previousFrom.setHours(0, 0, 0, 0);
 

@@ -265,14 +265,34 @@ export function generateLeadsData(staffList: StaffMember[], count: number, maxDa
   return leads;
 }
 
-export function getInitialDataset() {
-  const staffList = [...CFG.staff];
-  const leads = generateLeadsData(staffList, 640);
-  return { staff: staffList, leads, sourceCentres: CFG.sourceCentres, sources: CFG.sources };
+// Shared singletons in client runtime memory
+let sharedLeads: Lead[] | null = null;
+let sharedStaff: StaffMember[] | null = null;
+
+export function getSharedDataset() {
+  if (!sharedLeads || !sharedStaff) {
+    const initial = getInitialDataset();
+    sharedLeads = initial.leads;
+    sharedStaff = initial.staff;
+  }
+  return {
+    leads: sharedLeads!,
+    staff: sharedStaff!,
+    sourceCentres: CFG.sourceCentres,
+    sources: CFG.sources
+  };
 }
 
-export function getTrendDataset() {
+export function updateSharedLeads(leads: Lead[]) {
+  sharedLeads = leads;
+}
+
+export function updateSharedStaff(staff: StaffMember[]) {
+  sharedStaff = staff;
+}
+
+export function getInitialDataset() {
   const staffList = [...CFG.staff];
-  const leads = generateLeadsData(staffList, 1200, 365); // 1200 leads spanning 365 days
+  const leads = generateLeadsData(staffList, 1000, 365); // 1000 leads spanning 365 days
   return { staff: staffList, leads, sourceCentres: CFG.sourceCentres, sources: CFG.sources };
 }

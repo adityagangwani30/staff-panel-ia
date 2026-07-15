@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { SlidersHorizontal, Building2, Calendar } from 'lucide-react';
-import { getTrendDataset } from '@/lib/demoData';
+import { getSharedDataset } from '@/lib/demoData';
 import { Lead } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
 import { SectionHeading } from '@/components/shared/SectionHeading';
@@ -21,7 +21,7 @@ const DATE_OPTIONS = [
 
 export default function DemoAnalyticsPage() {
   // Generate the rich 365-day dataset for trends
-  const initial = useMemo(() => getTrendDataset(), []);
+  const initial = useMemo(() => getSharedDataset(), []);
   const [rawLeads] = useState<Lead[]>(initial.leads);
 
   // Global Time Filtering States (Defaulting to Last 30 Days as standard)

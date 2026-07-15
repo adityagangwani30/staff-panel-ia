@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { Download, Upload, RotateCcw, SlidersHorizontal, Building2 } from 'lucide-react';
-import { getInitialDataset } from '@/lib/demoData';
+import { getSharedDataset, updateSharedLeads, updateSharedStaff } from '@/lib/demoData';
 import { DataLoader } from '@/lib/dataLoader';
 import { Calc } from '@/lib/calculations';
 import { CFG } from '@/lib/constants';
@@ -40,7 +40,7 @@ const EMPTY_FILTER: FilterState = {
 
 /* ─── Main Page ──────────────────────────────────────────────────────── */
 export default function DashboardPage() {
-  const initial = useMemo(() => getInitialDataset(), []);
+  const initial = useMemo(() => getSharedDataset(), []);
 
   const [rawLeads,    setRawLeads]    = useState<Lead[]>(initial.leads);
   const [staffList,   setStaffList]   = useState<StaffMember[]>(initial.staff);
@@ -111,6 +111,8 @@ export default function DashboardPage() {
         const staff    = DataLoader.generateStaffFromData(imported, initial.staff);
         setRawLeads(imported);
         setStaffList(staff);
+        updateSharedLeads(imported);
+        updateSharedStaff(staff);
         setFileName(file.name);
         setLastUpdated(new Date());
       } catch (err: unknown) {

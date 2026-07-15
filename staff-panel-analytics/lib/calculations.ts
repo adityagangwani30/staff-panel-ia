@@ -196,15 +196,18 @@ export const Calc = {
     const today = CFG.today;
 
     if (range === 'today') {
+      const to = new Date(today.getTime());
+      to.setHours(23, 59, 59, 999);
       return {
         from: toMidnight(today),
-        to:   new Date(today.toDateString() + 'T23:59:59'),
+        to,
       };
     }
 
     const nDayRanges: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
     if (nDayRanges[range] !== undefined) {
-      const to   = new Date(today.toDateString() + 'T23:59:59');
+      const to = new Date(today.getTime());
+      to.setHours(23, 59, 59, 999);
       const from = new Date(to.getTime() - nDayRanges[range] * MS_PER_DAY + 1000);
       from.setHours(0, 0, 0, 0);
       return { from, to };
